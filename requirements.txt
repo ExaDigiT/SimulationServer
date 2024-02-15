@@ -1,4 +1,4 @@
--r raps/requirements.txt
+# -r raps/requirements.txt
 # Install dev version of pydantic so we can play with the new use_attribute_docstrings option before 2.7.0 comes out
 git+https://github.com/pydantic/pydantic@e99bf8a#egg=pydantic
 fastapi==0.108.0
@@ -6,3 +6,6 @@ pydantic-settings==2.1.0
 loguru==0.7.2
 gunicorn==21.2.0 
 uvicorn==0.27.1
+pandas==2.2.0
+SQLAlchemy==2.0.27
+pydruid==0.6.6
