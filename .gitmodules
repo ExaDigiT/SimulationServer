@@ -1,0 +1,4 @@
+[submodule "raps"]
+	path = raps
+	url = git@code.ornl.gov:exadigit/raps.git
+	branch = main
