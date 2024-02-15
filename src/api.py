@@ -51,5 +51,5 @@ async def http_404_handler(request: Request, exc: HTTPException) -> Response:
 app.add_middleware(GZipMiddleware, compresslevel = 5)
 
 
-from .endpoints import example
-app.include_router(example.router)
+from .endpoints import simulator
+app.include_router(simulator.router)
