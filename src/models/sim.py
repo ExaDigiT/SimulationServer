@@ -5,6 +5,7 @@ from pydantic import AwareDatetime, model_validator, Field
 
 from .base import BaseModel
 from .job_state import JobStateEnum
+from ..util.depends import ApiField
 
 
 class Sim(BaseModel):
@@ -41,6 +42,16 @@ class Sim(BaseModel):
     """ Float from 0 -> 1 summarizing the simulation progress """
 
     config: SimConfig
+
+SIM_API_FIELDS: list[ApiField] = [
+    ApiField('id', str, 'string'),
+    ApiField('user', str, 'string'),
+    ApiField('state', str, 'string'),
+    ApiField('logical_start', datetime, 'date'),
+    ApiField('logical_end', datetime, 'date'),
+    ApiField('run_start', datetime, 'date'),
+    ApiField('run_end', datetime, 'date'),
+]
 
 
 class SimConfig(BaseModel):
