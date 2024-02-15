@@ -16,7 +16,7 @@ class Sim(BaseModel):
     user: str
     """ User who launched the simulation """
 
-    state: Literal['pending', 'success', 'fail']
+    state: Literal['running', 'success', 'fail']
 
     logical_start: datetime
     """
