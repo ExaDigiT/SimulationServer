@@ -1,6 +1,7 @@
 from typing import TypeVar, Optional
 from collections.abc import Collection
 from datetime import datetime, timedelta
+import itertools
 
 from pydantic import TypeAdapter
 import pandas as pd
@@ -65,3 +66,12 @@ def expand_field_selectors(
 
     fields_out = [*dict.fromkeys(fields_out)] # Dedup, preserver order
     return fields_out
+
+
+def fields_from_selectors(shorthands: dict[str, list[str]]) -> tuple[str, ...]:
+    fields = [
+        *shorthands.keys(),
+        *itertools.chain(*shorthands.values()),
+    ]
+    fields = [*dict.fromkeys(fields)] # Dedup, preserver order
+    return tuple(fields)
