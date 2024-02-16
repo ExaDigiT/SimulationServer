@@ -21,18 +21,11 @@ async def lifespan(api: FastAPI):
 
 
 app = FastAPI(
-    title = "LVA Backend",
+    title = "ExaDigiT Simulation Server",
     version = "0.1.0",
     # Simplify ids and names in generated clients a bit
     # NOTE: This means we need one tag defined (or inherited from the APIRouter object) on every route
     generate_unique_id_function = lambda route: f"{route.tags[0]}_{route.name}",
-
-    # FastAPI/Pydantic 2 will create two schemas if a model has defaults, since the input to the server
-    # doesn't need the fields, but the output will always have them populated. Pydantic 1 didn't make
-    # this distinction however, so I'm reverting it here so we don't have to adjust clientside code.
-    # TODO: Eventually we should update the clientside code to use the separate, more accurate, schemas.
-    separate_input_output_schemas = False,
-
     root_path = settings.root_path,
     lifespan = lifespan,
     debug = settings.debug_mode,
