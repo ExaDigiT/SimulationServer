@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: exadigit-simulation-server
+  name: exadigit-simulation-server
+  namespace: stf218-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: exadigit-simulation-server
+  template:
+    metadata:
+      name: main
+      labels:
+        app: exadigit-simulation-server
+    spec:
+      containers:
+      - image: registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server:latest
+        name: main
+        imagePullPolicy: Always
+        env:
+          - name: EXADIGIT_ROOT_PATH
+            value: "/exadigit/api"
+          - name: EXADIGIT_DEBUG_MODE
+            value: "false"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 100Mi
+          limits:
+            cpu: 1000m
+            memory: 500Mi
+  strategy:
+    type: Recreate
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: exadigit-simulation-server
+  namespace: stf218-app
+  labels:
+    app: exadigit-simulation-server
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+  selector:
+    app: exadigit-simulation-server
+---
