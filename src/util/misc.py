@@ -1,7 +1,4 @@
-from typing import TypeVar, Optional
-from collections.abc import Collection
 from datetime import datetime, timedelta
-import itertools
 
 from pydantic import TypeAdapter
 import pandas as pd
@@ -40,38 +37,3 @@ def snap_duration(delta: timedelta, round = "down"):
 
 DatetimeValidator = TypeAdapter(datetime)
 """ Just a TypeAdapter for parsing dates more flexibly than datetime.isoformat """
-
-
-S = TypeVar("S", bound=str)
-def expand_field_selectors(
-    fields: Optional[Collection[S]],
-    shorthands: dict[S, list[S]],
-) -> list[S]:
-    """
-    Takes a list of strings and expands "shorthand" names. Used to select a set of field options,
-    and have shorthands for common sets of fields like "all", or "power". Also removes duplicates.
-    If shorthands contains "default", that will be used if fields is empty or None.
-    Maintains order of the passed in fields.
-    """
-    fields_list: list[S] = list(fields) if fields else []
-    if len(fields_list) == 0 and 'default' in shorthands:
-        fields_list = ['default']
-
-    fields_out: list[S] = []
-    for field in fields_list:
-        if field in shorthands: # Recursively expand shorthands
-            fields_out.extend(expand_field_selectors(shorthands[field], shorthands))
-        else:
-            fields_out.append(field)
-
-    fields_out = [*dict.fromkeys(fields_out)] # Dedup, preserver order
-    return fields_out
-
-
-def fields_from_selectors(shorthands: dict[str, list[str]]) -> tuple[str, ...]:
-    fields = [
-        *shorthands.keys(),
-        *itertools.chain(*shorthands.values()),
-    ]
-    fields = [*dict.fromkeys(fields)] # Dedup, preserver order
-    return tuple(fields)

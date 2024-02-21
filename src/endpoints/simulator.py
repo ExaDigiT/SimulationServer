@@ -8,9 +8,8 @@ from ..models.output import (
     COOLING_CDU_FIELD_SELECTORS, CoolingSimCDUFieldSelector,
 )
 from ..models.sim import Sim, SIM_API_FIELDS, SimConfig
-from ..util.depends import (
-    Granularity, granularity_params, QuerySpan, query_span_params,
-    ApiField, filter_params, Filters, sort_params, Sort, 
+from ..util.api_queries import (
+    QuerySpan, query_span_params, filter_params, Filters, sort_params, Sort, 
 )
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 

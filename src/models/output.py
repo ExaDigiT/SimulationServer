@@ -3,8 +3,7 @@ from datetime import datetime, timedelta
 
 from .base import BaseModel
 from .job_state import JobStateEnum
-from ..util.depends import ApiField
-from ..util.misc import fields_from_selectors
+from ..util.api_queries import get_selectors
 
 
 
@@ -41,29 +40,29 @@ class SchedulerSimJob(BaseModel):
     cpu_trace: list[float]
     gpu_trace: list[float]
 
-SCHEDULER_SIM_JOB_API_FIELDS = [
-    ApiField('job_id', str, 'string'),
-    ApiField('name', str, 'string'),
-    ApiField('allocation_nodes', int, 'number'),
-    ApiField('time_snapshot', datetime, 'date'),
-    ApiField('time_submission', datetime, 'date'),
-    # ApiField('time_limit', timedelta, 'number'), # TODO
-    ApiField('time_start', datetime, 'date'),
-    ApiField('time_end', datetime, 'date'),
-    ApiField('state_current', str, 'string'),
-    ApiField('nodes', str, 'string'),
-    # ApiField('xnames', list[str], 'number'), # TODO
-    # ApiField('cpu_util', float, 'number'),
-    # ApiField('gpu_util', float, 'number'),
-    # ApiField('cpu_trace', list[float], 'number'),
-    # ApiField('gpu_trace', list[float], 'number'),
-]
+SCHEDULER_SIM_JOB_API_FIELDS = {
+    'job_id': 'string',
+    'name': 'string',
+    'allocation_nodes': 'number',
+    'time_snapshot': 'date',
+    'time_submission': 'date',
+    'time_limit': 'timedelta',
+    'time_start': 'date',
+    'time_end': 'date',
+    'state_current': 'string',
+    'nodes': 'string',
+    'xnames': 'array[string]',
+    # 'cpu_util': 'number',
+    # 'gpu_util': 'number',
+    # 'cpu_trace': 'array[number]',
+    # 'gpu_trace': 'array[number]',
+}
 
 SCHEDULER_SIM_JOB_FIELD_SELECTORS = {
     "default": list(SchedulerSimJob.model_fields.keys()),
 }
 
-SchedulerSimJobFieldSelector = Literal[fields_from_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
+SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
 
 
 
@@ -109,30 +108,30 @@ class CoolingSimCDU(BaseModel):
     pump_1_input_pressure_secondary: float
 
 
-COOLING_CDU_API_FIELDS: list[ApiField] = [
-    ApiField("xname", str, 'string'),
-    ApiField("row", int, 'number'),
-    ApiField("col", int, 'number'),
-    ApiField("rack_1_power", float, 'number'),
-    ApiField("rack_2_power", float, 'number'),
-    ApiField("rack_3_power", float, 'number'),
-    ApiField("total_power", float, 'number'),
-    ApiField("rack_1_loss", float, 'number'),
-    ApiField("rack_2_loss", float, 'number'),
-    ApiField("rack_3_loss", float, 'number'),
-    ApiField("total_loss", float, 'number'),
-    ApiField("liquid_inlet_0_flow_primary", float, 'number'),
-    ApiField("liquid_inlet_0_temperature_primary", float, 'number'),
-    ApiField("liquid_outlet_0_temperature_primary", float, 'number'),
-    ApiField("liquid_inlet_0_pressure_primary", float, 'number'),
-    ApiField("liquid_outlet_0_pressure_primary", float, 'number'),
-    ApiField("liquid_outlet_0_flow_secondary", float, 'number'),
-    ApiField("liquid_inlet_1_temperature_secondary", float, 'number'),
-    ApiField("liquid_outlet_1_temperature_secondary", float, 'number'),
-    ApiField("liquid_inlet_1_pressure_secondary", float, 'number'),
-    ApiField("liquid_outlet_1_pressure_secondary", float, 'number'),
-    ApiField("pump_1_input_pressure_secondary", float, 'number'),
-]
+COOLING_CDU_API_FIELDS = {
+    "xname": 'string',
+    "row": 'number',
+    "col": 'number',
+    "rack_1_power": 'number',
+    "rack_2_power": 'number',
+    "rack_3_power": 'number',
+    "total_power": 'number',
+    "rack_1_loss": 'number',
+    "rack_2_loss": 'number',
+    "rack_3_loss": 'number',
+    "total_loss": 'number',
+    "liquid_inlet_0_flow_primary": 'number',
+    "liquid_inlet_0_temperature_primary": 'number',
+    "liquid_outlet_0_temperature_primary": 'number',
+    "liquid_inlet_0_pressure_primary": 'number',
+    "liquid_outlet_0_pressure_primary": 'number',
+    "liquid_outlet_0_flow_secondary": 'number',
+    "liquid_inlet_1_temperature_secondary": 'number',
+    "liquid_outlet_1_temperature_secondary": 'number',
+    "liquid_inlet_1_pressure_secondary": 'number',
+    "liquid_outlet_1_pressure_secondary": 'number',
+    "pump_1_input_pressure_secondary": 'number',
+}
 
 COOLING_CDU_FIELD_SELECTORS = {
     "default": [
@@ -157,4 +156,4 @@ COOLING_CDU_FIELD_SELECTORS = {
     "loss": ['rack_1_loss','rack_2_loss','rack_3_loss','total_loss'],
 }
 
-CoolingSimCDUFieldSelector = Literal[fields_from_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
+CoolingSimCDUFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]

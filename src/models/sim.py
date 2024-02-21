@@ -5,7 +5,6 @@ from pydantic import AwareDatetime, model_validator, Field
 
 from .base import BaseModel
 from .job_state import JobStateEnum
-from ..util.depends import ApiField
 
 
 class Sim(BaseModel):
@@ -43,15 +42,15 @@ class Sim(BaseModel):
 
     config: SimConfig
 
-SIM_API_FIELDS: list[ApiField] = [
-    ApiField('id', str, 'string'),
-    ApiField('user', str, 'string'),
-    ApiField('state', str, 'string'),
-    ApiField('logical_start', datetime, 'date'),
-    ApiField('logical_end', datetime, 'date'),
-    ApiField('run_start', datetime, 'date'),
-    ApiField('run_end', datetime, 'date'),
-]
+SIM_API_FIELDS = {
+    'id': 'string',
+    'user': 'string',
+    'state': 'string',
+    'logical_start': 'date',
+    'logical_end': 'date',
+    'run_start': 'date',
+    'run_end': 'date',
+}
 
 
 class SimConfig(BaseModel):
