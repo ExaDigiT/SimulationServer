@@ -67,6 +67,18 @@ Trims strings and ignores trailing commas.
 """
 
 
+class Page(BaseModel, Generic[T]):
+    results: list[T]
+    offset: int
+    limit: int
+    total_results: int
+
+    @classmethod
+    def model_parametrized_name(cls, params: tuple[type[Any], ...]) -> str:
+        """ Set the name of instances of the generic type (which will be used in openapi.json) """
+        return f'{params[0].__name__}Page'
+
+
 class ObjectTimeseries(BaseModel, Generic[T]):
     start: AwareDatetime
     """ Start time of the timeseries """

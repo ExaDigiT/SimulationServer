@@ -1,7 +1,7 @@
-from typing import Annotated as A
+from typing import Annotated as A, Optional
 from fastapi import APIRouter, Body, Depends
 from datetime import datetime, timedelta
-from ..models.base import ObjectTimeseries
+from ..models.base import ObjectTimeseries, Page
 from ..models.output import (
     SchedulerSimJob, SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
     SchedulerSimJobFieldSelector, SchedulerSimSystem, CoolingSimCDU, COOLING_CDU_API_FIELDS,
@@ -9,12 +9,12 @@ from ..models.output import (
 )
 from ..models.sim import Sim, SIM_API_FIELDS, SimConfig
 from ..util.api_queries import (
-    QuerySpan, query_span_params, filter_params, Filters, sort_params, Sort, 
+    Granularity, granularity_params, filter_params, Filters, sort_params, Sort, 
 )
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
 
-QuerySpanDep = A[QuerySpan, Depends(query_span_params(default_granularity=timedelta(seconds=1)))]
+GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=timedelta(seconds=1)))]
 
 
 @router.post("/run", response_model=Sim)
@@ -42,7 +42,7 @@ SimSort = A[Sort, Depends(sort_params(SIM_API_FIELDS, [
     "asc:logical_start", "asc:logical_end", "asc:run_start", "asc:run_end", "asc:id",
 ]))]
 
-@router.get("/list", response_model=list[Sim])
+@router.get("/list", response_model=Page[Sim])
 def experiment_list(filters: SimFilters, sort: SimSort):
     """
     List all the simulations.
@@ -63,12 +63,14 @@ CoolingCDUFilters = A[Filters, Depends(filter_params(COOLING_CDU_API_FIELDS))]
 
 @router.get("/{id}/cooling/cdu", response_model=ObjectTimeseries[CoolingSimCDU])
 def cooling_cdu(*,
-    id: str, span: QuerySpanDep, fields: CoolingSimCDUFieldSelector, filters: CoolingCDUFilters,
+    id: str,
+    start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
+    fields: CoolingSimCDUFieldSelector, filters: CoolingCDUFilters,
 ):
     return {
-        "start": span.start.isoformat(),
-        "end": span.end.isoformat(),
-        "granularity": span.granularity,
+        "start": start.isoformat() if start else None,
+        "end": end.isoformat() if end else None,
+        "granularity": 1,
         "data": [],
     }
 
@@ -78,7 +80,8 @@ SchedulerSimJobFilters = A[Filters, Depends(filter_params(SCHEDULER_SIM_JOB_API_
 
 @router.get("/{id}/scheduler/jobs", response_model=list[SchedulerSimJob])
 def scheduler_jobs(*,
-    id: str, start: datetime, end: datetime,
+    id: str,
+    start: Optional[datetime] = None, end: Optional[datetime] = None,
     fields: SchedulerSimJobFieldSelector, filters: SchedulerSimJobFilters,
 ):
     return []
