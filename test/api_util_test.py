@@ -4,18 +4,6 @@ from datetime import timedelta as td
 from pydantic import TypeAdapter, ValidationError
 
 from src.models.base import CommaSeparatedList, NumTimedelta
-from src.util.misc import snap_duration
-
-
-def test_snap_duration():
-    # Unmarked tests are automatically marked and run as "unit"
-    assert snap_duration(td(seconds=3), 'down') == td(seconds=2)
-    assert snap_duration(td(seconds=3), 'up') == td(seconds=5)
-    assert snap_duration(td(days=70), 'up') == td(days=90)
-    assert snap_duration(td(days=70), 'down') == td(days=60)
-    assert snap_duration(td(seconds=1), 'down') == td(seconds=1)
-    assert snap_duration(td(seconds=0), 'down') == td(seconds=1)
-    assert snap_duration(td(days=4000), 'up') == td(days=3650)
 
 
 def test_comma_separated_list():

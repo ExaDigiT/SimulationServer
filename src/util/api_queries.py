@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Generic, TypeVar, NamedTuple, Union, Any, Literal, Annotated as A
+from typing import Callable, Optional, Generic, TypeVar, NamedTuple, Union, Any, Literal, Annotated as A, cast
 from collections.abc import Collection
 from datetime import datetime, timedelta
 import functools, re, inspect, math, dataclasses, itertools
@@ -10,17 +10,48 @@ from sqlalchemy.sql import FromClause, ColumnElement
 from fastapi import Query, HTTPException, Depends
 
 from ..models.base import BaseModel, NumTimedelta
-from .misc import DatetimeValidator, snap_duration
 from .druid import to_timestamp, time_floor
 
 T = TypeVar("T")
 
 
+### Helpers ###
 
 def _steal_description(model: type[BaseModel], field: str):
     return Query(description=model.model_fields[field].description)
 
 
+NumValidator = TypeAdapter(Union[int, float])
+TimedeltaValidator = TypeAdapter(cast(timedelta, NumTimedelta))
+DatetimeValidator = TypeAdapter(datetime)
+
+
+
+DURATIONS = [TimedeltaValidator.validate_strings(d) for d in [
+    'PT1S', 'PT2S', 'PT3S', 'PT4S', 'PT5S', 'PT10S', 'PT15S', 'PT20S', 'PT30S',
+    'PT1M', 'PT2M', 'PT3M', 'PT4M', 'PT5M', 'PT10M', 'PT15M', 'PT20M', 'PT30M',
+    'PT1H', 'PT2H', 'PT3H', 'PT4H', 'PT6H', 'PT8H', 'PT12H',
+    'P1D', 'P2D', 'P3D', 'P4D', 'P5D', 'P7D', 'P14D',
+    'P1M', 'P2M', 'P3M', 'P4M', 'P6M', # Assumes 30 days/month
+    'P1Y', 'P2Y', 'P3Y', 'P4Y', 'P5Y', 'P10Y', # Assumes 365 days/year
+]]
+""" List of reasonable duration "breakpoints" """
+
+
+def snap_duration(delta: timedelta, round = "down"):
+    """
+    Snaps delta to a duration in DURATION. By default uses the first duration smaller than delta.
+
+    mode: "up" or "down", default down. Pass "up" to use the first duration larger than delta
+    """
+    if round == "up":
+        return next((d for d in DURATIONS if d >= delta), DURATIONS[-1])
+    else:
+        return next((d for d in reversed(DURATIONS) if d <= delta), DURATIONS[0])
+
+
+
+### Basic Params ###
 
 class Granularity(BaseModel):
     granularity: A[Optional[NumTimedelta],
@@ -120,6 +151,41 @@ def query_span_params(
 
 
 
+S = TypeVar("S", bound=str)
+def expand_field_selectors(
+    fields: Optional[Collection[S]],
+    shorthands: dict[S, list[S]],
+) -> list[S]:
+    """
+    Takes a list of strings and expands "shorthand" names. Used to select a set of field options,
+    and have shorthands for common sets of fields like "all", or "power". Also removes duplicates.
+    If shorthands contains "default", that will be used if fields is empty or None.
+    Maintains order of the passed in fields.
+    """
+    fields_list: list[S] = list(fields) if fields else []
+    if len(fields_list) == 0 and 'default' in shorthands:
+        fields_list = ['default']
+
+    fields_out: list[S] = []
+    for field in fields_list:
+        if field in shorthands: # Recursively expand shorthands
+            fields_out.extend(expand_field_selectors(shorthands[field], shorthands))
+        else:
+            fields_out.append(field)
+
+    fields_out = [*dict.fromkeys(fields_out)] # Dedup, preserver order
+    return fields_out
+
+
+def get_selectors(shorthands: dict[str, list[str]]) -> tuple[str, ...]:
+    """ For making a Literal like Literal[get_selectors(shorthands)] """
+    fields = [*shorthands.keys(), *itertools.chain(*shorthands.values())]
+    return tuple(dict.fromkeys(fields)) # Dedup, preserve order
+
+
+
+### Filters and Sort ###
+
 @dataclasses.dataclass
 class FilterOp(Generic[T]):
     name: str
@@ -160,10 +226,8 @@ class ApiFieldType:
 
 def _create_default_field_types():
     def parse_str(val: str): return val
-    NumValidator = TypeAdapter(Union[int, float])
     def parse_num(val: str): return NumValidator.validate_strings(val)
     def parse_date(val: str): return DatetimeValidator.validate_strings(val)
-    TimedeltaValidator: Any = TypeAdapter(NumTimedelta)
     def parse_td(val: str): return TimedeltaValidator.validate_strings(val).total_seconds()
     def parse_list(func: Callable):
         """ Return a function to parse a list with datatype """
@@ -745,35 +809,3 @@ def sort_params(
 
     return dependency
 
-
-
-S = TypeVar("S", bound=str)
-def expand_field_selectors(
-    fields: Optional[Collection[S]],
-    shorthands: dict[S, list[S]],
-) -> list[S]:
-    """
-    Takes a list of strings and expands "shorthand" names. Used to select a set of field options,
-    and have shorthands for common sets of fields like "all", or "power". Also removes duplicates.
-    If shorthands contains "default", that will be used if fields is empty or None.
-    Maintains order of the passed in fields.
-    """
-    fields_list: list[S] = list(fields) if fields else []
-    if len(fields_list) == 0 and 'default' in shorthands:
-        fields_list = ['default']
-
-    fields_out: list[S] = []
-    for field in fields_list:
-        if field in shorthands: # Recursively expand shorthands
-            fields_out.extend(expand_field_selectors(shorthands[field], shorthands))
-        else:
-            fields_out.append(field)
-
-    fields_out = [*dict.fromkeys(fields_out)] # Dedup, preserver order
-    return fields_out
-
-
-def get_selectors(shorthands: dict[str, list[str]]) -> tuple[str, ...]:
-    """ For making a Literal like Literal[get_selectors(shorthands)] """
-    fields = [*shorthands.keys(), *itertools.chain(*shorthands.values())]
-    return tuple(dict.fromkeys(fields)) # Dedup, preserve order

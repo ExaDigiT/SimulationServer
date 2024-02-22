@@ -1,15 +1,26 @@
-import pytest
 from datetime import timedelta as td, datetime, timezone as tz
 import re
+import pytest
 
 from sqlalchemy import select, literal, cast, TIMESTAMP
 from fastapi import HTTPException
 
 from src.util.api_queries import (
-    QuerySpan, query_span_params, Granularity, granularity_params,
+    snap_duration, QuerySpan, query_span_params, Granularity, granularity_params,
     Filters, filter_params, Sort, sort_params, expand_field_selectors,
 )
 from .helpers import normalize_sql
+
+
+def test_snap_duration():
+    # Unmarked tests are automatically marked and run as "unit"
+    assert snap_duration(td(seconds=2.5), 'down') == td(seconds=2)
+    assert snap_duration(td(seconds=2.5), 'up') == td(seconds=3)
+    assert snap_duration(td(days=70), 'up') == td(days=90)
+    assert snap_duration(td(days=70), 'down') == td(days=60)
+    assert snap_duration(td(seconds=1), 'down') == td(seconds=1)
+    assert snap_duration(td(seconds=0), 'down') == td(seconds=1)
+    assert snap_duration(td(days=4000), 'up') == td(days=3650)
 
 
 def test_granularity():
