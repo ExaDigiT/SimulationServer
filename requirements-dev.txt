@@ -1,2 +1,3 @@
--r requirements.txt
+-r requirements-simulation.txt
+-r requirements-server.txt
 pytest

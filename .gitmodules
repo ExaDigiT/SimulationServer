@@ -1,4 +1,4 @@
-[submodule "raps"]
-	path = raps
+[submodule "simulation_server/simulation/raps"]
+	path = simulation_server/simulation/raps
 	url = git@code.ornl.gov:exadigit/raps.git
 	branch = main

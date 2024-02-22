@@ -3,7 +3,7 @@ from datetime import timedelta as td
 
 from pydantic import TypeAdapter, ValidationError
 
-from src.models.base import CommaSeparatedList, NumTimedelta
+from simulation_server.models.base import CommaSeparatedList, NumTimedelta
 
 
 def test_comma_separated_list():

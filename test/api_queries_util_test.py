@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import select, literal, cast, TIMESTAMP
 from fastapi import HTTPException
 
-from src.util.api_queries import (
+from simulation_server.server.api_queries import (
     snap_duration, QuerySpan, query_span_params, Granularity, granularity_params,
     Filters, filter_params, Sort, sort_params, expand_field_selectors,
 )

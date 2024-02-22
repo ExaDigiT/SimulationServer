@@ -1,5 +1,5 @@
 import pytest
-from src.api import app
+from simulation_server.server.main import app
 
 
 @pytest.fixture(scope="module")
@@ -14,3 +14,5 @@ def api_client():
 def druid_engine():
     """ Get a reference to the druid engine"""
     return get_obs_druid_engine()
+
+

@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 from .base import BaseModel
 from .job_state import JobStateEnum
-from ..util.api_queries import get_selectors
 
 
 
@@ -62,7 +61,6 @@ SCHEDULER_SIM_JOB_FIELD_SELECTORS = {
     "default": list(SchedulerSimJob.model_fields.keys()),
 }
 
-SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
 
 
 
@@ -156,4 +154,3 @@ COOLING_CDU_FIELD_SELECTORS = {
     "loss": ['rack_1_loss','rack_2_loss','rack_3_loss','total_loss'],
 }
 
-CoolingSimCDUFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]

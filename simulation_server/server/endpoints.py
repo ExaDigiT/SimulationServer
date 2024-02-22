@@ -1,20 +1,22 @@
-from typing import Annotated as A, Optional
+from typing import Annotated as A, Optional, Literal
 from fastapi import APIRouter, Body, Depends
 from datetime import datetime, timedelta
 from ..models.base import ObjectTimeseries, Page
 from ..models.output import (
     SchedulerSimJob, SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
-    SchedulerSimJobFieldSelector, SchedulerSimSystem, CoolingSimCDU, COOLING_CDU_API_FIELDS,
-    COOLING_CDU_FIELD_SELECTORS, CoolingSimCDUFieldSelector,
+    SchedulerSimSystem,
+    CoolingSimCDU, COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
 )
 from ..models.sim import Sim, SIM_API_FIELDS, SimConfig
-from ..util.api_queries import (
-    Granularity, granularity_params, filter_params, Filters, sort_params, Sort, 
+from .api_queries import (
+    Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
 
 GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=timedelta(seconds=1)))]
+SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
+CoolingSimCDUFieldSelector = Literal[get_selectors(COOLING_CDU_FIELD_SELECTORS)]
 
 
 @router.post("/run", response_model=Sim)
