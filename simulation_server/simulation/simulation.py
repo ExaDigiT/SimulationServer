@@ -2,58 +2,53 @@ from typing import Optional, Union, TypeVar, Literal, Annotated as A
 from datetime import datetime
 from pydantic import BaseModel, AwareDatetime, model_validator
 import pandas as pd
-from raps.config import SC_SHAPE, TOTAL_NODES, DOWN_NODES, MAX_TIME, SEED, FMU_PATH
-from raps.cooling import ThermoFluidsModel
-from raps.power import PowerManager
-from raps.scheduler import Scheduler
-from raps.telemetry import Telemetry
-from .models import SchedulerSimConfig
+from pathlib import Path
+import random, math
+import numpy as np
+from .raps.raps.config import SC_SHAPE, TOTAL_NODES, DOWN_NODES, TRACE_QUANTA, FMU_PATH
+from .raps.raps.cooling import ThermoFluidsModel
+from .raps.raps.power import PowerManager
+from .raps.raps.scheduler import Scheduler
+from .raps.raps.telemetry import Telemetry
+from ..models.sim import SimConfig
 
+RAPS_PATH = Path(__file__).parent / 'raps'
 
-def run_simulation(config: SchedulerSimConfig):
+def run_simulation(config: SimConfig):
+    if config.scheduler.enabled:
+        if config.scheduler.seed:
+            # TODO: This is globabl and should probably be done in RAPS
+            random.seed(config.scheduler.seed)
+            np.random.seed(config.scheduler.seed)
 
+        timesteps = math.ceil((config.end - config.start).total_seconds() / TRACE_QUANTA)
+        down_nodes = [*DOWN_NODES, *config.scheduler.down_nodes]
 
+        if config.cooling.enabled:
+            cooling_model = ThermoFluidsModel(str(RAPS_PATH / FMU_PATH))
+            cooling_model.initialize()
+        else:
+            cooling_model = None
 
+        power_manager = PowerManager(SC_SHAPE, down_nodes)
 
-# def run_raps(*,
-#     start: datetime, end: datetime,
-#     jobs_df: Optional[pd.DataFrame],
-#     jobs_profile_df: Optional[pd.DataFrame],
-#     simulate_cooling: bool,
-# ):
-#     """ Runs raps and the cooling model """
-#     if (jobs_df is None) != (jobs_profile_df is None):
-#         raise ValueError("Specify both jobs_df and jobs_profile_df or neither")
-#     replay_jobs = (jobs_df is not None)
+        sc = Scheduler(
+            TOTAL_NODES, down_nodes,
+            power_manager = power_manager,
+            layout_manager = None,
+            cooling_model = cooling_model,
+            debug = False,
+        )
 
-#     if simulate_cooling:
-#         cooling_model = ThermoFluidsModel(FMU_PATH)
-#         cooling_model.initialize()
-#     else:
-#         cooling_model = None
+        if config.scheduler.jobs_mode == "replay":
+            raise Exception("Replay not supported yet")
+        elif config.scheduler.jobs_mode == "custom":
+            raise Exception("Custom not supported")
+        elif config.scheduler.jobs_mode:
+            jobs = sc.generate_random_jobs(num_jobs=config.scheduler.num_jobs)
 
-#     power_manager = PowerManager(SC_SHAPE, DOWN_NODES)
-#     sc = Scheduler(
-#         total_nodes = TOTAL_NODES,
-#         down_nodes = DOWN_NODES,
-#         power_manager = power_manager,
-#         layout_manager = None,
-#         cooling_model = cooling_model,
-#         debug = False,
-#         replay = replay_jobs,
-#     )
-
-#     if replay_jobs:
-#         td = Telemetry()
-#         # Jobs from telemetry data
-#         jobs = td.read_data(jobs_df, jobs_profile_df)
-#     else:
-#         # Randomly generated jobs
-#         jobs = sc.generate_random_jobs(num_jobs=args.numjobs)
-    
-#     timesteps = int((end - start).total_seconds())
-#     sim_gen = sc.run_simulation(jobs, timesteps=timesteps)
-#     for tick_data in sim_gen:
-        
+        yield from sc.run_simulation(jobs, timesteps=timesteps)
+    else:
+        raise Exception("No simulations specified")
 
 

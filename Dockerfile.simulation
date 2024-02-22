@@ -18,4 +18,4 @@ COPY ["simulation_server", "/app/simulation_server/"]
 COPY ["README.md", "/app"]
 RUN python3 -m pip install -e .[simulation]
 
-CMD ["python3", "-m", "simulation_server.simulator.main"]
+CMD ["python3", "-m", "simulation_server.simulation.main"]
