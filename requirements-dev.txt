@@ -1,3 +1,0 @@
--r requirements-simulation.txt
--r requirements-server.txt
-pytest
