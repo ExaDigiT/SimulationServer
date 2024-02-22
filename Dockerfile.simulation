@@ -1,0 +1,21 @@
+FROM ubuntu:22.04
+
+RUN apt update && \
+    apt install -y python3 python3-pip git
+
+RUN pip install --upgrade pip
+RUN pip install install hatch
+
+WORKDIR /app
+
+COPY pyproject.toml /app
+
+RUN hatch dep show requirements > /app/requirements.txt
+RUN hatch dep show requirements --feature=simulation >> /app/requirements.txt
+RUN python3 -m pip install -r /app/requirements.txt
+
+COPY ["simulation_server", "/app/simulation_server/"]
+COPY ["README.md", "/app"]
+RUN python3 -m pip install -e .[simulation]
+
+CMD ["python3", "-m", "simulation_server.simulator.main"]
