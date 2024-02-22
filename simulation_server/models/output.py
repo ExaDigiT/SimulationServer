@@ -12,7 +12,7 @@ class SchedulerSimJob(BaseModel):
 
     name: str
 
-    allocation_nodes: int
+    node_count: int
     """ Number of nodes required """
 
     time_snapshot: datetime
@@ -23,7 +23,7 @@ class SchedulerSimJob(BaseModel):
     time_end: Optional[datetime] = None
     state_current: JobStateEnum
 
-    nodes: Optional[str]
+    node_ranges: Optional[str]
     """
     The Slurm hosts the job is running on as a Slurm hosts string.
     E.g. frontier[03629-03630,03633-03635]
@@ -42,14 +42,14 @@ class SchedulerSimJob(BaseModel):
 SCHEDULER_SIM_JOB_API_FIELDS = {
     'job_id': 'string',
     'name': 'string',
-    'allocation_nodes': 'number',
+    'node_count': 'number',
     'time_snapshot': 'date',
     'time_submission': 'date',
     'time_limit': 'timedelta',
     'time_start': 'date',
     'time_end': 'date',
     'state_current': 'string',
-    'nodes': 'string',
+    'node_ranges': 'string',
     'xnames': 'array[string]',
     # 'cpu_util': 'number',
     # 'gpu_util': 'number',
