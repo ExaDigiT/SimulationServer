@@ -62,6 +62,9 @@ class SimConfig(BaseModel):
 
     @model_validator(mode='after')
     def validate_model(self):
+        if self.end <= self.start:
+            raise ValueError("Start must be less than end")
+
         if not any(m.enabled for m in [self.scheduler, self.cooling]):
             raise ValueError("Must enable one simulation")
         if self.cooling.enabled and not self.scheduler.enabled:

@@ -33,4 +33,6 @@ if __name__ == "__main__":
         raise Exception("No configuration passed")
 
     config = SimConfig.model_validate(config)
-    print(config)
+    
+    for data in run_simulation(config):
+        print(data)

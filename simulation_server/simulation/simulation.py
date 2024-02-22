@@ -44,8 +44,9 @@ def run_simulation(config: SimConfig):
             raise Exception("Replay not supported yet")
         elif config.scheduler.jobs_mode == "custom":
             raise Exception("Custom not supported")
-        elif config.scheduler.jobs_mode:
-            jobs = sc.generate_random_jobs(num_jobs=config.scheduler.num_jobs)
+        elif config.scheduler.jobs_mode == "random":
+            num_jobs = config.scheduler.num_jobs if config.scheduler.num_jobs is not None else 1000
+            jobs = sc.generate_random_jobs(num_jobs=num_jobs)
 
         yield from sc.run_simulation(jobs, timesteps=timesteps)
     else:
