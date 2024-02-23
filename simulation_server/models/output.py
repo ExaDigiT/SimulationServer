@@ -34,10 +34,12 @@ class SchedulerSimJob(BaseModel):
     E.g. ['x2307c3s0b1', 'x2408c5s2b1']
     """
 
-    cpu_util: float
-    gpu_util: float
-    cpu_trace: list[float]
-    gpu_trace: list[float]
+    # Removing these for now, they are constant and just what you set in the input.
+    # These may change in the future though
+    # cpu_util: float
+    # gpu_util: float
+    # cpu_trace: list[float]
+    # gpu_trace: list[float]
 
 SCHEDULER_SIM_JOB_API_FIELDS = {
     'job_id': 'string',

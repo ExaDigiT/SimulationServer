@@ -1,12 +1,14 @@
 """ A script to run the ExaDigiT simulation """
-import argparse, os
+import argparse, os, functools
 from datetime import timedelta
 from pathlib import Path
 from loguru import logger
 import yaml
 from ..models.sim import SimConfig
 from ..models.output import JobStateEnum, SchedulerSimJob, SchedulerSimSystem, CoolingSimCDU
+from .raps.raps.telemetry import index_to_xname, xname_to_index
 from .simulation import run_simulation
+from .node_set import FrontierNodeSet
 
 
 def offset_to_time(start, offset):
@@ -14,6 +16,18 @@ def offset_to_time(start, offset):
         return start + timedelta(seconds=offset)
     else:
         return None
+
+
+@functools.lru_cache(maxsize = 65_536)
+def parse_nodes(node_indexes: tuple[int]):
+    """
+    Memoized function to convert raps indexes into xnames and node_ranges.
+    Memo increases performance since it gets called on snapshots of the same job multiple times.
+    """
+    xnames = [index_to_xname(i) for i in node_indexes]
+    hostnames = (FrontierNodeSet.xname_to_hostname(x) for x in xnames)
+    node_ranges = str(FrontierNodeSet(','.join(hostnames))) # Collapse list into ranges
+    return xnames, node_ranges
 
 
 if __name__ == "__main__":
@@ -46,19 +60,19 @@ if __name__ == "__main__":
 
     for data in run_simulation(config):
         timestamp = offset_to_time(config.start, data.current_time)
-        print("HERE", timestamp)
 
         down_nodes = data.down_nodes # Convert to xnames
-        scheduler_sim_system = [SchedulerSimSystem(
-            timestamp= timestamp,
+        scheduler_sim_system = [SchedulerSimSystem.model_validate(dict(
+            timestamp = timestamp,
             down_nodes = [] # TODO
-        )]
+        ))]
         
         scheduler_sim_jobs: list[SchedulerSimJob] = []
         for job in data.jobs:
             # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
             time_end = offset_to_time(config.start, job.end_time) if job.start_time else None
 
+            xnames, node_ranges = parse_nodes(tuple(job.scheduled_nodes))
             scheduler_sim_jobs.append(SchedulerSimJob.model_validate(dict(
                 job_id = str(job.id) if job.id else None,
                 name = job.name,
@@ -69,19 +83,10 @@ if __name__ == "__main__":
                 time_start = offset_to_time(config.start, job.start_time),
                 time_end = offset_to_time(config.start, job.end_time),
                 state_current = JobStateEnum(job.state.name),
-                node_ranges = None, # TODO
-                xnames = [], # TODO
-                cpu_util = job.cpu_util,
-                gpu_util = job.gpu_util,
-                # I'm not sure if we actually need these? I think they are constant throughout a job
-                cpu_trace = job.cpu_trace,
-                gpu_trace = job.gpu_trace,
+                node_ranges = node_ranges,
+                xnames = xnames,
             )))
 
         cooling_sim_cdus: list[CoolingSimCDU] = []
         if data.cooling_df:
             pass # TODO
-
-        for job in scheduler_sim_jobs:
-            print()
-            print(repr(job))

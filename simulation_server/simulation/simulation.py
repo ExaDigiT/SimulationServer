@@ -21,6 +21,7 @@ def run_simulation(config: SimConfig):
             random.seed(config.scheduler.seed)
             np.random.seed(config.scheduler.seed)
 
+        # TODO: Is timesteps seconds or 15 second intervals?
         timesteps = math.ceil((config.end - config.start).total_seconds() / TRACE_QUANTA)
         down_nodes = [*DOWN_NODES, *config.scheduler.down_nodes]
 

@@ -36,6 +36,7 @@ simulation = [
     "scipy==1.10.1",
     "pyarrow==15.0.0",
     "PyYAML==6.0.1",
+    "ClusterShell==1.9.2", 
 ]
 dev = [
     "pytest",
