@@ -1,0 +1,22 @@
+FROM python:3.9
+
+# RUN apt-get update \
+#   && apt-get install \
+#   && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --upgrade pip
+RUN pip install install hatch
+
+WORKDIR /app
+
+COPY pyproject.toml /app
+
+RUN hatch dep show requirements > /app/requirements.txt
+RUN hatch dep show requirements --feature=server >> /app/requirements.txt
+RUN python3 -m pip install -r /app/requirements.txt
+
+COPY ["simulation_server", "/app/simulation_server/"]
+COPY ["README.md", "/app"]
+RUN python3 -m pip install -e .[server]
+
+CMD ["python3", "-m", "simulation_server.server.main"]

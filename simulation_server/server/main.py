@@ -60,7 +60,7 @@ if __name__ == "__main__":
         )
     else:
         subprocess.run(["gunicorn",
-            "main:app",
+            "simulation_server.server.main:app",
             "--bind", f"0.0.0.0:{settings.http_port}",
             "--worker-class", "uvicorn.workers.UvicornWorker",
         ], check=True)
