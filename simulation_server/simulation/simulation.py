@@ -89,10 +89,10 @@ def run_simulation(config: SimConfig):
         for data in sc.run_simulation(jobs, timesteps=timesteps):
             timestamp = _offset_to_time(config.start, data.current_time)
 
-            down_nodes = data.down_nodes # Convert to xnames
+            down_nodes, _ = _parse_nodes(tuple(data.down_nodes))
             scheduler_sim_system = [SchedulerSimSystem.model_validate(dict(
                 timestamp = timestamp,
-                down_nodes = [] # TODO
+                down_nodes = down_nodes,
             ))]
             
             scheduler_sim_jobs: list[SchedulerSimJob] = []
