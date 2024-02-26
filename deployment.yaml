@@ -26,6 +26,8 @@ spec:
             value: "/exadigit/api"
           - name: EXADIGIT_DEBUG_MODE
             value: "false"
+          - name: EXADIGIT_JOB_IMAGE
+            value: "registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server-simulation-job:latest"
         resources:
           requests:
             cpu: 500m

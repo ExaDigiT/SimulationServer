@@ -1,6 +1,7 @@
 from typing import Annotated as A, Optional, Literal
 from fastapi import APIRouter, Body, Depends
 from datetime import datetime, timedelta
+import uuid
 from ..models.base import ObjectTimeseries, Page
 from ..models.output import (
     SchedulerSimJob, SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
@@ -8,9 +9,14 @@ from ..models.output import (
     CoolingSimCDU, COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
 )
 from ..models.sim import Sim, SIM_API_FIELDS, SimConfig
+from .config import AppSettings
 from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
+from .k8s_util import submit_job, get_job
+
+
+settings = AppSettings()
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
 
@@ -25,8 +31,35 @@ def run(*, sim_config: A[SimConfig, Body()]):
     Start running a simulation in the background. POST the configuration for the simulation. Returns
     a Sim object containing an id you can use to query the results as they are generated.
     """
+    sim_id = str(uuid.uuid4())
+
+    submit_job({
+        "metadata": {
+            "name": f"exadigit-simulation-server-{sim_id}",
+            "labels": {"app": "exadigit-simulation-server"},
+        },
+        "spec": {
+            "template": {
+                "spec": {
+                    "containers": [
+                        {
+                            "name": "main",
+                            "image": settings.job_image,
+                            "command": ['python3', "-m", "simulation_server.simulation.main"],
+                            "env": [
+                                {"name": "SIM_CONFIG", "value": sim_config.model_dump_json()},
+                            ],
+                        }
+                    ],
+                    "restartPolicy": "Never",
+                }
+            },
+            "backoffLimit": 0, # Don't retry on failure
+        }
+    })
+
     return Sim(
-        id = "0",
+        id = sim_id,
         user = "someone",
         state = "running",
         logical_start = sim_config.start,
