@@ -30,6 +30,16 @@ def parse_nodes(node_indexes: tuple[int]):
     return xnames, node_ranges
 
 
+CDU_INDEXES = [
+    'x2002c1', 'x2003c1', 'x2006c1', 'x2009c1', 'x2102c1', 'x2103c1', 'x2106c1', 'x2109c1',
+    'x2202c1', 'x2203c1', 'x2206c1', 'x2209c1', 'x2302c1', 'x2303c1', 'x2306c1', 'x2309c1',
+    'x2402c1', 'x2403c1', 'x2406c1', 'x2409c1', 'x2502c1', 'x2503c1', 'x2506c1', 'x2509c1',
+    'x2609c1',
+]
+def cdu_index_to_xname(index: int):
+    return CDU_INDEXES[index - 1]
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description = __doc__.strip(),
@@ -88,5 +98,49 @@ if __name__ == "__main__":
             )))
 
         cooling_sim_cdus: list[CoolingSimCDU] = []
-        if data.cooling_df:
-            pass # TODO
+        if data.cooling_df is not None:
+            for i, point in data.cooling_df.iterrows():
+                xname = cdu_index_to_xname(int(point["CDU"]))
+                row, col = int(xname[2]), int(xname[3:5])
+                cooling_sim_cdus.append(CoolingSimCDU.model_validate(dict(
+                    timestamp = timestamp,
+                    xname = xname,
+                    row = row,
+                    col = col,
+
+                    rack_1_power = point['Rack 1'],
+                    rack_2_power = point['Rack 2'],
+                    rack_3_power = point['Rack 3'],
+                    total_power = point['Sum'],
+
+                    rack_1_loss = point['Loss 1'],
+                    rack_2_loss = point['Loss 2'],
+                    rack_3_loss = point['Loss 3'],
+                    total_loss = point['Loss Sum'],
+
+                    work_done_by_cdup = point['Work Done by CDUP'],
+                    rack_return_temp = point['Rack Return Temperature'],
+                    rack_supply_temp = point['Rack Supply Temperature'],
+                    rack_supply_pressure = point['Rack Supply Pressure'],
+                    rack_return_pressure = point['Rack Return Pressure'],
+                    rack_flowrate = point['Rack Flowrate'],
+                    htw_ctw_flowrate = point['HTW/CTW Flowrate'],
+                    htwr_htws_ctwr_ctws_pressure = point['HTWR/HTWS/CTWR/CTWS Pressure'],
+                    htwr_htws_ctwr_ctws_temp = point['HTWR/HTWS/CTWR/CTWS Temperature'],
+                    power_cunsumption_htwps = point['Power Consumption HTWPS'],
+                    power_consumption_ctwps = point['Power Consumption CTWPs'],
+                    power_consumption_fan = point['Power Consumption Fan'],
+                    htwp_speed = point['HTWP Speed'],
+                    nctwps_staged = point['nCTWPs Staged'],
+                    nhtwps_staged = point['nHTWPs Staged'],
+                    pue_output = point['PUE Output'],
+                    nehxs_staged = point['nEHXs Staged'],
+                    ncts_staged = point['nCTs Staged'],
+                    facility_return_temp = point['Facility Return Temperature'],
+                    facility_supply_temp = point['Facility Supply Temperature'],
+                    facility_supply_pressure = point['Facility Supply Pressure'],
+                    facility_return_pressure = point['Facility Return Pressure'],
+                    cdu_loop_bypass_flowrate = point['CDU Loop Bypass Flowrate'],
+                    facility_flowrate = point['Facility Flowrate'],
+                )))
+

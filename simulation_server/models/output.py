@@ -94,18 +94,31 @@ class CoolingSimCDU(BaseModel):
     rack_2_loss: float
     rack_3_loss: float
     total_loss: float
- 
-    liquid_inlet_0_flow_primary: float
-    liquid_inlet_0_temperature_primary: float
-    liquid_outlet_0_temperature_primary: float
-    liquid_inlet_0_pressure_primary: float
-    liquid_outlet_0_pressure_primary: float
-    liquid_outlet_0_flow_secondary: float
-    liquid_inlet_1_temperature_secondary: float
-    liquid_outlet_1_temperature_secondary: float
-    liquid_inlet_1_pressure_secondary: float
-    liquid_outlet_1_pressure_secondary: float
-    pump_1_input_pressure_secondary: float
+
+    work_done_by_cdup: float
+    rack_return_temp: float
+    rack_supply_temp: float
+    rack_supply_pressure: float
+    rack_return_pressure: float
+    rack_flowrate: float
+    htw_ctw_flowrate: float
+    htwr_htws_ctwr_ctws_pressure: float
+    htwr_htws_ctwr_ctws_temp: float
+    power_cunsumption_htwps: float
+    power_consumption_ctwps: float
+    power_consumption_fan: float
+    htwp_speed: float
+    nctwps_staged: float
+    nhtwps_staged: float
+    pue_output: float
+    nehxs_staged: float
+    ncts_staged: float
+    facility_return_temp: float
+    facility_supply_temp: float
+    facility_supply_pressure: float
+    facility_return_pressure: float
+    cdu_loop_bypass_flowrate: float
+    facility_flowrate: float
 
 
 COOLING_CDU_API_FIELDS = {
@@ -120,39 +133,33 @@ COOLING_CDU_API_FIELDS = {
     "rack_2_loss": 'number',
     "rack_3_loss": 'number',
     "total_loss": 'number',
-    "liquid_inlet_0_flow_primary": 'number',
-    "liquid_inlet_0_temperature_primary": 'number',
-    "liquid_outlet_0_temperature_primary": 'number',
-    "liquid_inlet_0_pressure_primary": 'number',
-    "liquid_outlet_0_pressure_primary": 'number',
-    "liquid_outlet_0_flow_secondary": 'number',
-    "liquid_inlet_1_temperature_secondary": 'number',
-    "liquid_outlet_1_temperature_secondary": 'number',
-    "liquid_inlet_1_pressure_secondary": 'number',
-    "liquid_outlet_1_pressure_secondary": 'number',
-    "pump_1_input_pressure_secondary": 'number',
+    "work_done_by_cdup": "number",
+    "rack_return_temp": "number",
+    "rack_supply_temp": "number",
+    "rack_supply_pressure": "number",
+    "rack_return_pressure": "number",
+    "rack_flowrate": "number",
+    "htw_ctw_flowrate": "number",
+    "htwr_htws_ctwr_ctws_pressure": "number",
+    "htwr_htws_ctwr_ctws_temp": "number",
+    "power_cunsumption_htwps": "number",
+    "power_consumption_ctwps": "number",
+    "power_consumption_fan": "number",
+    "htwp_speed": "number",
+    "nctwps_staged": "number",
+    "nhtwps_staged": "number",
+    "pue_output": "number",
+    "nehxs_staged": "number",
+    "ncts_staged": "number",
+    "facility_return_temp": "number",
+    "facility_supply_temp": "number",
+    "facility_supply_pressure": "number",
+    "facility_return_pressure": "number",
+    "cdu_loop_bypass_flowrate": "number",
+    "facility_flowrate": "number",
 }
 
 COOLING_CDU_FIELD_SELECTORS = {
-    "default": [
-        'xname',
-        'pow',
-        'power',
-        'loss',
-        'liquid_inlet_0_flow_primary',
-        'liquid_inlet_0_temperature_primary',
-        'liquid_outlet_0_temperature_primary',
-        'liquid_inlet_0_pressure_primary',
-        'liquid_outlet_0_pressure_primary',
-        'liquid_outlet_0_flow_secondary',
-        'liquid_inlet_1_temperature_secondary',
-        'liquid_outlet_1_temperature_secondary',
-        'liquid_inlet_1_pressure_secondary',
-        'liquid_outlet_1_pressure_secondary',
-        'pump_1_input_pressure_secondary',
-    ],
+    "default": [*COOLING_CDU_API_FIELDS.keys()],
     "pos": ['row', 'col'],
-    "power": ['rack_1_power', 'rack_2_power', 'rack_3_power', 'total_power'],
-    "loss": ['rack_1_loss','rack_2_loss','rack_3_loss','total_loss'],
 }
-
