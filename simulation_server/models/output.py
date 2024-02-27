@@ -1,5 +1,6 @@
 from typing import Optional, Literal
-from datetime import datetime, timedelta
+from datetime import timedelta
+from pydantic import AwareDatetime
 
 from .base import BaseModel
 from .job_state import JobStateEnum
@@ -15,12 +16,12 @@ class SchedulerSimJob(BaseModel):
     node_count: int
     """ Number of nodes required """
 
-    time_snapshot: datetime
+    time_snapshot: AwareDatetime
     """ Time in the simulation of this job snapshot """
-    time_submission: datetime
+    time_submission: AwareDatetime
     time_limit: timedelta
-    time_start: Optional[datetime] = None
-    time_end: Optional[datetime] = None
+    time_start: Optional[AwareDatetime] = None
+    time_end: Optional[AwareDatetime] = None
     state_current: JobStateEnum
 
     node_ranges: Optional[str]
@@ -67,14 +68,14 @@ SCHEDULER_SIM_JOB_FIELD_SELECTORS = {
 
 
 class SchedulerSimSystem(BaseModel):
-    timestamp: datetime
+    timestamp: AwareDatetime
     down_nodes: list[str]
     """ List of xnames that are currently down in the simulation """
 
 
 
 class CoolingSimCDU(BaseModel):
-    timestamp: datetime
+    timestamp: AwareDatetime
     xname: str
     """
     Unique identifier for the CDU of the (simulated) measurement, e.g. x2007c1.

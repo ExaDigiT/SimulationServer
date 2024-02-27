@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional, Literal, Annotated as A
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pydantic import AwareDatetime, model_validator, Field
 
 from .base import BaseModel
@@ -18,7 +18,7 @@ class Sim(BaseModel):
 
     state: Literal['running', 'success', 'fail']
 
-    logical_start: datetime
+    logical_start: AwareDatetime
     """
     The start of the date range the simulation is running over.
 
@@ -28,13 +28,13 @@ class Sim(BaseModel):
     matters to set how long the simulation should run for.
     """
 
-    logical_end: datetime
+    logical_end: AwareDatetime
     """ See sim_start """
 
-    run_start: datetime
+    run_start: AwareDatetime
     """ The real time the simulation started running """
 
-    run_end: Optional[datetime]
+    run_end: Optional[AwareDatetime]
     """ The real time the simulation finished """
 
     progress: A[float, Field(ge=0, le=1)]
@@ -109,7 +109,7 @@ class SchedulerSimCustomJob(BaseModel):
     name: str
     allocation_nodes: int
     """ Number of nodes required """
-    time_submission: datetime
+    time_submission: AwareDatetime
     time_limit: timedelta
 
     cpu_util: float
