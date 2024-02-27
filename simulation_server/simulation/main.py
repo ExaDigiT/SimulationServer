@@ -14,21 +14,32 @@ def cli_run(config: SimConfig):
 
 
 def background_job(sim: Sim):
-    producer = get_kafka_producer()
+    sim = sim.model_copy()
+    kafka_producer = get_kafka_producer()
 
     def output_rows(topic, rows):
         for row in rows:
             value = json.dumps({"sim_id": sim.id, **row.model_dump(mode='json')}).encode()
-            producer.send(topic=topic, value=value)
+            kafka_producer.send(topic=topic, value=value)
 
     logger.info(f"Starting simulation {sim.model_dump_json()}")
+    config = SimConfig.model_validate(sim.config)
 
-    for data in run_simulation(sim.config):
-        output_rows("svc-event-exadigit-schedulersimsystem", data.scheduler_sim_system)
-        output_rows("svc-event-exadigit-schedulersimjob", data.scheduler_sim_jobs)
-        output_rows("svc-event-exadigit-coolingsimcdu", data.cooling_sim_cdus)
-
-    logger.info(f"Simulation {sim.id} complete")
+    try:
+        for data in run_simulation(config):
+            output_rows("svc-event-exadigit-schedulersimsystem", data.scheduler_sim_system)
+            output_rows("svc-event-exadigit-schedulersimjob", data.scheduler_sim_jobs)
+            output_rows("svc-event-exadigit-coolingsimcdu", data.cooling_sim_cdus)
+    except BaseException as e:
+        sim.state = "fail"
+        kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
+        logger.info(f"Simulation {sim.id} failed")
+        raise e
+    
+    sim.state = "success"
+    kafka_producer.send(topic = "svc-event-exadigit-sim", value = sim.serialize_for_druid())
+    kafka_producer.close() # Close and wait for messages to be sent
+    logger.info(f"Simulation {sim.id} finished")
 
 
 if __name__ == "__main__":

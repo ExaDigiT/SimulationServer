@@ -43,11 +43,9 @@ def run(*, sim_config: A[SimConfig, Body()]):
         run_start = datetime.now(timezone.utc),
         run_end = None,
         progress = 0,
-        config = sim_config,
+        config = sim_config.model_dump(mode = 'json'),
     )
-
-    value = sim.model_dump_json(exclude={"progress"}).encode()
-    kafka_producer.send("svc-event-exadigit-sim", value = value)
+    kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
 
     submit_job({
         "metadata": {
@@ -68,6 +66,10 @@ def run(*, sim_config: A[SimConfig, Body()]):
                             "envFrom": [
                                 {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
                             ],
+                            "resources": {
+                                "requests": {"cpu": "1000m", "memory": "512Mi"},
+                                "limits": {"cpu": "4000m", "memory": "3Gi"},
+                            },
                         }
                     ],
                     "restartPolicy": "Never",

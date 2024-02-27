@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Literal, Annotated as A
 from datetime import timedelta
+import json
 from pydantic import AwareDatetime, model_validator, Field
 
 from .base import BaseModel
@@ -40,7 +41,16 @@ class Sim(BaseModel):
     progress: A[float, Field(ge=0, le=1)]
     """ Float from 0 -> 1 summarizing the simulation progress """
 
-    config: SimConfig
+    config: dict
+    """ Original config used to run the simulation """
+
+
+    def serialize_for_druid(self):
+        return json.dumps({
+            **self.model_dump(mode = 'json', exclude = {"progress"}),
+            "config": json.dumps(self.config),
+        }).encode()
+
 
 SIM_API_FIELDS = {
     'id': 'string',
