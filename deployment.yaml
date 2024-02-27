@@ -28,6 +28,9 @@ spec:
             value: "false"
           - name: EXADIGIT_JOB_IMAGE
             value: "registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server-simulation-job:latest"
+        envFrom:
+          - secretRef:
+              name: prod-infra-envconfig-service-sens-creds
         resources:
           requests:
             cpu: 500m
