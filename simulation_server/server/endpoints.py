@@ -49,34 +49,33 @@ def run(*, sim_config: A[SimConfig, Body()]):
     value = sim.model_dump_json(exclude={"progress"}).encode()
     kafka_producer.send("svc-event-exadigit-sim", value = value)
 
-    # submit_job({
-    #     "metadata": {
-    #         "name": f"exadigit-simulation-server-{sim.id}",
-    #         "labels": {"app": "exadigit-simulation-server"},
-    #     },
-    #     "spec": {
-    #         "template": {
-    #             "spec": {
-    #                 "containers": [
-    #                     {
-    #                         "name": "main",
-    #                         "image": settings.job_image,
-    #                         "command": ['python3', "-m", "simulation_server.simulation.main"],
-    #                         "env": [
-    #                             {"name": "SIM_CONFIG", "value": sim_config.model_dump_json()},
-    #                             {"name": "SIM_ID", "value": sim.id},
-    #                         ],
-    #                         "envFrom": [
-    #                             {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
-    #                         ],
-    #                     }
-    #                 ],
-    #                 "restartPolicy": "Never",
-    #             }
-    #         },
-    #         "backoffLimit": 0, # Don't retry on failure
-    #     }
-    # })
+    submit_job({
+        "metadata": {
+            "name": f"exadigit-simulation-server-{sim.id}",
+            "labels": {"app": "exadigit-simulation-server"},
+        },
+        "spec": {
+            "template": {
+                "spec": {
+                    "containers": [
+                        {
+                            "name": "main",
+                            "image": settings.job_image,
+                            "command": ['python3', "-m", "simulation_server.simulation.main", "background-job"],
+                            "env": [
+                                {"name": "SIM", "value": sim.model_dump_json()},
+                            ],
+                            "envFrom": [
+                                {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
+                            ],
+                        }
+                    ],
+                    "restartPolicy": "Never",
+                }
+            },
+            "backoffLimit": 0, # Don't retry on failure
+        }
+    })
 
     return sim
 
