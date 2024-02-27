@@ -32,11 +32,14 @@ def get_druid_engine(**kwargs):
         compiles(sqla_type, "druid")(lambda type_, compiler, override=override, **kw: override)
 
     kwargs = {
-        # By default, druid does an approximate count for COUNT(DISTINCT), this turns that off.
-        # You can still use APPROX_COUNT_DISTINCT to do approx count explicitly
-        'useApproximateCountDistinct': False,
-        # Return SQL Arrays as arrays instead of strings
-        "sqlStringifyArrays": False,
+        "context": {
+            # By default, druid does an approximate count for COUNT(DISTINCT), this turns that off.
+            # You can still use APPROX_COUNT_DISTINCT to do approx count explicitly
+            'useApproximateCountDistinct': False,
+            # Return SQL Arrays as arrays instead of strings
+            "sqlStringifyArrays": False,
+            **kwargs.get("context", {}),
+        },
         **kwargs,
     }
 
