@@ -1,6 +1,6 @@
 from typing import Annotated as A, Optional, Literal
 from fastapi import APIRouter, Body, Depends
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import uuid
 from ..models.base import ObjectTimeseries, Page
 from ..models.output import (
@@ -14,6 +14,7 @@ from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
 from .k8s_util import submit_job, get_job
+from ..util.kafka import get_kafka_producer
 
 
 settings = AppSettings()
@@ -31,44 +32,53 @@ def run(*, sim_config: A[SimConfig, Body()]):
     Start running a simulation in the background. POST the configuration for the simulation. Returns
     a Sim object containing an id you can use to query the results as they are generated.
     """
-    sim_id = str(uuid.uuid4())
+    kafka_producer = get_kafka_producer()
 
-    submit_job({
-        "metadata": {
-            "name": f"exadigit-simulation-server-{sim_id}",
-            "labels": {"app": "exadigit-simulation-server"},
-        },
-        "spec": {
-            "template": {
-                "spec": {
-                    "containers": [
-                        {
-                            "name": "main",
-                            "image": settings.job_image,
-                            "command": ['python3', "-m", "simulation_server.simulation.main"],
-                            "env": [
-                                {"name": "SIM_CONFIG", "value": sim_config.model_dump_json()},
-                            ],
-                        }
-                    ],
-                    "restartPolicy": "Never",
-                }
-            },
-            "backoffLimit": 0, # Don't retry on failure
-        }
-    })
-
-    return Sim(
-        id = sim_id,
-        user = "someone",
+    sim = Sim(
+        id = str(uuid.uuid4()),
+        user = "unknown", # TODO pull this from cookie/auth header
         state = "running",
         logical_start = sim_config.start,
         logical_end = sim_config.end,
-        run_start = datetime.now(),
+        run_start = datetime.now(timezone.utc),
         run_end = None,
-        progress = 0.0,
+        progress = 0,
         config = sim_config,
     )
+
+    value = sim.model_dump_json(exclude={"progress"}).encode()
+    kafka_producer.send("svc-event-exadigit-sim", value = value)
+
+    # submit_job({
+    #     "metadata": {
+    #         "name": f"exadigit-simulation-server-{sim.id}",
+    #         "labels": {"app": "exadigit-simulation-server"},
+    #     },
+    #     "spec": {
+    #         "template": {
+    #             "spec": {
+    #                 "containers": [
+    #                     {
+    #                         "name": "main",
+    #                         "image": settings.job_image,
+    #                         "command": ['python3', "-m", "simulation_server.simulation.main"],
+    #                         "env": [
+    #                             {"name": "SIM_CONFIG", "value": sim_config.model_dump_json()},
+    #                             {"name": "SIM_ID", "value": sim.id},
+    #                         ],
+    #                         "envFrom": [
+    #                             {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
+    #                         ],
+    #                     }
+    #                 ],
+    #                 "restartPolicy": "Never",
+    #             }
+    #         },
+    #         "backoffLimit": 0, # Don't retry on failure
+    #     }
+    # })
+
+    return sim
 
 
 
