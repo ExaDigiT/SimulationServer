@@ -13,7 +13,7 @@ from .config import AppSettings
 from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
-from .k8s_util import submit_job, get_job
+from ..util.k8s import submit_job, get_job
 from ..util.kafka import get_kafka_producer
 
 
