@@ -1,8 +1,7 @@
-from typing import Optional, Literal
-from datetime import timedelta
+from typing import Optional
 from pydantic import AwareDatetime
 
-from .base import BaseModel
+from .base import BaseModel, NumTimedelta
 from .job_state import JobStateEnum
 
 
@@ -19,7 +18,7 @@ class SchedulerSimJob(BaseModel):
     time_snapshot: AwareDatetime
     """ Time in the simulation of this job snapshot """
     time_submission: AwareDatetime
-    time_limit: timedelta
+    time_limit: NumTimedelta
     time_start: Optional[AwareDatetime] = None
     time_end: Optional[AwareDatetime] = None
     state_current: JobStateEnum
