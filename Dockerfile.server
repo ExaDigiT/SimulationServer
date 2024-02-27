@@ -1,8 +1,8 @@
 FROM python:3.9
 
-# RUN apt-get update \
-#   && apt-get install \
-#   && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+  && apt-get install -y libsnappy-dev \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip
 RUN pip install install hatch
