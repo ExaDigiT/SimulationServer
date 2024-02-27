@@ -1,0 +1,92 @@
+{
+    "type": "kafka",
+    "spec": {
+        "ioConfig": {
+            "type": "kafka",
+            "topic": "svc-event-exadigit-sim",
+            "consumerProperties": {
+                "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
+                "security.protocol": "SASL_PLAINTEXT",
+                "sasl.mechanism": "PLAIN",
+                "druid.dynamic.config.provider": {
+                    "type": "environment",
+                    "variables": {
+                        "sasl.jaas.config": "KAFKA_SASL_JAAS_CONFIG"
+                    }
+                }
+            },
+            "inputFormat": {
+                "type": "json"
+            },
+            "useEarliestOffset": true
+        },
+        "tuningConfig": {
+            "type": "kafka"
+        },
+        "dataSchema": {
+            "dataSource": "svc-event-exadigit-sim",
+            "timestampSpec": {
+                "column": "!!!_no_such_column_!!!",
+                "missingValue": "2010-01-01T00:00:00Z"
+            },
+            "transformSpec": {
+                "transforms": [
+                    {
+                        "name": "__time",
+                        "type": "expression",
+                        "expression": "timestamp_parse(run_start)"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "logical_start",
+                        "expression": "timestamp_parse(logical_start)"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "logical_end",
+                        "expression": "timestamp_parse(logical_end)"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "run_start",
+                        "expression": "timestamp_parse(run_start)"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "run_end",
+                        "expression": "timestamp_parse(run_end)"
+                    }
+                ]
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    "id",
+                    "user",
+                    "state",
+                    {
+                        "type": "long",
+                        "name": "logical_start"
+                    },
+                    {
+                        "type": "long",
+                        "name": "logical_end"
+                    },
+                    {
+                        "type": "long",
+                        "name": "run_start"
+                    },
+                    {
+                        "name": "run_end",
+                        "type": "long"
+                    },
+                    "config"
+                ]
+            },
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "week"
+            }
+        }
+    }
+}

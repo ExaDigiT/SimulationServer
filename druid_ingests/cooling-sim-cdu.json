@@ -1,0 +1,181 @@
+{
+    "type": "kafka",
+    "spec": {
+        "ioConfig": {
+            "type": "kafka",
+            "topic": "svc-event-exadigit-coolingsimcdu",
+            "consumerProperties": {
+                "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
+                "security.protocol": "SASL_PLAINTEXT",
+                "sasl.mechanism": "PLAIN",
+                "druid.dynamic.config.provider": {
+                    "type": "environment",
+                    "variables": {
+                        "sasl.jaas.config": "KAFKA_SASL_JAAS_CONFIG"
+                    }
+                }
+            },
+            "inputFormat": {
+                "type": "json"
+            },
+            "useEarliestOffset": true
+        },
+        "tuningConfig": {
+            "type": "kafka"
+        },
+        "dataSchema": {
+            "dataSource": "svc-event-exadigit-cooling-sim-cdu",
+            "timestampSpec": {
+                "column": "timestamp",
+                "format": "iso"
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    "sim_id",
+                    "xname",
+                    {
+                        "type": "long",
+                        "name": "row"
+                    },
+                    {
+                        "type": "long",
+                        "name": "col"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_1_power"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_2_power"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_3_power"
+                    },
+                    {
+                        "type": "double",
+                        "name": "total_power"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_1_loss"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_2_loss"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_3_loss"
+                    },
+                    {
+                        "type": "double",
+                        "name": "total_loss"
+                    },
+                    {
+                        "type": "double",
+                        "name": "work_done_by_cdup"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_return_temp"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_supply_temp"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_supply_pressure"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_return_pressure"
+                    },
+                    {
+                        "type": "double",
+                        "name": "rack_flowrate"
+                    },
+                    {
+                        "type": "double",
+                        "name": "htw_ctw_flowrate"
+                    },
+                    {
+                        "type": "double",
+                        "name": "htwr_htws_ctwr_ctws_pressure"
+                    },
+                    {
+                        "type": "double",
+                        "name": "htwr_htws_ctwr_ctws_temp"
+                    },
+                    {
+                        "type": "double",
+                        "name": "power_cunsumption_htwps"
+                    },
+                    {
+                        "type": "double",
+                        "name": "power_consumption_ctwps"
+                    },
+                    {
+                        "type": "double",
+                        "name": "power_consumption_fan"
+                    },
+                    {
+                        "type": "double",
+                        "name": "htwp_speed"
+                    },
+                    {
+                        "type": "double",
+                        "name": "nctwps_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "nhtwps_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "pue_output"
+                    },
+                    {
+                        "type": "double",
+                        "name": "nehxs_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "ncts_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "facility_return_temp"
+                    },
+                    {
+                        "type": "double",
+                        "name": "facility_supply_temp"
+                    },
+                    {
+                        "type": "double",
+                        "name": "facility_supply_pressure"
+                    },
+                    {
+                        "type": "double",
+                        "name": "facility_return_pressure"
+                    },
+                    {
+                        "type": "double",
+                        "name": "cdu_loop_bypass_flowrate"
+                    },
+                    {
+                        "type": "double",
+                        "name": "facility_flowrate"
+                    }
+                ]
+            },
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "week"
+            }
+        }
+    }
+}

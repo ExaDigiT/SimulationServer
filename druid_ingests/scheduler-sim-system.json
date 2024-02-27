@@ -1,0 +1,54 @@
+{
+    "type": "kafka",
+    "spec": {
+        "ioConfig": {
+            "type": "kafka",
+            "topic": "svc-event-exadigit-schedulersimsystem",
+            "consumerProperties": {
+                "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
+                "security.protocol": "SASL_PLAINTEXT",
+                "sasl.mechanism": "PLAIN",
+                "druid.dynamic.config.provider": {
+                    "type": "environment",
+                    "variables": {
+                        "sasl.jaas.config": "KAFKA_SASL_JAAS_CONFIG"
+                    }
+                }
+            },
+            "inputFormat": {
+                "type": "json"
+            },
+            "useEarliestOffset": true
+        },
+        "tuningConfig": {
+            "type": "kafka"
+        },
+        "dataSchema": {
+            "dataSource": "svc-event-exadigit-scheduler-sim-system",
+            "timestampSpec": {
+                "column": "timestamp",
+                "format": "iso"
+            },
+            "transformSpec": {
+                "transforms": [
+                    {
+                        "type": "expression",
+                        "name": "down_nodes",
+                        "expression": "array_to_string(down_nodes, ',')"
+                    }
+                ]
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    "sim_id",
+                    "down_nodes"
+                ]
+            },
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "week"
+            }
+        }
+    }
+}
