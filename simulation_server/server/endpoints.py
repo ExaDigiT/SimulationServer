@@ -9,7 +9,7 @@ from ..models.output import (
     CoolingSimCDU, COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
 )
 from ..models.sim import Sim, SIM_API_FIELDS, SimConfig
-from .config import AppSettings
+from .config import AppDeps
 from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
@@ -17,7 +17,6 @@ from ..util.k8s import submit_job, get_job
 from ..util.kafka import get_kafka_producer
 
 
-settings = AppSettings()
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
 
@@ -27,7 +26,7 @@ CoolingSimCDUFieldSelector = Literal[get_selectors(COOLING_CDU_FIELD_SELECTORS)]
 
 
 @router.post("/run", response_model=Sim)
-def run(*, sim_config: A[SimConfig, Body()]):
+def run(*, sim_config: A[SimConfig, Body()], app_deps: AppDeps):
     """
     Start running a simulation in the background. POST the configuration for the simulation. Returns
     a Sim object containing an id you can use to query the results as they are generated.
@@ -58,7 +57,7 @@ def run(*, sim_config: A[SimConfig, Body()]):
                     "containers": [
                         {
                             "name": "main",
-                            "image": settings.job_image,
+                            "image": app_deps.settings.job_image,
                             "command": ['python3', "-m", "simulation_server.simulation.main", "background-job"],
                             "env": [
                                 {"name": "SIM", "value": sim.model_dump_json()},

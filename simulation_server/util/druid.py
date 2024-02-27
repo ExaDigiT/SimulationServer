@@ -1,6 +1,6 @@
 from typing import Union
 from datetime import datetime, date, timedelta
-import functools
+import functools, os
 
 import sqlalchemy as sqla
 from sqlalchemy.sql import ColumnElement
@@ -8,23 +8,55 @@ from .misc import to_iso_duration
 # from ..config import get_app_settings
 
 
+def get_druid_engine(**kwargs):
+    """ Get an SQLAlchemy Engine object towards production Druid """
+    # Acquire the credentials
+    DRUID_URL = os.environ['DRUID_SERVICE_URL']
+    DRUID_SCHEME = DRUID_URL.split(':')[0]
+    DRUID_HOST = DRUID_URL.split(':')[1][2:]
+    DRUID_USERNAME = os.environ['DRUID_SERVICE_USERNAME']
+    DRUID_PASSWORD = os.environ['DRUID_SERVICE_PASSWORD']
+    DRUID_SQLA_URL = f'druid+https://{DRUID_USERNAME}:{DRUID_PASSWORD}@{DRUID_HOST}:443/druid/v2/sql/?header=true'
+
+    # For some reason sqla/pydruid renders `cast(col, sqla.TIMESTAMP)` to `CAST(col AS LONG)`. LONG
+    # isn't even a valid druid type. Several other cast types seem to be broken as well. This is a
+    # manual override to make sqla render them properly.
+    from sqlalchemy.ext.compiler import compiles
+    cast_fixes = {
+        sqla.types.TIMESTAMP: "TIMESTAMP",
+        sqla.types.INT: "INT",
+    }
+
+    # TODO: Maybe should do this somewhere else to make sure it doesn't get called twice
+    for (sqla_type, override) in cast_fixes.items():
+        compiles(sqla_type, "druid")(lambda type_, compiler, override=override, **kw: override)
+
+    kwargs = {
+        # By default, druid does an approximate count for COUNT(DISTINCT), this turns that off.
+        # You can still use APPROX_COUNT_DISTINCT to do approx count explicitly
+        'useApproximateCountDistinct': False,
+        # Return SQL Arrays as arrays instead of strings
+        "sqlStringifyArrays": False,
+        **kwargs,
+    }
+
+    return sqla.create_engine(DRUID_SQLA_URL, **kwargs)
+
+
 @functools.cache
-def get_table(name: str, engine: sqla.engine.Engine,):
+def get_table(name: str, engine: sqla.engine.Engine):
     """
     Retrieve a SQLAlchemy Table object by name from the Druid database. Handles switching between
     tables by env.
     This is a little awkward to do because we don't have an ORM.
     """
-    # TODO
-    env = get_app_settings().env
-    dev_env = table_dev_env_overrides.get(name, 'prod')
-    env = env if (env == "prod" or dev_env == "current") else dev_env
-    env_prefix = "" if env == "prod" else f"{env}-"
-    name = f"{env_prefix}{name}"
+    # env = get_app_settings().env
+    # dev_env = table_dev_env_overrides.get(name, 'prod')
+    # env = env if (env == "prod" or dev_env == "current") else dev_env
+    # env_prefix = "" if env == "prod" else f"{env}-"
+    # name = f"{env_prefix}{name}"
 
-    metadata = sqla.MetaData()
-    table = sqla.Table(name, metadata, autoload_with=engine)
-    return table
+    return sqla.Table(name, sqla.MetaData(), autoload_with=engine)
 
 
 def to_timestamp(col) -> ColumnElement:
