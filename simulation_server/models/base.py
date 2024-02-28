@@ -1,5 +1,5 @@
 """ Some general purpose models """
-from typing import Generic, TypeVar, Any, Annotated as A, Optional
+from typing import Generic, TypeVar, Any, Annotated as A, Optional, Literal
 from datetime import timedelta
 from pydantic import (
     BaseModel as PydanticBaseModel, ConfigDict, PlainSerializer, BeforeValidator, WithJsonSchema,
@@ -77,6 +77,9 @@ class Page(BaseModel, Generic[T]):
     def model_parametrized_name(cls, params: tuple[type[Any], ...]) -> str:
         """ Set the name of instances of the generic type (which will be used in openapi.json) """
         return f'{params[0].__name__}Page'
+
+
+ResponseFormat = Literal["object", "array"]
 
 
 class ObjectTimeseries(BaseModel, Generic[T]):

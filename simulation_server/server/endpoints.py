@@ -12,7 +12,7 @@ from .config import AppDeps
 from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
-from .service import run_simulation, query_sims
+from .service import run_simulation, query_sims, query_cooling_sim_cdu
 
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
@@ -73,12 +73,10 @@ def cooling_cdu(*,
     start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
     fields: CoolingSimCDUFieldSelectors = None, filters: CoolingCDUFilters, deps: AppDeps,
 ):
-    return {
-        "start": start.isoformat() if start else None,
-        "end": end.isoformat() if end else None,
-        "granularity": 1,
-        "data": [],
-    }
+    return query_cooling_sim_cdu(
+        id = id, start = start, end = end, granularity = granularity,
+        fields = fields, filters = filters, druid_engine = deps.druid_engine,
+    )
 
 
 

@@ -5,10 +5,16 @@ import sqlalchemy as sqla
 from loguru import logger
 from ..models.sim import Sim
 from .config import AppDeps
+from ..models.base import ResponseFormat
+from ..models.output import (
+    COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
+)
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job
 from ..util.druid import get_table, to_timestamp, any_value, latest
-from .api_queries import Filters, Sort, DatetimeValidator
+from .api_queries import (
+    Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
+)
 
 
 def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minutes=1), druid_engine: sqla.Engine):
@@ -161,3 +167,108 @@ def query_sims(*,
                 sim.progress = 1
     
     return results
+
+
+
+def _build_simple_ts_query(tbl, *,
+    id: str, span: QuerySpan,
+    fields: list[str], filters: Filters,
+    group_cols: dict, agg_cols: dict, filter_cols: dict,
+):
+    all_cols = {**group_cols, **agg_cols}
+    select_cols = [
+        span.floor(tbl.c['__time']).label('timestamp'),
+        *[all_cols[name].label(name) for name in fields],
+    ]
+
+    stmt = (
+        sqla.select(*select_cols)
+            .where(
+                tbl.c['sim_id'] == id,
+                *span.filter(tbl.c['__time']),
+                *filters.filter_sql(filter_cols),
+            )
+            .group_by(sqla.text("1"), *group_cols.values())
+            .order_by(sqla.text("1"), *group_cols.values())
+    )
+    fields = ['timestamp', *fields]
+    return fields, stmt
+
+
+def get_span(tbl,
+    id: str, start: Optional[datetime], end: Optional[datetime],
+    granularity: Granularity, druid_engine: sqla.engine.Engine,
+) -> QuerySpan:
+    if not start or not end:
+        stmt = (
+            sqla.select(
+                sqla.func.min(tbl.c['__time']).label("start"),
+                sqla.func.max(tbl.c['__time']).label("end")
+            )
+                .where(tbl.c['sim_id'] == id)
+        )
+        with druid_engine.connect() as conn:
+            row = conn.execute(stmt).one()
+            start = start or row.start
+            end = end or row.end
+    return QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
+
+
+def _run_simple_ts_query(*, stmt,
+    span: QuerySpan, fields: list[str], format: ResponseFormat,
+    druid_engine: sqla.engine.Engine,
+):
+    response = span.model_dump(mode = 'json')
+    with druid_engine.connect() as conn:
+        if format == "array":
+            response['fields'] = fields
+            response['data'] = [list(r) for r in conn.execute(stmt)]
+        else:
+            response['data'] = [r._asdict() for r in conn.execute(stmt)]
+    return response
+
+
+def build_cooling_sim_cdu_query(*,
+    id: str, span: QuerySpan,
+    fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
+    druid_engine: sqla.engine.Engine,
+):
+    fields = expand_field_selectors(fields, COOLING_CDU_FIELD_SELECTORS)
+    filters = filters or Filters()
+
+    tbl = get_table('svc-event-exadigit-cooling-sim-cdu', druid_engine).alias("cdus")
+    filter_cols = {c: tbl.c[c] for c in COOLING_CDU_API_FIELDS}
+    group_cols = {
+        "xname": tbl.c['xname'],
+    }
+    agg_cols: dict[str, sqla.sql.ColumnElement] = {
+        **{
+            c: sqla.func.max(tbl.c[c]) for c in COOLING_CDU_API_FIELDS
+            if c not in ['xname', 'row', 'col']
+        },
+        **{c: sqla.func.any_value(tbl.c[c]) for c in ['row', 'col']},
+    }
+
+    return _build_simple_ts_query(tbl,
+        id = id, span = span, fields = fields, filters = filters,
+        group_cols = group_cols, agg_cols = agg_cols, filter_cols = filter_cols,
+    )
+
+
+def query_cooling_sim_cdu(*,
+    id: str, 
+    start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: Granularity,
+    fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
+    format: ResponseFormat = "object",
+    druid_engine: sqla.engine.Engine,
+):
+    tbl = get_table('svc-event-exadigit-cooling-sim-cdu', druid_engine)
+    span = get_span(tbl, id, start, end, granularity, druid_engine = druid_engine)
+    fields, stmt = build_cooling_sim_cdu_query(
+        id = id, span = span, fields = fields, filters = filters,
+        druid_engine = druid_engine,
+    )
+    return _run_simple_ts_query(
+        span = span, stmt = stmt, fields = fields,
+        format = format, druid_engine = druid_engine,
+    )
