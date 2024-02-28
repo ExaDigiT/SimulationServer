@@ -44,7 +44,11 @@ KafkaProducerDep = A[KafkaProducer, Depends(get_kafka_producer)]
 
 class AppDeps_(NamedTuple):
     """ Convenience wrapper around several global dependencies for use as a FastAPI dep. """
-    settings: AppSettingsDep
-    druid_engine: DruidDep
-    kafka_producer: KafkaProducerDep
+    # I'm making these lazy so I can test the queries locally without having to connect to kafka
+    @property
+    def settings(self): return get_app_settings()
+    @property
+    def druid_engine(self): return get_druid_engine()
+    @property
+    def kafka_producer(self): return get_kafka_producer()
 AppDeps = A[AppDeps_, Depends(AppDeps_)]
