@@ -15,6 +15,7 @@ from .api_queries import (
 )
 from .service import (
     run_simulation, query_sims, query_cooling_sim_cdu, query_scheduler_sim_jobs,
+    query_scheduler_sim_system,
 )
 
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
@@ -103,5 +104,12 @@ def scheduler_jobs(*,
 
 
 @router.get("/{id}/scheduler/system", response_model=list[SchedulerSimSystem])
-def scheduler_system(*, id: str, start: datetime, end: datetime):
-    return []
+def scheduler_system(*,
+    id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    deps: AppDeps,
+):
+    result = query_scheduler_sim_system(
+        id = id, start = start, end = end,
+        druid_engine = deps.druid_engine,
+    )
+    return result

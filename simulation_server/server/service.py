@@ -189,6 +189,10 @@ def get_extent(tbl,
     return (start, end)
 
 
+def _split_list(l):
+    return l.split(",") if l else []
+
+
 def _build_ts_query(tbl, *,
     id: str, span: QuerySpan,
     fields: list[str], filters: Filters,
@@ -323,7 +327,50 @@ def query_scheduler_sim_jobs(*,
         if 'xnames' in fields:
             return [{
                 **j,
-                'xnames': j['xnames'].split(','),
+                'xnames': _split_list(j['xnames']),
+            } for j in results]
+        else:
+            return [j for j in results]
+
+
+def build_scheduler_sim_system_query(*,
+    id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    druid_engine: sqla.engine.Engine,
+):
+    tbl = get_table('svc-event-exadigit-scheduler-sim-system', druid_engine).alias("jobs")
+    cols = {
+        "down_nodes": tbl.c.down_nodes,
+    }
+
+
+    stmt = sqla.select(
+        tbl.c['__time'].label('timestamp'),
+        *[col.label(name) for name, col in cols.items()],
+    )
+    stmt = stmt.where(tbl.c['sim_id'] == id)
+    if start:
+        stmt.where(to_timestamp(start) <= tbl.c['__time'])
+    if end:
+        stmt.where(tbl.c['__time'] < to_timestamp(end))
+    return ["timestamp", *cols.keys()], stmt
+
+
+def query_scheduler_sim_system(*,
+    id: str, 
+    start: Optional[datetime] = None, end: Optional[datetime] = None,
+    druid_engine: sqla.engine.Engine,
+):
+    fields, stmt = build_scheduler_sim_system_query(
+        id = id, start = start, end = end,
+        druid_engine = druid_engine,
+    )
+
+    with druid_engine.connect() as conn:
+        results = (r._asdict() for r in conn.execute(stmt))
+        if 'down_nodes' in fields:
+            return [{
+                **j,
+                'down_nodes': _split_list(j['down_nodes']),
             } for j in results]
         else:
             return [j for j in results]
