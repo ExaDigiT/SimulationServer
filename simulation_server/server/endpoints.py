@@ -1,7 +1,7 @@
 from typing import Annotated as A, Optional, Literal
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Query, Body, Depends, HTTPException
 from datetime import datetime, timedelta
-from ..models.base import ObjectTimeseries, Page
+from ..models.base import ObjectTimeseries, Page, CommaSeparatedList
 from ..models.output import (
     SchedulerSimJob, SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
     SchedulerSimSystem,
@@ -19,7 +19,9 @@ router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
 GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=timedelta(seconds=1)))]
 SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
+SchedulerSimJobFieldSelectors = A[CommaSeparatedList[SchedulerSimJobFieldSelector], Query()]
 CoolingSimCDUFieldSelector = Literal[get_selectors(COOLING_CDU_FIELD_SELECTORS)]
+CoolingSimCDUFieldSelectors = A[CommaSeparatedList[CoolingSimCDUFieldSelector], Query()]
 
 
 @router.post("/run", response_model=Sim)
@@ -69,7 +71,7 @@ CoolingCDUFilters = A[Filters, Depends(filter_params(COOLING_CDU_API_FIELDS))]
 def cooling_cdu(*,
     id: str,
     start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
-    fields: CoolingSimCDUFieldSelector, filters: CoolingCDUFilters,
+    fields: CoolingSimCDUFieldSelectors = None, filters: CoolingCDUFilters, deps: AppDeps,
 ):
     return {
         "start": start.isoformat() if start else None,
@@ -86,7 +88,7 @@ SchedulerSimJobFilters = A[Filters, Depends(filter_params(SCHEDULER_SIM_JOB_API_
 def scheduler_jobs(*,
     id: str,
     start: Optional[datetime] = None, end: Optional[datetime] = None,
-    fields: SchedulerSimJobFieldSelector, filters: SchedulerSimJobFilters,
+    fields: SchedulerSimJobFieldSelectors = None, filters: SchedulerSimJobFilters,
 ):
     return []
 
