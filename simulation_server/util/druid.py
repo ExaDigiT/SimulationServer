@@ -77,7 +77,7 @@ def to_timestamp(col) -> ColumnElement:
             # the fly whether a string column is multivalue so mv_to_string will work on plain
             # strings as well, and this is a workaround for part of the issue. Need to figure out
             # where things are getting corrupted.
-            return sqla.cast(sqla.func.mv_to_string(col, ''), sqla.TIMESTAMP)
+            return sqla.cast(col, sqla.TIMESTAMP)
 
 
 def time_floor(timestamp_col, granularity: Union[timedelta, str], origin=None) -> ColumnElement:
@@ -100,3 +100,18 @@ def time_floor(timestamp_col, granularity: Union[timedelta, str], origin=None) -
     else:
         return sqla.func.time_floor(timestamp_col, granularity)
 
+
+def _size_func(func):
+    """ Call any_value, latest_by, etc. with a literal size value (can't use a normal bound param)"""
+    def f(*args):
+        if isinstance(args[-1], int):
+            return func(*args[:-1], sqla.text(str(args[-1])))
+        else:
+            return func(*args)
+    return f
+
+any_value = _size_func(sqla.func.any_value)
+latest = _size_func(sqla.func.latest)
+latest_by = _size_func(sqla.func.latest_by)
+earliest = _size_func(sqla.func.earliest)
+earliest_py = _size_func(sqla.func.earliest_py)
