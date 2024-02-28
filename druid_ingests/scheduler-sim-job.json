@@ -34,17 +34,17 @@
                     {
                         "type": "expression",
                         "name": "time_submission",
-                        "expression": "timestamp_parse(time_submission)"
+                        "expression": "timestamp_format(timestamp_parse(time_submission))"
                     },
                     {
                         "type": "expression",
                         "name": "time_start",
-                        "expression": "timestamp_parse(time_start)"
+                        "expression": "timestamp_format(timestamp_parse(time_start))"
                     },
                     {
                         "type": "expression",
                         "name": "time_end",
-                        "expression": "timestamp_parse(time_end)"
+                        "expression": "timestamp_format(timestamp_parse(time_end))"
                     },
                     {
                         "type": "expression",
@@ -66,7 +66,7 @@
                         "name": "node_count"
                     },
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "time_submission"
                     },
                     {
@@ -74,11 +74,11 @@
                         "type": "long"
                     },
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "time_start"
                     },
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "time_end"
                     },
                     "state_current",

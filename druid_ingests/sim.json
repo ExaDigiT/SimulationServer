@@ -39,22 +39,22 @@
                     {
                         "type": "expression",
                         "name": "logical_start",
-                        "expression": "timestamp_parse(logical_start)"
+                        "expression": "timestamp_format(timestamp_parse(logical_start))"
                     },
                     {
                         "type": "expression",
                         "name": "logical_end",
-                        "expression": "timestamp_parse(logical_end)"
+                        "expression": "timestamp_format(timestamp_parse(logical_end))"
                     },
                     {
                         "type": "expression",
                         "name": "run_start",
-                        "expression": "timestamp_parse(run_start)"
+                        "expression": "timestamp_format(timestamp_parse(run_start))"
                     },
                     {
                         "type": "expression",
                         "name": "run_end",
-                        "expression": "timestamp_parse(run_end)"
+                        "expression": "timestamp_format(timestamp_parse(run_end))"
                     }
                 ]
             },
@@ -64,20 +64,20 @@
                     "user",
                     "state",
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "logical_start"
                     },
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "logical_end"
                     },
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "run_start"
                     },
                     {
                         "name": "run_end",
-                        "type": "long"
+                        "type": "string"
                     },
                     "config"
                 ]
