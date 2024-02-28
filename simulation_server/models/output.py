@@ -75,50 +75,50 @@ class SchedulerSimSystem(BaseModel):
 
 class CoolingSimCDU(BaseModel):
     timestamp: AwareDatetime
-    xname: str
+    xname: Optional[str] = None
     """
     Unique identifier for the CDU of the (simulated) measurement, e.g. x2007c1.
     The CDU xname is the xname of the neighboring cabinet.
     """
-    row: int
+    row: Optional[int] = None
     """ Row index of the CDU """
-    col: int
+    col: Optional[int] = None
     """ Col index of the cdu (Note this is the col of the neighboring cabinet.)"""
 
-    rack_1_power: float
-    rack_2_power: float
-    rack_3_power: float
-    total_power: float
+    rack_1_power: Optional[float] = None
+    rack_2_power: Optional[float] = None
+    rack_3_power: Optional[float] = None
+    total_power: Optional[float] = None
 
-    rack_1_loss: float
-    rack_2_loss: float
-    rack_3_loss: float
-    total_loss: float
+    rack_1_loss: Optional[float] = None
+    rack_2_loss: Optional[float] = None
+    rack_3_loss: Optional[float] = None
+    total_loss: Optional[float] = None
 
-    work_done_by_cdup: float
-    rack_return_temp: float
-    rack_supply_temp: float
-    rack_supply_pressure: float
-    rack_return_pressure: float
-    rack_flowrate: float
-    htw_ctw_flowrate: float
-    htwr_htws_ctwr_ctws_pressure: float
-    htwr_htws_ctwr_ctws_temp: float
-    power_cunsumption_htwps: float
-    power_consumption_ctwps: float
-    power_consumption_fan: float
-    htwp_speed: float
-    nctwps_staged: float
-    nhtwps_staged: float
-    pue_output: float
-    nehxs_staged: float
-    ncts_staged: float
-    facility_return_temp: float
-    facility_supply_temp: float
-    facility_supply_pressure: float
-    facility_return_pressure: float
-    cdu_loop_bypass_flowrate: float
-    facility_flowrate: float
+    work_done_by_cdup: Optional[float] = None
+    rack_return_temp: Optional[float] = None
+    rack_supply_temp: Optional[float] = None
+    rack_supply_pressure: Optional[float] = None
+    rack_return_pressure: Optional[float] = None
+    rack_flowrate: Optional[float] = None
+    htw_ctw_flowrate: Optional[float] = None
+    htwr_htws_ctwr_ctws_pressure: Optional[float] = None
+    htwr_htws_ctwr_ctws_temp: Optional[float] = None
+    power_cunsumption_htwps: Optional[float] = None
+    power_consumption_ctwps: Optional[float] = None
+    power_consumption_fan: Optional[float] = None
+    htwp_speed: Optional[float] = None
+    nctwps_staged: Optional[float] = None
+    nhtwps_staged: Optional[float] = None
+    pue_output: Optional[float] = None
+    nehxs_staged: Optional[float] = None
+    ncts_staged: Optional[float] = None
+    facility_return_temp: Optional[float] = None
+    facility_supply_temp: Optional[float] = None
+    facility_supply_pressure: Optional[float] = None
+    facility_return_pressure: Optional[float] = None
+    cdu_loop_bypass_flowrate: Optional[float] = None
+    facility_flowrate: Optional[float] = None
 
 
 COOLING_CDU_API_FIELDS = {

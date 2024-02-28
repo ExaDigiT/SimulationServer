@@ -76,10 +76,11 @@ def cooling_cdu(*,
     start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
     fields: CoolingSimCDUFieldSelectors = None, filters: CoolingCDUFilters, deps: AppDeps,
 ):
-    return query_cooling_sim_cdu(
+    result = query_cooling_sim_cdu(
         id = id, start = start, end = end, granularity = granularity,
         fields = fields, filters = filters, druid_engine = deps.druid_engine,
     )
+    return JSONResponse(result)
 
 
 
