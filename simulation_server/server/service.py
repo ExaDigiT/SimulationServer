@@ -118,7 +118,7 @@ def query_sims(*,
         "logical_start": to_timestamp(any_value(sims.c.logical_start, 32)),
         "logical_end": to_timestamp(any_value(sims.c.logical_end, 32)),
         "run_start": to_timestamp(any_value(sims.c.run_start, 32)),
-        "run_end": to_timestamp(any_value(sims.c.run_end, 32)),
+        "run_end": to_timestamp(latest(sims.c.run_end, 32)),
         "config": any_value(sims.c.config, 4 * 1024),
     }
 
