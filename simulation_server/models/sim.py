@@ -38,7 +38,7 @@ class Sim(BaseModel):
     run_end: Optional[AwareDatetime]
     """ The real time the simulation finished """
 
-    progress: A[float, Field(ge=0, le=1)]
+    progress: A[float, Field(ge=0, le=1)] = 0
     """ Float from 0 -> 1 summarizing the simulation progress """
 
     config: dict
@@ -46,8 +46,10 @@ class Sim(BaseModel):
 
 
     def serialize_for_druid(self):
+        timestamp = self.run_end or self.run_start
         return json.dumps({
             **self.model_dump(mode = 'json', exclude = {"progress"}),
+            "timestamp": timestamp.isoformat(),
             "config": json.dumps(self.config),
         }).encode()
 

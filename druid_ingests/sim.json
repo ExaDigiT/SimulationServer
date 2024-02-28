@@ -34,7 +34,7 @@
                     {
                         "name": "__time",
                         "type": "expression",
-                        "expression": "timestamp_parse(greatest(run_end, run_start))"
+                        "expression": "timestamp_parse(timestamp)"
                     },
                     {
                         "type": "expression",
