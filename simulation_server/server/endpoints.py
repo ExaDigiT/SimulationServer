@@ -1,5 +1,5 @@
 from typing import Annotated as A, Optional, Literal
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, HTTPException
 from datetime import datetime, timedelta
 from ..models.base import ObjectTimeseries, Page
 from ..models.output import (
@@ -30,28 +30,36 @@ def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
     """
     return run_simulation(sim_config, deps)
 
-
-SimFilters = A[Filters, Depends(filter_params(SIM_API_FIELDS))]
+SIM_FILTERS = filter_params(SIM_API_FIELDS)
+SimFilters = A[Filters, Depends(SIM_FILTERS)]
 SimSort = A[Sort, Depends(sort_params(SIM_API_FIELDS, [
     "asc:run_start", "asc:run_end", "asc:logical_start", "asc:logical_end", "asc:id",
 ]))]
 
-@router.get("/list", response_model=list)
+@router.get("/list", response_model=Page[Sim])
 def sim_list(*, filters: SimFilters, sort: SimSort, limit = 100, offset = 0, deps: AppDeps):
     """
     List all the simulations.
     You can add filters to get simulations by state, user, id, etc.
     """
-    return query_sims(
+    results = query_sims(
         filters = filters, sort = sort, limit = limit, offset = offset,
         druid_engine = deps.druid_engine,
     )
+    return Page(results = results, limit = limit, offset = offset, total_results = len(results))
 
 
 @router.get("/{id}", response_model=Sim)
-def get(id: str):
+def get(id: str, deps: AppDeps):
     """ Get simulation by id or 404 if not found. """
-    return []
+    results = query_sims(
+        filters = SIM_FILTERS(id=[f"eq:{id}"]), limit = 1,
+        druid_engine = deps.druid_engine,
+    )
+    if len(results) == 0:
+        raise HTTPException(404)
+    else:
+        return results[0]
 
 
 

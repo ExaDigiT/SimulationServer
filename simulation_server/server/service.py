@@ -132,7 +132,7 @@ def query_sims(*,
 
     with druid_engine.connect() as conn:
         results = [
-            Sim.model_validate({**r._asdict(), "config": json.loads(r.config), 'run_end': None})
+            Sim.model_validate({**r._asdict(), "config": json.loads(r.config)})
             for r in conn.execute(stmt)
         ]
 
