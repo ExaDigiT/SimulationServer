@@ -1,11 +1,14 @@
+from typing import Optional
 from datetime import datetime, timedelta, timezone
 import uuid, time
 import sqlalchemy as sqla
 from loguru import logger
 from ..models.sim import Sim
 from .config import AppDeps
+from ..util.misc import pick, omit
 from ..util.k8s import submit_job
-from ..util.druid import get_table
+from ..util.druid import get_table, to_timestamp, any_value, latest
+from .api_queries import Filters, Sort
 
 
 def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minutes=1), druid_engine: sqla.Engine):
@@ -82,3 +85,54 @@ def run_simulation(sim_config, deps: AppDeps):
 
     return sim
 
+
+def get_sims(*,
+    filters: Optional[Filters] = None, sort: Optional[Sort] = None,
+    limit = 100, offset = 0,
+    druid_engine: sqla.Engine,
+) -> list[Sim]:
+    filters = filters or Filters()
+    sort = sort or Sort()
+    sims = get_table("svc-event-exadigit-sim", druid_engine)
+    sim_output_tables = [
+        get_table("sens-svc-event-exadigit-scheduler-sim-job", druid_engine),
+        get_table("svc-event-exadigit-scheduler-sim-system", druid_engine),
+        get_table("svc-event-exadigit-cooling-sim-cdu", druid_engine),
+    ]
+
+    cols = {
+        "id": sims.c.id,
+        "user": sims.c.user,
+        "state": sims.c.state,
+        "logical_start": to_timestamp(sims.c.logical_start),
+        "logical_end": to_timestamp(sims.c.logical_end),
+        "run_start": sims.c['__time'],
+        "run_end": to_timestamp(sims.c.run_end),
+        "config": sims.c.config,
+    }
+
+    grouped_cols = {
+        "id": any_value(sims.c.id, 40),
+        "user": any_value(sims.c.user, 40),
+        "state": latest(sims.c.state, 12),
+        "logical_start": to_timestamp(any_value(sims.c.logical_start)),
+        "logical_end": to_timestamp(any_value(sims.c.logical_end)),
+        "run_start": to_timestamp(any_value(sims.c.run_start)),
+        "run_end": to_timestamp(any_value(sims.c.run_end)),
+        "config": any_value(sims.c.config, 4 * 1024),
+    }
+
+    stmt = sqla.select(*[col.label(name) for name, col in grouped_cols.items()])
+    stmt = stmt.where(*filters.filter_sql(omit(cols, ['state'])))
+    stmt = stmt.group_by(cols['id'])
+    if filters.get('state'):
+        stmt = stmt.having(*filters.filter_sql(pick(grouped_cols, ['state'])))
+    stmt = stmt.order_by(*sort.sort_sql(grouped_cols))
+    stmt = stmt.limit(limit).offset(offset)
+
+    logger.info(f"STMT: {stmt}")
+
+    with druid_engine.connect() as conn:
+        results = [r._asdict() for r in conn.execute(stmt)]
+
+    return results
