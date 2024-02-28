@@ -1,6 +1,7 @@
 """ A script to run the ExaDigiT simulation """
 import argparse, os, json
 from pathlib import Path
+from datetime import datetime, timezone
 from loguru import logger
 import yaml
 from ..models.sim import Sim, SimConfig
@@ -32,11 +33,13 @@ def background_job(sim: Sim):
             output_rows("svc-event-exadigit-coolingsimcdu", data.cooling_sim_cdus)
     except BaseException as e:
         sim.state = "fail"
+        sim.run_end = datetime.now(timezone.utc)
         kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
         logger.info(f"Simulation {sim.id} failed")
         raise e
     
     sim.state = "success"
+    sim.run_end = datetime.now(timezone.utc)
     kafka_producer.send(topic = "svc-event-exadigit-sim", value = sim.serialize_for_druid())
     kafka_producer.close() # Close and wait for messages to be sent
     logger.info(f"Simulation {sim.id} finished")
