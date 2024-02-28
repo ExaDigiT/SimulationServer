@@ -12,7 +12,7 @@ from .config import AppDeps
 from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
-from .service import run_simulation
+from .service import run_simulation, query_sims
 
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
@@ -33,17 +33,19 @@ def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
 
 SimFilters = A[Filters, Depends(filter_params(SIM_API_FIELDS))]
 SimSort = A[Sort, Depends(sort_params(SIM_API_FIELDS, [
-    "asc:logical_start", "asc:logical_end", "asc:run_start", "asc:run_end", "asc:id",
+    "asc:run_start", "asc:run_end", "asc:logical_start", "asc:logical_end", "asc:id",
 ]))]
 
-@router.get("/list", response_model=Page[Sim])
-def experiment_list(filters: SimFilters, sort: SimSort):
+@router.get("/list", response_model=list)
+def sim_list(*, filters: SimFilters, sort: SimSort, limit = 100, offset = 0, deps: AppDeps):
     """
     List all the simulations.
     You can add filters to get simulations by state, user, id, etc.
     """
-    return []
-
+    return query_sims(
+        filters = filters, sort = sort, limit = limit, offset = offset,
+        druid_engine = deps.druid_engine,
+    )
 
 
 @router.get("/{id}", response_model=Sim)

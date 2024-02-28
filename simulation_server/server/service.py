@@ -1,6 +1,6 @@
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-import uuid, time
+import uuid, time, json
 import sqlalchemy as sqla
 from loguru import logger
 from ..models.sim import Sim
@@ -8,7 +8,7 @@ from .config import AppDeps
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job
 from ..util.druid import get_table, to_timestamp, any_value, latest
-from .api_queries import Filters, Sort
+from .api_queries import Filters, Sort, DatetimeValidator
 
 
 def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minutes=1), druid_engine: sqla.Engine):
@@ -86,7 +86,7 @@ def run_simulation(sim_config, deps: AppDeps):
     return sim
 
 
-def get_sims(*,
+def query_sims(*,
     filters: Optional[Filters] = None, sort: Optional[Sort] = None,
     limit = 100, offset = 0,
     druid_engine: sqla.Engine,
@@ -115,10 +115,10 @@ def get_sims(*,
         "id": any_value(sims.c.id, 40),
         "user": any_value(sims.c.user, 40),
         "state": latest(sims.c.state, 12),
-        "logical_start": to_timestamp(any_value(sims.c.logical_start)),
-        "logical_end": to_timestamp(any_value(sims.c.logical_end)),
-        "run_start": to_timestamp(any_value(sims.c.run_start)),
-        "run_end": to_timestamp(any_value(sims.c.run_end)),
+        "logical_start": to_timestamp(any_value(sims.c.logical_start, 32)),
+        "logical_end": to_timestamp(any_value(sims.c.logical_end, 32)),
+        "run_start": to_timestamp(any_value(sims.c.run_start, 32)),
+        "run_end": to_timestamp(any_value(sims.c.run_end, 32)),
         "config": any_value(sims.c.config, 4 * 1024),
     }
 
@@ -130,9 +130,34 @@ def get_sims(*,
     stmt = stmt.order_by(*sort.sort_sql(grouped_cols))
     stmt = stmt.limit(limit).offset(offset)
 
-    logger.info(f"STMT: {stmt}")
-
     with druid_engine.connect() as conn:
-        results = [r._asdict() for r in conn.execute(stmt)]
+        results = [
+            Sim.model_validate({**r._asdict(), "config": json.loads(r.config), 'run_end': None})
+            for r in conn.execute(stmt)
+        ]
 
+        incomplete = [sim.id for sim in results if not sim.run_end]
+        progresses = {}
+
+        if len(incomplete) > 0:
+            for tbl in sim_output_tables:
+                stmt = (
+                    sqla.select(tbl.c.sim_id, sqla.func.max(to_timestamp(tbl.c['__time'])).label('progress'))
+                        .where(tbl.c.sim_id.in_(incomplete))
+                        .group_by(tbl.c.sim_id)
+                )
+                for r in conn.execute(stmt).all():
+                    progress = DatetimeValidator.validate_strings(r.progress)
+                    progresses[r.sim_id] = max(progress, progresses.get(r.sim_id, progress))
+
+        for sim in results:
+            if sim.id in progresses:
+                progress = (progresses[sim.id] - sim.logical_start) / (sim.logical_end - sim.logical_start)
+                # Never return 1 if incomplete
+                sim.progress = round(min(max(0, progress), 0.99), 3)
+            elif not sim.run_end:
+                sim.progress = 0
+            else:
+                sim.progress = 1
+    
     return results
