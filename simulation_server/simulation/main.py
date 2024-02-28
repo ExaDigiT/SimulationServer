@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     parser_cli_run = subparsers.add_parser('run')
     parser_cli_run.add_argument("--config", type=str, help="JSON config string")
-    parser_cli_run.add_argument("--config-path", type=Path, help="Path to a yaml or json file contain the config")
+    parser_cli_run.add_argument("--config-file", type=Path, help="Path to a yaml or json file contain the config")
 
     parser_cli_run = subparsers.add_parser('background-job')
     parser_cli_run.add_argument("--sim", type=str, help="JSON config string")
