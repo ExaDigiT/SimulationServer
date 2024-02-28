@@ -8,6 +8,7 @@ from .config import AppDeps
 from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
+    SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
 )
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job
@@ -169,8 +170,26 @@ def query_sims(*,
     return results
 
 
+def get_extent(tbl,
+    id: str, start: Optional[datetime], end: Optional[datetime],
+    druid_engine: sqla.engine.Engine,
+) -> tuple[datetime, datetime]:
+    if not start or not end:
+        stmt = (
+            sqla.select(
+                sqla.func.min(tbl.c['__time']).label("start"),
+                sqla.func.max(tbl.c['__time']).label("end")
+            )
+                .where(tbl.c['sim_id'] == id)
+        )
+        with druid_engine.connect() as conn:
+            row = conn.execute(stmt).one()
+            start = start or row.start
+            end = end or row.end
+    return (start, end)
 
-def _build_simple_ts_query(tbl, *,
+
+def _build_ts_query(tbl, *,
     id: str, span: QuerySpan,
     fields: list[str], filters: Filters,
     group_cols: dict, agg_cols: dict, filter_cols: dict,
@@ -195,26 +214,7 @@ def _build_simple_ts_query(tbl, *,
     return fields, stmt
 
 
-def get_span(tbl,
-    id: str, start: Optional[datetime], end: Optional[datetime],
-    granularity: Granularity, druid_engine: sqla.engine.Engine,
-) -> QuerySpan:
-    if not start or not end:
-        stmt = (
-            sqla.select(
-                sqla.func.min(tbl.c['__time']).label("start"),
-                sqla.func.max(tbl.c['__time']).label("end")
-            )
-                .where(tbl.c['sim_id'] == id)
-        )
-        with druid_engine.connect() as conn:
-            row = conn.execute(stmt).one()
-            start = start or row.start
-            end = end or row.end
-    return QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
-
-
-def _run_simple_ts_query(*, stmt,
+def _run_ts_query(*, stmt,
     span: QuerySpan, fields: list[str], format: ResponseFormat,
     druid_engine: sqla.engine.Engine,
 ):
@@ -249,7 +249,7 @@ def build_cooling_sim_cdu_query(*,
         **{c: sqla.func.any_value(tbl.c[c]) for c in ['row', 'col']},
     }
 
-    return _build_simple_ts_query(tbl,
+    return _build_ts_query(tbl,
         id = id, span = span, fields = fields, filters = filters,
         group_cols = group_cols, agg_cols = agg_cols, filter_cols = filter_cols,
     )
@@ -263,12 +263,67 @@ def query_cooling_sim_cdu(*,
     druid_engine: sqla.engine.Engine,
 ):
     tbl = get_table('svc-event-exadigit-cooling-sim-cdu', druid_engine)
-    span = get_span(tbl, id, start, end, granularity, druid_engine = druid_engine)
+    start, end = get_extent(tbl, id, start, end, druid_engine = druid_engine)
+    span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_cooling_sim_cdu_query(
         id = id, span = span, fields = fields, filters = filters,
         druid_engine = druid_engine,
     )
-    return _run_simple_ts_query(
+    return _run_ts_query(
         span = span, stmt = stmt, fields = fields,
         format = format, druid_engine = druid_engine,
     )
+
+
+def build_scheduler_sim_jobs_query(*,
+    id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
+    druid_engine: sqla.engine.Engine,
+):
+    fields = expand_field_selectors(fields, SCHEDULER_SIM_JOB_FIELD_SELECTORS)
+    filters = filters or Filters()
+
+    tbl = get_table('sens-svc-event-exadigit-scheduler-sim-job', druid_engine).alias("jobs")
+    cols = {
+        **{f: tbl.c[f] for f in [
+            "job_id", "name", "node_count", "time_limit", "state_current", "node_ranges", "xnames",
+        ]},
+        **{f: to_timestamp(tbl.c[f]) for f in ["time_submission", "time_start", "time_end"]},
+    }
+
+    stmt = sqla.select(
+        tbl.c['__time'].label('time_snapshot'),
+        *[cols[name].label(name) for name in fields],
+    )
+    stmt = stmt.where(
+        tbl.c['sim_id'] == id,
+        *filters.filter_sql(cols),
+    )
+    if start:
+        stmt.where(to_timestamp(start) <= tbl.c['__time'])
+    if end:
+        stmt.where(tbl.c['__time'] < to_timestamp(end))
+    fields = ['timestamp', *fields]
+    return fields, stmt
+
+
+def query_scheduler_sim_jobs(*,
+    id: str, 
+    start: Optional[datetime] = None, end: Optional[datetime] = None,
+    fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
+    druid_engine: sqla.engine.Engine,
+):
+    fields, stmt = build_scheduler_sim_jobs_query(
+        id = id, start = start, end = end, fields = fields, filters = filters,
+        druid_engine = druid_engine,
+    )
+
+    with druid_engine.connect() as conn:
+        results = (r._asdict() for r in conn.execute(stmt))
+        if 'xnames' in fields:
+            return [{
+                **j,
+                'xnames': j['xnames'].split(','),
+            } for j in results]
+        else:
+            return [j for j in results]

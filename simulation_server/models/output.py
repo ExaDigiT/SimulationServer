@@ -7,28 +7,28 @@ from .job_state import JobStateEnum
 
 
 class SchedulerSimJob(BaseModel):
-    job_id: Optional[str]
+    job_id: Optional[str] = None
     """ Job id. Will be null if job is PENDING """
 
-    name: str
+    name: Optional[str] = None
 
-    node_count: int
+    node_count: Optional[int] = None
     """ Number of nodes required """
 
     time_snapshot: AwareDatetime
-    """ Time in the simulation of this job snapshot """
-    time_submission: AwareDatetime
-    time_limit: NumTimedelta
+    """ Time in the Optional[simulation] of this job snapshot """
+    time_submission: Optional[AwareDatetime] = None
+    time_limit: Optional[NumTimedelta] = None
     time_start: Optional[AwareDatetime] = None
     time_end: Optional[AwareDatetime] = None
-    state_current: JobStateEnum
+    state_current: Optional[JobStateEnum] = None
 
-    node_ranges: Optional[str]
+    node_ranges: Optional[str] = None
     """
     The Slurm hosts the job is running on as a Slurm hosts string.
     E.g. frontier[03629-03630,03633-03635]
     """
-    xnames: list[str]
+    xnames: Optional[list[str]] = None
     """
     The nodes the job is running on, but as a list of xnames rather than a slurm hostname string.
     E.g. ['x2307c3s0b1', 'x2408c5s2b1']
@@ -45,7 +45,7 @@ SCHEDULER_SIM_JOB_API_FIELDS = {
     'job_id': 'string',
     'name': 'string',
     'node_count': 'number',
-    'time_snapshot': 'date',
+    # 'time_snapshot': 'date', # This is the timestamp field filtered by start/end
     'time_submission': 'date',
     'time_limit': 'timedelta',
     'time_start': 'date',

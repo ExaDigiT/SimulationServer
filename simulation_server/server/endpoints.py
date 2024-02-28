@@ -1,5 +1,6 @@
 from typing import Annotated as A, Optional, Literal
 from fastapi import APIRouter, Query, Body, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from datetime import datetime, timedelta
 from ..models.base import ObjectTimeseries, Page, CommaSeparatedList
 from ..models.output import (
@@ -12,7 +13,9 @@ from .config import AppDeps
 from .api_queries import (
     Granularity, granularity_params, filter_params, Filters, sort_params, Sort, get_selectors
 )
-from .service import run_simulation, query_sims, query_cooling_sim_cdu
+from .service import (
+    run_simulation, query_sims, query_cooling_sim_cdu, query_scheduler_sim_jobs,
+)
 
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
@@ -87,8 +90,14 @@ def scheduler_jobs(*,
     id: str,
     start: Optional[datetime] = None, end: Optional[datetime] = None,
     fields: SchedulerSimJobFieldSelectors = None, filters: SchedulerSimJobFilters,
+    deps: AppDeps,
 ):
-    return []
+    # TODO: Need to reconsider this endpoint, it returns way to much redundant data
+    result = query_scheduler_sim_jobs(
+        id = id, start = start, end = end, fields = fields, filters = filters,
+        druid_engine = deps.druid_engine,
+    )
+    return JSONResponse(result)
 
 
 
