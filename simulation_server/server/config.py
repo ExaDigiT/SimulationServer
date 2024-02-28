@@ -1,6 +1,6 @@
 from typing import Annotated as A, NamedTuple
 import os, functools
-from pydantic import StringConstraints, BaseModel
+from pydantic import StringConstraints
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from fastapi import Depends
 import sqlalchemy as sqla
