@@ -18,7 +18,9 @@ class AppSettings(BaseSettings):
 
     http_port: int = 8080
 
-    job_image: str
+    allow_origins: list[str] = []
+
+    job_image: str = ""
 
     model_config = SettingsConfigDict(
         frozen = True,

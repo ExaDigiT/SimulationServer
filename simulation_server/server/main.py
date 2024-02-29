@@ -7,6 +7,8 @@ from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.cors import CORSMiddleware
+
 import uvicorn
 from loguru import logger
 
@@ -45,7 +47,14 @@ async def http_404_handler(request: Request, exc: HTTPException) -> Response:
     return JSONResponse(message, status_code=404, headers=exc.headers)
 
 app.add_middleware(GZipMiddleware, compresslevel = 5)
-
+if settings.allow_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allow_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+)
 
 from .endpoints import router
 app.include_router(router)
