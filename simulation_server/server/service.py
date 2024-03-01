@@ -281,6 +281,7 @@ def query_cooling_sim_cdu(*,
 
 def build_scheduler_sim_jobs_query(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    time_travel: Optional[datetime] = None, limit = 100, offset = 0,
     fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
     druid_engine: sqla.engine.Engine,
 ):
@@ -288,37 +289,68 @@ def build_scheduler_sim_jobs_query(*,
     filters = filters or Filters()
 
     tbl = get_table('sens-svc-event-exadigit-scheduler-sim-job', druid_engine).alias("jobs")
+    
     cols = {
-        **{f: tbl.c[f] for f in [
-            "job_id", "name", "node_count", "time_limit", "state_current", "node_ranges", "xnames",
-        ]},
-        **{f: to_timestamp(tbl.c[f]) for f in ["time_submission", "time_start", "time_end"]},
+        "job_id": tbl.c.job_id,
+        "name": any_value(tbl.c.name, 256),
+        "node_count": latest(tbl.c.node_count),
+        "time_snapshot": sqla.func.max(tbl.c['__time']),
+        "time_submission": to_timestamp(latest(tbl.c.time_submission)),
+        "time_limit": latest(tbl.c.time_limit),
+        "time_start": to_timestamp(latest(tbl.c.time_start)),
+        "time_end": to_timestamp(latest(tbl.c.time_end)),
+        "state_current": latest(tbl.c.state_current, 12),
+        # TODO: These aggregations are going to have performance problems on larger datasets
+        "node_ranges": latest(tbl.c.node_ranges, 20 * 1024),
+        "xnames": latest(tbl.c.xnames, 128 * 1024),
     }
 
-    stmt = sqla.select(
-        tbl.c['__time'].label('time_snapshot'),
-        *[cols[name].label(name) for name in fields],
-    )
-    stmt = stmt.where(
-        tbl.c['sim_id'] == id,
-        *filters.filter_sql(cols),
-    )
+
+    # These fields won't change during the course of a job so we can filter using a WHERE
+    where_filters = {
+        **{f: tbl.c[f] for f in ['job_id', 'name', 'node_count', 'time_limit']},
+        **{f: to_timestamp(tbl.c[f]) for f in ['time_submission', 'time_start']},
+    }
+    having_filters = {k: cols[k] for k in ["time_end", "state_current"]}
+    
+
+    stmt = sqla.select(*[cols[name].label(name) for name in fields])
+    stmt = stmt.where(tbl.c['sim_id'] == id)
+    if time_travel:
+        stmt = stmt.where(tbl.c['__time'] <= to_timestamp(time_travel))
+
+    # time_submission won't change over the course of a job_id, and time_end once set won't change
+    # either. Technically Slurm can reschedule a job which updates time_submission, but we aren't
+    # simulating that. And if we do, we'd just add an allocation_id like the telemetry data to
+    # differentiate between requeueings.
     if start:
-        stmt.where(to_timestamp(start) <= tbl.c['__time'])
+        stmt = stmt.where(
+            to_timestamp(start) <= tbl.c['__time'], # Can ignore snapshots before start
+            sqla.or_(tbl.c.time_end.is_(None), to_timestamp(start) < to_timestamp(tbl.c.time_end)),
+        )
     if end:
-        stmt.where(tbl.c['__time'] < to_timestamp(end))
-    fields = ['timestamp', *fields]
+        stmt = stmt.where(to_timestamp(tbl.c.time_submission) < to_timestamp(end))
+
+    stmt = stmt.where(*filters.filter_sql(where_filters))
+    stmt = stmt.group_by("job_id")
+    stmt = stmt.having(*filters.filter_sql(having_filters))
+    # TODO: Order by
+    stmt = stmt.limit(limit).offset(offset)
+    logger.info(f"STMT {stmt}")
+
     return fields, stmt
 
 
 def query_scheduler_sim_jobs(*,
-    id: str, 
-    start: Optional[datetime] = None, end: Optional[datetime] = None,
+    id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    time_travel: Optional[datetime] = None, limit = 100, offset = 0,
     fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
     druid_engine: sqla.engine.Engine,
 ):
     fields, stmt = build_scheduler_sim_jobs_query(
-        id = id, start = start, end = end, fields = fields, filters = filters,
+        id = id, start = start, end = end,
+        time_travel = time_travel, limit = limit, offset = offset,
+        fields = fields, filters = filters,
         druid_engine = druid_engine,
     )
 

@@ -45,7 +45,7 @@ SCHEDULER_SIM_JOB_API_FIELDS = {
     'job_id': 'string',
     'name': 'string',
     'node_count': 'number',
-    # 'time_snapshot': 'date', # This is the timestamp field filtered by start/end
+    'time_snapshot': 'date',
     'time_submission': 'date',
     'time_limit': 'timedelta',
     'time_start': 'date',
