@@ -11,15 +11,15 @@ from .job_state import JobStateEnum
 class Sim(BaseModel):
     """ Represents a single simulation run """
 
-    id: str
+    id: Optional[str] = None
     """ Unique id of the simulation """
 
-    user: str
+    user: Optional[str] = None
     """ User who launched the simulation """
 
-    state: Literal['running', 'success', 'fail']
+    state: Optional[Literal['running', 'success', 'fail']] = None
 
-    logical_start: AwareDatetime
+    logical_start: Optional[AwareDatetime] = None
     """
     The start of the date range the simulation is running over.
 
@@ -29,19 +29,19 @@ class Sim(BaseModel):
     matters to set how long the simulation should run for.
     """
 
-    logical_end: AwareDatetime
+    logical_end: Optional[AwareDatetime] = None
     """ See sim_start """
 
-    run_start: AwareDatetime
+    run_start: Optional[AwareDatetime] = None
     """ The real time the simulation started running """
 
-    run_end: Optional[AwareDatetime]
+    run_end: Optional[AwareDatetime] = None
     """ The real time the simulation finished """
 
-    progress: A[float, Field(ge=0, le=1)] = 0
+    progress: A[Optional[float], Field(ge=0, le=1)] = None
     """ Float from 0 -> 1 summarizing the simulation progress """
 
-    config: dict
+    config: Optional[dict] = None
     """ Original config used to run the simulation """
 
 
@@ -62,8 +62,13 @@ SIM_API_FIELDS = {
     'logical_end': 'date',
     'run_start': 'date',
     'run_end': 'date',
+    'progress': 'number',
+    'config': 'string',
 }
-
+SIM_FIELD_SELECTORS = {
+    "default": ["id", "user", "state", "logical_start", "logical_end", "run_start", "run_end", "progress"],
+    "all": [*SIM_API_FIELDS.keys()],
+}
 
 class SimConfig(BaseModel):
     start: AwareDatetime

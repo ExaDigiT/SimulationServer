@@ -8,7 +8,7 @@ from ..models.output import (
     SchedulerSimSystem,
     CoolingSimCDU, COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
 )
-from ..models.sim import Sim, SIM_API_FIELDS, SimConfig
+from ..models.sim import Sim, SIM_API_FIELDS, SIM_FIELD_SELECTORS, SimConfig
 from ..util.misc import omit
 from .config import AppDeps
 from .api_queries import (
@@ -23,10 +23,6 @@ router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
 
 
 GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=timedelta(seconds=1)))]
-SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
-SchedulerSimJobFieldSelectors = A[CommaSeparatedList[SchedulerSimJobFieldSelector], Query()]
-CoolingSimCDUFieldSelector = Literal[get_selectors(COOLING_CDU_FIELD_SELECTORS)]
-CoolingSimCDUFieldSelectors = A[CommaSeparatedList[CoolingSimCDUFieldSelector], Query()]
 
 
 @router.post("/run", response_model=Sim)
@@ -37,30 +33,37 @@ def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
     """
     return run_simulation(sim_config, deps)
 
-SIM_FILTERS = filter_params(SIM_API_FIELDS)
+SIM_FILTERS = filter_params(omit(SIM_API_FIELDS, ['progress', 'config']))
 SimFilters = A[Filters, Depends(SIM_FILTERS)]
-SimSort = A[Sort, Depends(sort_params(SIM_API_FIELDS, [
+SimSort = A[Sort, Depends(sort_params(omit(SIM_API_FIELDS, ['progress', 'config']), [
     "asc:run_start", "asc:run_end", "asc:logical_start", "asc:logical_end", "asc:id",
 ]))]
+SimFieldSelector = Literal[get_selectors(SIM_API_FIELDS)]
+SimFieldSelectors = A[CommaSeparatedList[SimFieldSelector], Query()]
 
-@router.get("/list", response_model=Page[Sim])
-def sim_list(*, filters: SimFilters, sort: SimSort, limit = 100, offset = 0, deps: AppDeps): # TODO: Add fields and default config to off
+@router.get("/list", response_model=Page[Sim], response_model_exclude_none=True)
+def sim_list(*,
+    filters: SimFilters, sort: SimSort,
+    fields: SimFieldSelectors = None,
+    limit = 100, offset = 0,
+    deps: AppDeps,
+):
     """
     List all the simulations.
     You can add filters to get simulations by state, user, id, etc.
     """
     results = query_sims(
-        filters = filters, sort = sort, limit = limit, offset = offset,
+        filters = filters, sort = sort, fields = fields, limit = limit, offset = offset,
         druid_engine = deps.druid_engine,
     )
     return Page(results = results, limit = limit, offset = offset, total_results = len(results))
 
 
-@router.get("/{id}", response_model=Sim)
+@router.get("/{id}", response_model=Sim, response_model_exclude_none=True)
 def get(id: str, deps: AppDeps):
     """ Get simulation by id or 404 if not found. """
     results = query_sims(
-        filters = SIM_FILTERS(id=[f"eq:{id}"]), limit = 1,
+        filters = SIM_FILTERS(id=[f"eq:{id}"]), fields=['all'], limit = 1,
         druid_engine = deps.druid_engine,
     )
     if len(results) == 0:
@@ -71,6 +74,8 @@ def get(id: str, deps: AppDeps):
 
 
 CoolingCDUFilters = A[Filters, Depends(filter_params(COOLING_CDU_API_FIELDS))]
+CoolingSimCDUFieldSelector = Literal[get_selectors(COOLING_CDU_FIELD_SELECTORS)]
+CoolingSimCDUFieldSelectors = A[CommaSeparatedList[CoolingSimCDUFieldSelector], Query()]
 
 @router.get("/{id}/cooling/cdu", response_model=ObjectTimeseries[CoolingSimCDU])
 def cooling_cdu(*,
@@ -92,6 +97,8 @@ def cooling_cdu(*,
 SchedulerSimJobFilters = A[Filters, Depends(filter_params(
     omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']) # TODO: Allow filtering on nodes
 ))]
+SchedulerSimJobFieldSelector = Literal[get_selectors(SIM_FIELD_SELECTORS)]
+SchedulerSimJobFieldSelectors = A[CommaSeparatedList[SchedulerSimJobFieldSelector], Query()]
 
 @router.get("/{id}/scheduler/jobs", response_model=Page[SchedulerSimJob])
 def scheduler_jobs(*,

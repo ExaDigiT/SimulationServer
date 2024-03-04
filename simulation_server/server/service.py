@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import uuid, time, json
 import sqlalchemy as sqla
 from loguru import logger
-from ..models.sim import Sim
+from ..models.sim import Sim, SIM_FIELD_SELECTORS
 from .config import AppDeps
 from ..models.base import ResponseFormat
 from ..models.output import (
@@ -49,7 +49,6 @@ def run_simulation(sim_config, deps: AppDeps):
         logical_end = sim_config.end,
         run_start = datetime.now(timezone.utc),
         run_end = None,
-        progress = 0,
         config = sim_config.model_dump(mode = 'json'),
     )
     deps.kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
@@ -95,11 +94,22 @@ def run_simulation(sim_config, deps: AppDeps):
 
 def query_sims(*,
     filters: Optional[Filters] = None, sort: Optional[Sort] = None,
+    fields: Optional[list[str]] = None,
     limit = 100, offset = 0,
     druid_engine: sqla.Engine,
 ) -> list[Sim]:
     filters = filters or Filters()
     sort = sort or Sort()
+    fields = expand_field_selectors(fields, SIM_FIELD_SELECTORS)
+
+    if 'progress' in fields:
+        query_fields = [f for f in fields if f != 'progress']
+        query_fields = [*dict.fromkeys(query_fields + [ # Need these to calculate progress
+            'id', 'logical_start', 'logical_end', 'run_start', 'run_end',
+        ])]
+    else:
+        query_fields = fields
+
     sims = get_table("svc-event-exadigit-sim", druid_engine)
     sim_output_tables = [
         get_table("sens-svc-event-exadigit-scheduler-sim-job", druid_engine),
@@ -129,7 +139,7 @@ def query_sims(*,
         "config": any_value(sims.c.config, 4 * 1024),
     }
 
-    stmt = sqla.select(*[col.label(name) for name, col in grouped_cols.items()])
+    stmt = sqla.select(*[grouped_cols[name].label(name) for name in query_fields])
     stmt = stmt.where(*filters.filter_sql(omit(cols, ['state'])))
     stmt = stmt.group_by(cols['id'])
     if filters.get('state'):
@@ -138,34 +148,40 @@ def query_sims(*,
     stmt = stmt.limit(limit).offset(offset)
 
     with druid_engine.connect() as conn:
-        results = [
-            Sim.model_validate({**r._asdict(), "config": json.loads(r.config)})
-            for r in conn.execute(stmt)
-        ]
+        results = [r._asdict() for r in conn.execute(stmt)]
 
-        incomplete = [sim.id for sim in results if not sim.run_end]
-        progresses = {}
+        if 'progress' in fields:
+            incomplete = [sim['id'] for sim in results if not sim['run_end']]
+            progresses = {}
 
-        if len(incomplete) > 0:
-            for tbl in sim_output_tables:
-                stmt = (
-                    sqla.select(tbl.c.sim_id, sqla.func.max(to_timestamp(tbl.c['__time'])).label('progress'))
-                        .where(tbl.c.sim_id.in_(incomplete))
-                        .group_by(tbl.c.sim_id)
-                )
-                for r in conn.execute(stmt).all():
-                    progress = DatetimeValidator.validate_strings(r.progress)
-                    progresses[r.sim_id] = max(progress, progresses.get(r.sim_id, progress))
+            if len(incomplete) > 0:
+                for tbl in sim_output_tables:
+                    stmt = (
+                        sqla.select(
+                            tbl.c.sim_id,
+                            sqla.func.max(to_timestamp(tbl.c['__time'])).label('progress')
+                        )
+                            .where(tbl.c.sim_id.in_(incomplete))
+                            .group_by(tbl.c.sim_id)
+                    )
+                    for r in conn.execute(stmt).all():
+                        progress = DatetimeValidator.validate_strings(r.progress)
+                        progresses[r.sim_id] = max(progress, progresses.get(r.sim_id, progress))
 
-        for sim in results:
-            if sim.id in progresses:
-                progress = (progresses[sim.id] - sim.logical_start) / (sim.logical_end - sim.logical_start)
-                # Never return 1 if incomplete
-                sim.progress = round(min(max(0, progress), 0.99), 3)
-            elif not sim.run_end:
-                sim.progress = 0
-            else:
-                sim.progress = 1
+            for sim in results:
+                if sim['id'] in progresses:
+                    progress = (progresses[sim['id']] - sim['logical_start']) / (sim['logical_end'] - sim['logical_start'])
+                    # Never return 1 if incomplete
+                    sim['progress'] = round(min(max(0, progress), 0.99), 3)
+                elif not sim['run_end']:
+                    sim['progress'] = 0
+                else:
+                    sim['progress'] = 1
+        
+        if 'config' in fields:
+            results = [{**r, 'config': json.loads(r['config'])} for r in results]
+
+        results = [Sim.model_validate(pick(r, fields)) for r in results]
     
     return results
 
