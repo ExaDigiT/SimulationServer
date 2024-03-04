@@ -64,13 +64,13 @@ if __name__ == "__main__":
 
 
     if args.action == "run":
-        if args.config and args.config_path:
-            raise Exception("You can only specify either config or config-path")
+        if args.config and args.config_file:
+            raise Exception("You can only specify either config or config-file")
         
         if args.config:
             config = yaml.safe_load(args.config)
-        elif args.config_path:
-            config = yaml.safe_load(args.config_path.read_text())
+        elif args.config_file:
+            config = yaml.safe_load(args.config_file.read_text())
         elif "SIM_CONFIG" in os.environ:
             config = yaml.safe_load(os.environ["SIM_CONFIG"])
         elif "SIM_CONFIG_FILE" in os.environ:

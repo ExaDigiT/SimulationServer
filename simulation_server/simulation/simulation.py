@@ -3,7 +3,9 @@ from datetime import timedelta
 from pathlib import Path
 import random, math, functools
 import numpy as np
-from .raps.raps.config import SC_SHAPE, TOTAL_NODES, DOWN_NODES, TRACE_QUANTA, FMU_PATH
+from .raps.raps.config import (
+    SC_SHAPE, TOTAL_NODES, DOWN_NODES, MISSING_NODES, TRACE_QUANTA, FMU_PATH,
+)
 from .raps.raps.cooling import ThermoFluidsModel
 from .raps.raps.power import PowerManager
 from .raps.raps.scheduler import Scheduler
@@ -68,7 +70,8 @@ def run_simulation(config: SimConfig):
         else:
             cooling_model = None
 
-        power_manager = PowerManager(SC_SHAPE, down_nodes)
+        # TODO: Why do we have down_nodes and missing_nodes?
+        power_manager = PowerManager(SC_SHAPE, down_nodes, down_nodes)
 
         sc = Scheduler(
             TOTAL_NODES, down_nodes,
