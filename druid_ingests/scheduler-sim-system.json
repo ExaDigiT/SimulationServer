@@ -3,7 +3,7 @@
     "spec": {
         "ioConfig": {
             "type": "kafka",
-            "topic": "svc-event-exadigit-schedulersimsystem",
+            "topic": "svc-ts-exadigit-schedulersimsystem",
             "consumerProperties": {
                 "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
                 "security.protocol": "SASL_PLAINTEXT",
@@ -24,7 +24,7 @@
             "type": "kafka"
         },
         "dataSchema": {
-            "dataSource": "svc-event-exadigit-scheduler-sim-system",
+            "dataSource": "svc-ts-exadigit-scheduler-sim-system",
             "timestampSpec": {
                 "column": "timestamp",
                 "format": "iso"

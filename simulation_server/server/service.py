@@ -103,8 +103,8 @@ def query_sims(*,
     sims = get_table("svc-event-exadigit-sim", druid_engine)
     sim_output_tables = [
         get_table("sens-svc-event-exadigit-scheduler-sim-job", druid_engine),
-        get_table("svc-event-exadigit-scheduler-sim-system", druid_engine),
-        get_table("svc-event-exadigit-cooling-sim-cdu", druid_engine),
+        get_table("svc-ts-exadigit-scheduler-sim-system", druid_engine),
+        get_table("svc-ts-exadigit-cooling-sim-cdu", druid_engine),
     ]
 
     cols = {
@@ -240,7 +240,7 @@ def build_cooling_sim_cdu_query(*,
     fields = expand_field_selectors(fields, COOLING_CDU_FIELD_SELECTORS)
     filters = filters or Filters()
 
-    tbl = get_table('svc-event-exadigit-cooling-sim-cdu', druid_engine).alias("cdus")
+    tbl = get_table('svc-ts-exadigit-cooling-sim-cdu', druid_engine).alias("cdus")
     filter_cols = {c: tbl.c[c] for c in COOLING_CDU_API_FIELDS}
     group_cols = {
         "xname": tbl.c['xname'],
@@ -266,7 +266,7 @@ def query_cooling_sim_cdu(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = get_table('svc-event-exadigit-cooling-sim-cdu', druid_engine)
+    tbl = get_table('svc-ts-exadigit-cooling-sim-cdu', druid_engine)
     start, end = get_extent(tbl, id, start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_cooling_sim_cdu_query(
@@ -369,7 +369,7 @@ def build_scheduler_sim_system_query(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = get_table('svc-event-exadigit-scheduler-sim-system', druid_engine).alias("jobs")
+    tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine).alias("jobs")
     cols = {
         "down_nodes": tbl.c.down_nodes,
     }

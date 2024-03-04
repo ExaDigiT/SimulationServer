@@ -3,7 +3,7 @@
     "spec": {
         "ioConfig": {
             "type": "kafka",
-            "topic": "svc-event-exadigit-coolingsimcdu",
+            "topic": "svc-ts-exadigit-coolingsimcdu",
             "consumerProperties": {
                 "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
                 "security.protocol": "SASL_PLAINTEXT",
@@ -24,7 +24,7 @@
             "type": "kafka"
         },
         "dataSchema": {
-            "dataSource": "svc-event-exadigit-cooling-sim-cdu",
+            "dataSource": "svc-ts-exadigit-cooling-sim-cdu",
             "timestampSpec": {
                 "column": "timestamp",
                 "format": "iso"
