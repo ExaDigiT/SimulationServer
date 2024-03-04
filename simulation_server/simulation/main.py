@@ -28,9 +28,9 @@ def background_job(sim: Sim):
 
     try:
         for data in run_simulation(config):
-            output_rows("svc-event-exadigit-schedulersimsystem", data.scheduler_sim_system)
+            output_rows("svc-ts-exadigit-schedulersimsystem", data.scheduler_sim_system)
             output_rows("svc-event-exadigit-schedulersimjob", data.scheduler_sim_jobs)
-            output_rows("svc-event-exadigit-coolingsimcdu", data.cooling_sim_cdus)
+            output_rows("svc-ts-exadigit-coolingsimcdu", data.cooling_sim_cdus)
     except BaseException as e:
         sim.state = "fail"
         sim.run_end = datetime.now(timezone.utc)
