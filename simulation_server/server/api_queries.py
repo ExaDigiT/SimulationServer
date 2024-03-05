@@ -56,16 +56,14 @@ def snap_duration(delta: timedelta, round = "down"):
 class Granularity(BaseModel):
     granularity: A[Optional[NumTimedelta],
         Predicate(lambda v: not v or v >= timedelta(seconds = 1)), # Ge doesn't work on timedelta
-        Field(description = "The time interval between data points in the returned timeseries."),
     ] = None
-    resolution: A[Optional[int],
-        Ge(1),
-        Field(description = """
-            The (approximate) number of points that should be in the returned timeseries.
-            You can only specify one of granularity or resolution.
-        """),
-    ] = None
+    """ The time interval between data points in the returned timeseries. """
 
+    resolution: A[Optional[int], Ge(1)] = None
+    """
+    The (approximate) number of points that should be in the returned timeseries.
+    You can only specify one of granularity or resolution.
+    """
 
     @model_validator(mode='after')
     def check_granularity_xor_resolution(self):
