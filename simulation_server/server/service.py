@@ -311,10 +311,10 @@ def build_scheduler_sim_jobs_query(*,
         "name": any_value(tbl.c.name, 256),
         "node_count": latest(tbl.c.node_count),
         "time_snapshot": sqla.func.max(tbl.c['__time']),
-        "time_submission": to_timestamp(latest(tbl.c.time_submission)),
+        "time_submission": to_timestamp(latest(tbl.c.time_submission, 32)),
         "time_limit": latest(tbl.c.time_limit),
-        "time_start": to_timestamp(latest(tbl.c.time_start)),
-        "time_end": to_timestamp(latest(tbl.c.time_end)),
+        "time_start": to_timestamp(latest(tbl.c.time_start, 32)),
+        "time_end": to_timestamp(latest(tbl.c.time_end, 32)),
         "state_current": latest(tbl.c.state_current, 12),
         # TODO: These aggregations are going to have performance problems on larger datasets
         "node_ranges": latest(tbl.c.node_ranges, 20 * 1024),
@@ -328,7 +328,6 @@ def build_scheduler_sim_jobs_query(*,
         **{f: to_timestamp(tbl.c[f]) for f in ['time_submission', 'time_start']},
     }
     having_filters = {k: cols[k] for k in ["time_end", "state_current"]}
-    
 
     stmt = sqla.select(*[cols[name].label(name) for name in fields])
     stmt = stmt.where(tbl.c['sim_id'] == id)
