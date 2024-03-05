@@ -38,7 +38,7 @@ SimFilters = A[Filters, Depends(SIM_FILTERS)]
 SimSort = A[Sort, Depends(sort_params(omit(SIM_API_FIELDS, ['progress', 'config']), [
     "asc:run_start", "asc:run_end", "asc:logical_start", "asc:logical_end", "asc:id",
 ]))]
-SimFieldSelector = Literal[get_selectors(SIM_API_FIELDS)]
+SimFieldSelector = Literal[get_selectors(SIM_FIELD_SELECTORS)]
 SimFieldSelectors = A[CommaSeparatedList[SimFieldSelector], Query()]
 
 @router.get("/list", response_model=Page[Sim], response_model_exclude_none=True)

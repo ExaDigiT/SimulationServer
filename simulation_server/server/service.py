@@ -148,10 +148,13 @@ def query_sims(*,
     stmt = stmt.limit(limit).offset(offset)
 
     with druid_engine.connect() as conn:
-        results = [r._asdict() for r in conn.execute(stmt)]
+        results = (r._asdict() for r in conn.execute(stmt))
+        if 'config' in fields:
+            results = ({**r, 'config': json.loads(r['config'])} for r in results)
+        results = [Sim.model_validate(r) for r in results]
 
         if 'progress' in fields:
-            incomplete = [sim['id'] for sim in results if not sim['run_end']]
+            incomplete = [sim.id for sim in results if not sim.run_end]
             progresses = {}
 
             if len(incomplete) > 0:
@@ -169,19 +172,16 @@ def query_sims(*,
                         progresses[r.sim_id] = max(progress, progresses.get(r.sim_id, progress))
 
             for sim in results:
-                if sim['id'] in progresses:
-                    progress = (progresses[sim['id']] - sim['logical_start']) / (sim['logical_end'] - sim['logical_start'])
+                if sim.id in progresses:
+                    progress = (progresses[sim.id] - sim.logical_start) / (sim.logical_end - sim.logical_start)
                     # Never return 1 if incomplete
-                    sim['progress'] = round(min(max(0, progress), 0.99), 3)
-                elif not sim['run_end']:
-                    sim['progress'] = 0
+                    sim.progress = round(min(max(0, progress), 0.99), 3)
+                elif not sim.run_end:
+                    sim.progress = 0
                 else:
-                    sim['progress'] = 1
+                    sim.progress = 1
         
-        if 'config' in fields:
-            results = [{**r, 'config': json.loads(r['config'])} for r in results]
-
-        results = [Sim.model_validate(pick(r, fields)) for r in results]
+        results = [Sim.model_validate(pick(r.model_dump(), fields)) for r in results]
     
     return results
 
