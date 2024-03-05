@@ -8,6 +8,8 @@ from starlette.responses import Response, JSONResponse
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
+from ..util.json import update_jsonpaths
 
 import uvicorn
 from loguru import logger
@@ -45,6 +47,44 @@ async def http_404_handler(request: Request, exc: HTTPException) -> Response:
         "docs": str(request.url_for("swagger_ui_html")),
     }
     return JSONResponse(message, status_code=404, headers=exc.headers)
+
+
+def custom_openapi():
+    if not app.openapi_schema:
+        schema = get_openapi(
+            openapi_version = "3.1.0",
+            title=app.title, version=app.version,
+            description=app.description, routes=app.routes,
+            separate_input_output_schemas = app.separate_input_output_schemas,
+        )
+
+        # Pydantic 2 `anyOf: [{type: "foo"}, type: "null"]` causes issues in the generated docs
+        # See https://github.com/pydantic/pydantic/issues/6647
+        def replace_null_unions(match):
+            types = [
+                i for i in match.value['anyOf']
+                if not (isinstance(i, dict) and i.get('type') == 'null')
+            ]
+            if len(types) == 1:
+                value = {
+                    **match.value,
+                    **types[0],
+                }
+                value.pop("anyOf")
+                return value
+            else:
+                return {
+                    **match.value,
+                    "anyOf": types,
+                }
+
+        schema = update_jsonpaths(schema, {"$..* where anyOf": replace_null_unions})
+
+        app.openapi_schema = schema
+
+    return app.openapi_schema
+app.openapi = custom_openapi
+
 
 app.add_middleware(GZipMiddleware, compresslevel = 5)
 if settings.allow_origins:
