@@ -299,10 +299,12 @@ def build_scheduler_sim_jobs_query(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     time_travel: Optional[datetime] = None, limit = 100, offset = 0,
     fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
+    sort: Optional[Sort] = None,
     druid_engine: sqla.engine.Engine,
 ):
     fields = expand_field_selectors(fields, SCHEDULER_SIM_JOB_FIELD_SELECTORS)
     filters = filters or Filters()
+    sort = sort or Sort()
 
     tbl = get_table('sens-svc-event-exadigit-scheduler-sim-job', druid_engine).alias("jobs")
     
@@ -349,9 +351,9 @@ def build_scheduler_sim_jobs_query(*,
     stmt = stmt.where(*filters.filter_sql(where_filters))
     stmt = stmt.group_by("job_id")
     stmt = stmt.having(*filters.filter_sql(having_filters))
+    stmt = stmt.order_by(*sort.sort_sql(cols))
     # TODO: Order by
     stmt = stmt.limit(limit).offset(offset)
-    logger.info(f"STMT {stmt}")
 
     return fields, stmt
 
@@ -360,12 +362,13 @@ def query_scheduler_sim_jobs(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     time_travel: Optional[datetime] = None, limit = 100, offset = 0,
     fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
+    sort: Optional[Sort] = None,
     druid_engine: sqla.engine.Engine,
 ):
     fields, stmt = build_scheduler_sim_jobs_query(
         id = id, start = start, end = end,
         time_travel = time_travel, limit = limit, offset = offset,
-        fields = fields, filters = filters,
+        fields = fields, filters = filters, sort = sort,
         druid_engine = druid_engine,
     )
 

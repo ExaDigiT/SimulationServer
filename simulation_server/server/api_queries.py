@@ -179,6 +179,7 @@ def expand_field_selectors(
 
 def get_selectors(shorthands: dict[str, list[str]]) -> tuple[str, ...]:
     """ For making a Literal like Literal[get_selectors(shorthands)] """
+    assert all(isinstance(x, list) for x in shorthands.values())
     fields = [*shorthands.keys(), *itertools.chain(*shorthands.values())]
     return tuple(dict.fromkeys(fields)) # Dedup, preserve order
 

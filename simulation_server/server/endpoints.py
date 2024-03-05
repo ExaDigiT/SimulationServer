@@ -97,7 +97,11 @@ def cooling_cdu(*,
 SchedulerSimJobFilters = A[Filters, Depends(filter_params(
     omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']) # TODO: Allow filtering on nodes
 ))]
-SchedulerSimJobFieldSelector = Literal[get_selectors(SIM_FIELD_SELECTORS)]
+SchedulerSimJobSort = A[Sort, Depends(sort_params(
+    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']),
+    ["asc:time_start", "asc:time_end", "asc:job_id"],
+))]
+SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)]
 SchedulerSimJobFieldSelectors = A[CommaSeparatedList[SchedulerSimJobFieldSelector], Query()]
 
 @router.get("/{id}/scheduler/jobs", response_model=Page[SchedulerSimJob])
@@ -105,6 +109,7 @@ def scheduler_jobs(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     time_travel: Optional[datetime] = None, limit = 100, offset = 0,
     fields: SchedulerSimJobFieldSelectors = None, filters: SchedulerSimJobFilters,
+    sort:SchedulerSimJobSort,
     deps: AppDeps,
 ):
     """
@@ -139,7 +144,7 @@ def scheduler_jobs(*,
     results = query_scheduler_sim_jobs(
         id = id, start = start, end = end,
         time_travel = time_travel, limit = limit, offset = offset,
-        fields = fields, filters = filters,
+        fields = fields, filters = filters, sort = sort,
         druid_engine = deps.druid_engine,
     )
     return JSONResponse({
