@@ -36,7 +36,7 @@ def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
 SIM_FILTERS = filter_params(omit(SIM_API_FIELDS, ['progress', 'config']))
 SimFilters = A[Filters, Depends(SIM_FILTERS)]
 SimSort = A[Sort, Depends(sort_params(omit(SIM_API_FIELDS, ['progress', 'config']), [
-    "asc:run_start", "asc:run_end", "asc:logical_start", "asc:logical_end", "asc:id",
+    "asc:execution_start", "asc:execution_end", "asc:start", "asc:end", "asc:id",
 ]))]
 SimFieldSelector = Literal[get_selectors(SIM_FIELD_SELECTORS)]
 SimFieldSelectors = A[CommaSeparatedList[SimFieldSelector], Query()]

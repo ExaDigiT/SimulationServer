@@ -38,23 +38,23 @@
                     },
                     {
                         "type": "expression",
-                        "name": "logical_start",
-                        "expression": "timestamp_format(timestamp_parse(logical_start))"
+                        "name": "start",
+                        "expression": "timestamp_format(timestamp_parse(start))"
                     },
                     {
                         "type": "expression",
-                        "name": "logical_end",
-                        "expression": "timestamp_format(timestamp_parse(logical_end))"
+                        "name": "end",
+                        "expression": "timestamp_format(timestamp_parse(end))"
                     },
                     {
                         "type": "expression",
-                        "name": "run_start",
-                        "expression": "timestamp_format(timestamp_parse(run_start))"
+                        "name": "execution_start",
+                        "expression": "timestamp_format(timestamp_parse(execution_start))"
                     },
                     {
                         "type": "expression",
-                        "name": "run_end",
-                        "expression": "timestamp_format(timestamp_parse(run_end))"
+                        "name": "execution_end",
+                        "expression": "timestamp_format(timestamp_parse(execution_end))"
                     }
                 ]
             },
@@ -65,19 +65,19 @@
                     "state",
                     {
                         "type": "string",
-                        "name": "logical_start"
+                        "name": "start"
                     },
                     {
                         "type": "string",
-                        "name": "logical_end"
+                        "name": "end"
                     },
                     {
                         "type": "string",
-                        "name": "run_start"
+                        "name": "execution_start"
                     },
                     {
-                        "name": "run_end",
-                        "type": "string"
+                        "type": "string",
+                        "name": "execution_end"
                     },
                     "config"
                 ]

@@ -45,10 +45,10 @@ def run_simulation(sim_config, deps: AppDeps):
         id = str(uuid.uuid4()),
         user = "unknown", # TODO pull this from cookie/auth header
         state = "running",
-        logical_start = sim_config.start,
-        logical_end = sim_config.end,
-        run_start = datetime.now(timezone.utc),
-        run_end = None,
+        start = sim_config.start,
+        end = sim_config.end,
+        execution_start = datetime.now(timezone.utc),
+        execution_end = None,
         config = sim_config.model_dump(mode = 'json'),
     )
     deps.kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
@@ -105,7 +105,7 @@ def query_sims(*,
     if 'progress' in fields:
         query_fields = [f for f in fields if f != 'progress']
         query_fields = [*dict.fromkeys(query_fields + [ # Need these to calculate progress
-            'id', 'logical_start', 'logical_end', 'run_start', 'run_end',
+            'id', 'start', 'end', 'execution_start', 'execution_end',
         ])]
     else:
         query_fields = fields
@@ -121,10 +121,10 @@ def query_sims(*,
         "id": sims.c.id,
         "user": sims.c.user,
         "state": sims.c.state,
-        "logical_start": to_timestamp(sims.c.logical_start),
-        "logical_end": to_timestamp(sims.c.logical_end),
-        "run_start": sims.c['__time'],
-        "run_end": to_timestamp(sims.c.run_end),
+        "start": to_timestamp(sims.c.start),
+        "end": to_timestamp(sims.c.end),
+        "execution_start": sims.c.execution_start,
+        "execution_end": to_timestamp(sims.c.execution_end),
         "config": sims.c.config,
     }
 
@@ -132,10 +132,10 @@ def query_sims(*,
         "id": any_value(sims.c.id, 40),
         "user": any_value(sims.c.user, 40),
         "state": latest(sims.c.state, 12),
-        "logical_start": to_timestamp(any_value(sims.c.logical_start, 32)),
-        "logical_end": to_timestamp(any_value(sims.c.logical_end, 32)),
-        "run_start": to_timestamp(any_value(sims.c.run_start, 32)),
-        "run_end": to_timestamp(latest(sims.c.run_end, 32)),
+        "start": to_timestamp(any_value(sims.c.start, 32)),
+        "end": to_timestamp(any_value(sims.c.end, 32)),
+        "execution_start": to_timestamp(any_value(sims.c.execution_start, 32)),
+        "execution_end": to_timestamp(latest(sims.c.execution_end, 32)),
         "config": any_value(sims.c.config, 4 * 1024),
     }
 
@@ -154,7 +154,7 @@ def query_sims(*,
         results = [Sim.model_validate(r) for r in results]
 
         if 'progress' in fields:
-            incomplete = [sim.id for sim in results if not sim.run_end]
+            incomplete = [sim.id for sim in results if not sim.execution_end]
             progresses = {}
 
             if len(incomplete) > 0:
@@ -173,10 +173,10 @@ def query_sims(*,
 
             for sim in results:
                 if sim.id in progresses:
-                    progress = (progresses[sim.id] - sim.logical_start) / (sim.logical_end - sim.logical_start)
+                    progress = (progresses[sim.id] - sim.start) / (sim.end - sim.start)
                     # Never return 1 if incomplete
                     sim.progress = round(min(max(0, progress), 0.99), 3)
-                elif not sim.run_end:
+                elif not sim.execution_end:
                     sim.progress = 0
                 else:
                     sim.progress = 1

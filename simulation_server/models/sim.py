@@ -19,7 +19,7 @@ class Sim(BaseModel):
 
     state: Optional[Literal['running', 'success', 'fail']] = None
 
-    logical_start: Optional[AwareDatetime] = None
+    start: Optional[AwareDatetime] = None
     """
     The start of the date range the simulation is running over.
 
@@ -29,13 +29,13 @@ class Sim(BaseModel):
     matters to set how long the simulation should run for.
     """
 
-    logical_end: Optional[AwareDatetime] = None
+    end: Optional[AwareDatetime] = None
     """ See sim_start """
 
-    run_start: Optional[AwareDatetime] = None
+    execution_start: Optional[AwareDatetime] = None
     """ The real time the simulation started running """
 
-    run_end: Optional[AwareDatetime] = None
+    execution_end: Optional[AwareDatetime] = None
     """ The real time the simulation finished """
 
     progress: A[Optional[float], Field(ge=0, le=1)] = None
@@ -46,7 +46,7 @@ class Sim(BaseModel):
 
 
     def serialize_for_druid(self):
-        timestamp = self.run_end or self.run_start
+        timestamp = self.execution_end or self.execution_start
         return json.dumps({
             **self.model_dump(mode = 'json', exclude = {"progress"}),
             "timestamp": timestamp.isoformat(),
@@ -58,15 +58,15 @@ SIM_API_FIELDS = {
     'id': 'string',
     'user': 'string',
     'state': 'string',
-    'logical_start': 'date',
-    'logical_end': 'date',
-    'run_start': 'date',
-    'run_end': 'date',
+    'start': 'date',
+    'end': 'date',
+    'execution_start': 'date',
+    'execution_end': 'date',
     'progress': 'number',
     'config': 'string',
 }
 SIM_FIELD_SELECTORS = {
-    "default": ["id", "user", "state", "logical_start", "logical_end", "run_start", "run_end", "progress"],
+    "default": ["id", "user", "state", "start", "end", "execution_start", "execution_end", "progress"],
     "all": [*SIM_API_FIELDS.keys()],
 }
 
