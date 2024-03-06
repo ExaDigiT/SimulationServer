@@ -18,4 +18,11 @@ def submit_job(job: dict):
 
 
 def get_job(name: str):
-    return get_batch_api().read_namespaced_job(namespace = get_namespace(), name = name)
+    try:
+        return get_batch_api().read_namespaced_job(namespace = get_namespace(), name = name)
+    except k8s.client.ApiException as e:
+        if e.status == 404:
+            return None
+        else:
+            raise e
+
