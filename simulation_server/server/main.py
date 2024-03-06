@@ -54,8 +54,7 @@ def custom_openapi():
         schema = get_openapi(
             openapi_version = "3.1.0",
             title=app.title, version=app.version,
-            description=app.description, routes=app.routes,
-            separate_input_output_schemas = app.separate_input_output_schemas,
+            description=app.description, routes=app.routes, servers=app.servers,
         )
 
         # Pydantic 2 `anyOf: [{type: "foo"}, type: "null"]` causes issues in the generated docs
