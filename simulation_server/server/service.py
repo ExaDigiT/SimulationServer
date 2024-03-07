@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 from datetime import datetime, timedelta, timezone
 import uuid, time, json
 import sqlalchemy as sqla
@@ -11,7 +11,7 @@ from ..models.output import (
     SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
 )
 from ..util.misc import pick, omit
-from ..util.k8s import submit_job
+from ..util.k8s import submit_job, get_job
 from ..util.druid import get_table, to_timestamp, any_value, latest
 from .api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
@@ -90,6 +90,70 @@ def run_simulation(sim_config, deps: AppDeps):
     wait_until_exists(stmt, timeout = timedelta(minutes=1), druid_engine = deps.druid_engine)
 
     return sim
+
+
+_sim_jobs_cache: dict[str, tuple[Any, datetime]] = {}
+_sim_job_cache_expire = timedelta(minutes=5)
+def get_sim_job(sim_id: str):
+    now = datetime.now()
+    # Expire old entries
+    for cid in list(_sim_jobs_cache.keys()):
+        if (now - _sim_jobs_cache[cid][1]) > _sim_job_cache_expire:
+            del _sim_jobs_cache[cid]
+
+    if sim_id not in _sim_jobs_cache:
+        _sim_jobs_cache[sim_id] = (get_job(f"exadigit-simulation-server-{sim_id}"), now)
+
+    return _sim_jobs_cache[sim_id][0]
+
+
+# def get_job_state(job):
+#     if job:
+#         if job.status.succeeded:
+#             return 'success'
+#         elif not job.status.active and job.status.failed:
+#             return 'fail'
+#         else:
+#             return 'running'
+#     else:
+#         return 'deleted'
+
+
+# def correct_stuck_jobs(sims: list[Sim], deps: AppDeps):
+#     now = datetime.now(timezone.utc)
+
+#     stuck: list[Sim] = []
+#     for sim in sims:
+#         if sim.state == 'running':
+#             job_state = get_job_state(get_sim_job(sim.id))
+#             if job_state != 'running':
+#                 stuck.append(sim)
+    
+#     if stuck:
+#         # TODO reuse filters from endpoint
+#         SIM_FILTERS = filter_params(SIM_API_FIELDS)
+#         refreshed = query_sims(
+#             filters = SIM_FILTERS(id = [f'one_of:{",".join(s.id for s in stuck)}']),
+#             fields = ['all'], # Get all fields
+#             limit = len(stuck),
+#             druid_engine = deps.druid_engine
+#         )
+#         refreshed = {s.id: s for s in refreshed}
+    
+#         for sim in stuck:
+#             if refreshed[sim.id].state == 'running':
+#                 sim.state = 'fail'
+#                 sim.execution_end = now
+#                 refreshed[sim.id].state = 'fail'
+#                 refreshed[sim.id].execution_end = now
+#                 deps.kafka_producer.send("svc-event-exadigit-sim",
+#                     value = refreshed[sim.id].serialize_for_druid()
+#                 )
+#             else:
+#                 # TODO: This function is a race condition, we could output duplicate "fail"
+#                 # corrections. That wouldn't really break anything though.
+#                 sim.state = refreshed[sim.id].state
+#                 sim.execution_end = refreshed[sim.id].execution_end
 
 
 def query_sims(*,
