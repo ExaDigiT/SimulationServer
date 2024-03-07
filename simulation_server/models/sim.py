@@ -11,7 +11,7 @@ from .job_state import JobStateEnum
 class Sim(BaseModel):
     """ Represents a single simulation run """
 
-    id: Optional[str] = None
+    id: str
     """ Unique id of the simulation """
 
     user: Optional[str] = None
@@ -66,8 +66,8 @@ SIM_API_FIELDS = {
     'config': 'string',
 }
 SIM_FIELD_SELECTORS = {
-    "default": ["id", "user", "state", "start", "end", "execution_start", "execution_end", "progress"],
-    "all": [*SIM_API_FIELDS.keys()],
+    "default": ["user", "state", "start", "end", "execution_start", "execution_end", "progress"],
+    "all": ['default', 'config'],
 }
 
 class SimConfig(BaseModel):

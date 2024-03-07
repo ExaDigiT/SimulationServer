@@ -101,6 +101,7 @@ def query_sims(*,
     filters = filters or Filters()
     sort = sort or Sort()
     fields = expand_field_selectors(fields, SIM_FIELD_SELECTORS)
+    fields = ['id', *fields]
 
     if 'progress' in fields:
         query_fields = [f for f in fields if f != 'progress']
