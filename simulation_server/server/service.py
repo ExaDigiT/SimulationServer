@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import uuid, time, json
 import sqlalchemy as sqla
 from loguru import logger
+from pydantic import ValidationError
 from ..models.sim import Sim, SIM_FIELD_SELECTORS
 from .config import AppDeps
 from ..models.base import ResponseFormat
@@ -273,8 +274,16 @@ def get_extent(tbl,
         )
         with druid_engine.connect() as conn:
             row = conn.execute(stmt).one()
-            start = start or row.start
-            end = end or row.end
+            # If result set is empty, Druid returns invalid date strings (max/min possible date)
+            # This bug will probably be fixed when we update Druid
+            try:
+                extent_start = DatetimeValidator.validate_strings(row.start)
+                extent_end = DatetimeValidator.validate_strings(row.end)
+            except ValidationError:
+                now = datetime.now(timezone.utc)
+                extent_start, extent_end = now, now
+            start = start or extent_start
+            end = end or extent_end
     return (start, end)
 
 
