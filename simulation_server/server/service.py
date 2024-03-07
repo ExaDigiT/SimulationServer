@@ -161,7 +161,7 @@ def query_sims(*,
     fields: Optional[list[str]] = None,
     limit = 100, offset = 0,
     druid_engine: sqla.Engine,
-) -> list[Sim]:
+) -> tuple[list[Sim], int]:
     filters = filters or Filters()
     sort = sort or Sort()
     fields = expand_field_selectors(fields, SIM_FIELD_SELECTORS)
@@ -209,6 +209,9 @@ def query_sims(*,
     stmt = stmt.group_by(cols['id'])
     if filters.get('state'):
         stmt = stmt.having(*filters.filter_sql(pick(grouped_cols, ['state'])))
+
+    count_stmt = sqla.select(sqla.func.count()).select_from(stmt.subquery())
+
     stmt = stmt.order_by(*sort.sort_sql(grouped_cols))
     stmt = stmt.limit(limit).offset(offset)
 
@@ -217,6 +220,11 @@ def query_sims(*,
         if 'config' in fields:
             results = ({**r, 'config': json.loads(r['config'])} for r in results)
         results = [Sim.model_validate(r) for r in results]
+
+        if len(results) >= limit:
+            total_results = conn.execute(count_stmt).scalar()
+        else:
+            total_results = len(results)
 
         if 'progress' in fields:
             incomplete = [sim.id for sim in results if not sim.execution_end]
@@ -248,7 +256,7 @@ def query_sims(*,
         
         results = [Sim.model_validate(pick(r.model_dump(), fields)) for r in results]
     
-    return results
+    return results, total_results
 
 
 def get_extent(tbl,
@@ -416,11 +424,12 @@ def build_scheduler_sim_jobs_query(*,
     stmt = stmt.where(*filters.filter_sql(where_filters))
     stmt = stmt.group_by("job_id")
     stmt = stmt.having(*filters.filter_sql(having_filters))
+
+    count_stmt = sqla.select(sqla.func.count()).select_from(stmt.subquery())
     stmt = stmt.order_by(*sort.sort_sql(cols))
-    # TODO: Order by
     stmt = stmt.limit(limit).offset(offset)
 
-    return fields, stmt
+    return fields, stmt, count_stmt
 
 
 def query_scheduler_sim_jobs(*,
@@ -430,7 +439,7 @@ def query_scheduler_sim_jobs(*,
     sort: Optional[Sort] = None,
     druid_engine: sqla.engine.Engine,
 ):
-    fields, stmt = build_scheduler_sim_jobs_query(
+    fields, stmt, count_stmt = build_scheduler_sim_jobs_query(
         id = id, start = start, end = end,
         time_travel = time_travel, limit = limit, offset = offset,
         fields = fields, filters = filters, sort = sort,
@@ -440,12 +449,19 @@ def query_scheduler_sim_jobs(*,
     with druid_engine.connect() as conn:
         results = (r._asdict() for r in conn.execute(stmt))
         if 'xnames' in fields:
-            return [{
+            results = [{
                 **j,
                 'xnames': _split_list(j['xnames']),
             } for j in results]
         else:
-            return [j for j in results]
+            results = [j for j in results]
+
+        if len(results) >= limit:
+            total_results = conn.execute(count_stmt).scalar()
+        else:
+            total_results = len(results)
+
+    return results, total_results
 
 
 def build_scheduler_sim_system_query(*,

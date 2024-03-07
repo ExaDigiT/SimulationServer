@@ -45,24 +45,24 @@ SimFieldSelectors = A[CommaSeparatedList[SimFieldSelector], Query()]
 def sim_list(*,
     filters: SimFilters, sort: SimSort,
     fields: SimFieldSelectors = None,
-    limit = 100, offset = 0,
+    limit: int = 100, offset: int = 0,
     deps: AppDeps,
 ):
     """
     List all the simulations.
     You can add filters to get simulations by state, user, id, etc.
     """
-    results = query_sims(
+    results, total_results = query_sims(
         filters = filters, sort = sort, fields = fields, limit = limit, offset = offset,
         druid_engine = deps.druid_engine,
     )
-    return Page(results = results, limit = limit, offset = offset, total_results = len(results))
+    return Page(results = results, limit = limit, offset = offset, total_results = total_results)
 
 
 @router.get("/{id}", response_model=Sim, response_model_exclude_none=True)
 def get(id: str, deps: AppDeps):
     """ Get simulation by id or 404 if not found. """
-    results = query_sims(
+    results, total_results = query_sims(
         filters = SIM_FILTERS(id=[f"eq:{id}"]), fields=['all'], limit = 1,
         druid_engine = deps.druid_engine,
     )
@@ -107,7 +107,7 @@ SchedulerSimJobFieldSelectors = A[CommaSeparatedList[SchedulerSimJobFieldSelecto
 @router.get("/{id}/scheduler/jobs", response_model=Page[SchedulerSimJob])
 def scheduler_jobs(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
-    time_travel: Optional[datetime] = None, limit = 100, offset = 0,
+    time_travel: Optional[datetime] = None, limit: int = 100, offset: int = 0,
     fields: SchedulerSimJobFieldSelectors = None, filters: SchedulerSimJobFilters,
     sort:SchedulerSimJobSort,
     deps: AppDeps,
@@ -141,7 +141,7 @@ def scheduler_jobs(*,
     - Show all jobs that ran over a given interval
         - `?start=2024-03-01T00:00:00Z&end=2024-03-01T01:00:00Z`
     """
-    results = query_scheduler_sim_jobs(
+    results, total_results = query_scheduler_sim_jobs(
         id = id, start = start, end = end,
         time_travel = time_travel, limit = limit, offset = offset,
         fields = fields, filters = filters, sort = sort,
@@ -151,7 +151,7 @@ def scheduler_jobs(*,
         "results": results,
         "limit": limit,
         "offset": offset,
-        "total_results": len(results),
+        "total_results": total_results,
     })
 
 
