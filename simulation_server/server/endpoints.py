@@ -156,13 +156,19 @@ def scheduler_jobs(*,
 
 
 
-@router.get("/{id}/scheduler/system", response_model=list[SchedulerSimSystem])
+@router.get("/{id}/scheduler/system", response_model=ObjectTimeseries[SchedulerSimSystem])
 def scheduler_system(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    granularity: A[Granularity, Depends(granularity_params(default_resolution=1))],
     deps: AppDeps,
 ):
+    """
+    Returns stats of the simulation.
+    By default will return just the most recent stats, but you can pass a granularity to get stats
+    at different sampling rates.
+    """
     result = query_scheduler_sim_system(
-        id = id, start = start, end = end,
+        id = id, start = start, end = end, granularity = granularity,
         druid_engine = deps.druid_engine,
     )
     return result

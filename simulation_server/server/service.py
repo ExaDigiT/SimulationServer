@@ -475,43 +475,54 @@ def query_scheduler_sim_jobs(*,
 
 
 def build_scheduler_sim_system_query(*,
-    id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    id: str, span: QuerySpan,
     druid_engine: sqla.engine.Engine,
 ):
     tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine).alias("jobs")
+    
     cols = {
-        "down_nodes": tbl.c.down_nodes,
+        "down_nodes": latest(tbl.c.down_nodes, 1024),
+        "num_samples": latest(tbl.c.num_samples),
+        "jobs_completed": latest(tbl.c.jobs_completed),
+        "jobs_running": latest(tbl.c.jobs_running),
+        "jobs_pending": latest(tbl.c.jobs_pending),
+        "throughput": latest(tbl.c.throughput),
+        "average_power": latest(tbl.c.average_power),
+        "average_loss": latest(tbl.c.average_loss),
+        "system_power_efficiency": latest(tbl.c.system_power_efficiency),
+        "total_energy_consumed": latest(tbl.c.total_energy_consumed),
+        "carbon_emissions": latest(tbl.c.carbon_emissions),
+        "total_cost": latest(tbl.c.total_cost),
     }
 
+    fields = [*cols.keys()] # TODO add fields to endpoint
 
-    stmt = sqla.select(
-        tbl.c['__time'].label('timestamp'),
-        *[col.label(name) for name, col in cols.items()],
+    return _build_ts_query(tbl,
+        id = id, span = span, fields = fields, filters = Filters(),
+        group_cols = {}, agg_cols = cols, filter_cols = {},
     )
-    stmt = stmt.where(tbl.c['sim_id'] == id)
-    if start:
-        stmt.where(to_timestamp(start) <= tbl.c['__time'])
-    if end:
-        stmt.where(tbl.c['__time'] < to_timestamp(end))
-    return ["timestamp", *cols.keys()], stmt
 
 
 def query_scheduler_sim_system(*,
     id: str, 
-    start: Optional[datetime] = None, end: Optional[datetime] = None,
+    start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: Granularity,
+    format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
+    tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine)
+    start, end = get_extent(tbl, id, start, end, druid_engine = druid_engine)
+    span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_scheduler_sim_system_query(
-        id = id, start = start, end = end,
+        id = id, span = span,
         druid_engine = druid_engine,
     )
+    results = _run_ts_query(
+        span = span, stmt = stmt, fields = fields,
+        format = format, druid_engine = druid_engine,
+    )
 
-    with druid_engine.connect() as conn:
-        results = (r._asdict() for r in conn.execute(stmt))
-        if 'down_nodes' in fields:
-            return [{
-                **j,
-                'down_nodes': _split_list(j['down_nodes']),
-            } for j in results]
-        else:
-            return [j for j in results]
+    if 'down_nodes' in fields:
+        for r in results['data']:
+            r['down_nodes'] = _split_list(r['down_nodes'])
+
+    return results
