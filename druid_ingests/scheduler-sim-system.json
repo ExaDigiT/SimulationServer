@@ -41,7 +41,51 @@
             "dimensionsSpec": {
                 "dimensions": [
                     "sim_id",
-                    "down_nodes"
+                    "down_nodes",
+                    {
+                        "type": "long",
+                        "name": "num_samples"
+                    },
+                    {
+                        "type": "long",
+                        "name": "jobs_completed"
+                    },
+                    {
+                        "type": "long",
+                        "name": "jobs_running"
+                    },
+                    {
+                        "type": "long",
+                        "name": "jobs_pending"
+                    },
+                    {
+                        "type": "double",
+                        "name": "throughput"
+                    },
+                    {
+                        "type": "double",
+                        "name": "average_power"
+                    },
+                    {
+                        "type": "double",
+                        "name": "average_loss"
+                    },
+                    {
+                        "type": "double",
+                        "name": "system_power_efficiency"
+                    },
+                    {
+                        "type": "double",
+                        "name": "total_energy_consumed"
+                    },
+                    {
+                        "type": "double",
+                        "name": "carbon_emissions"
+                    },
+                    {
+                        "type": "double",
+                        "name": "total_cost"
+                    }
                 ]
             },
             "granularitySpec": {

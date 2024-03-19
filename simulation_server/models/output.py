@@ -64,13 +64,38 @@ SCHEDULER_SIM_JOB_FIELD_SELECTORS = {
 }
 
 
-
-
 class SchedulerSimSystem(BaseModel):
     timestamp: AwareDatetime
+    
     down_nodes: list[str]
     """ List of xnames that are currently down in the simulation """
+    
+    num_samples: int
 
+    jobs_completed: int
+    jobs_running: int
+    jobs_pending: int
+
+    throughput: float
+    """ jobs/hour """
+    
+    average_power: float
+    """ In Watts """
+
+    average_loss: float
+    """ In watts """
+
+    system_power_efficiency: float
+    """ Percentage 0 -> 100 """
+    
+    total_energy_consumed: float
+    """ In MW⋅hr """
+
+    carbon_emissions: float
+    """ metric tons of CO2 """
+
+    total_cost: float
+    """ Cost in US dollars """
 
 
 class CoolingSimCDU(BaseModel):

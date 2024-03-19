@@ -1,5 +1,5 @@
-from typing import NamedTuple, Annotated as A
-from datetime import timedelta
+from typing import NamedTuple, Optional
+from datetime import datetime, timedelta
 from pathlib import Path
 import random, math, functools
 import numpy as np
@@ -55,6 +55,11 @@ class SimOutput(NamedTuple):
 
 
 def run_simulation(config: SimConfig):
+    sample_scheduler_sim_system = timedelta(seconds = 1).total_seconds()
+    sample_scheduler_sim_jobs = timedelta(seconds = 10).total_seconds()
+    # Sample CDU as fast as it is available
+    sample_cooling_sim_cdus = timedelta(seconds = 1).total_seconds()
+
     if config.scheduler.enabled:
         if config.scheduler.seed:
             # TODO: This is globabl and should probably be done in RAPS
@@ -90,36 +95,56 @@ def run_simulation(config: SimConfig):
             jobs = sc.generate_random_jobs(num_jobs=num_jobs)
 
         for data in sc.run_simulation(jobs, timesteps=timesteps):
-            timestamp = _offset_to_time(config.start, data.current_time)
+            timestamp: datetime = _offset_to_time(config.start, data.current_time)
+            unix_timestamp = int(timestamp.timestamp())
 
-            down_nodes, _ = _parse_nodes(tuple(data.down_nodes))
-            scheduler_sim_system = [SchedulerSimSystem.model_validate(dict(
-                timestamp = timestamp,
-                down_nodes = down_nodes,
-            ))]
-            
+            scheduler_sim_system: list[SchedulerSimSystem] = []
+            if unix_timestamp % sample_scheduler_sim_system == 0:
+                down_nodes, _ = _parse_nodes(tuple(data.down_nodes))
+                stats = sc.get_stats()
+
+                scheduler_sim_system = [SchedulerSimSystem.model_validate(dict(
+                    timestamp = timestamp,
+                    down_nodes = down_nodes,
+                    # TODO: Update sc.get_stats to return more easily parsable data
+                    num_samples = int(stats['num_samples']),
+    
+                    jobs_completed = int(stats['jobs completed']),
+                    jobs_running = len(stats['jobs still running']),
+                    jobs_pending = len(stats['jobs still in queue']),
+
+                    throughput = float(stats['throughput'].split(' ')[0]),
+                    average_power = float(stats['average power'].split(' ')[0]) * 1_000_000,
+                    average_loss = float(stats['average loss'].split(' ')[0]) * 1_000_000,
+                    system_power_efficiency = float(stats['system power efficiency']),
+                    total_energy_consumed = float(stats['total energy consumed'].split(' ')[0]),
+                    carbon_emissions = float(stats['carbon emissions'].split(' ')[0]),
+                    total_cost = float(stats['total cost'].removeprefix("$")),
+                ))]
+
             scheduler_sim_jobs: list[SchedulerSimJob] = []
-            for job in data.jobs:
-                # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
-                time_end = _offset_to_time(config.start, job.end_time) if job.start_time else None
+            if unix_timestamp % sample_scheduler_sim_jobs == 0:
+                for job in data.jobs:
+                    # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
+                    time_end = _offset_to_time(config.start, job.end_time) if job.start_time else None
 
-                xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
-                scheduler_sim_jobs.append(SchedulerSimJob.model_validate(dict(
-                    job_id = str(job.id) if job.id else None,
-                    name = job.name,
-                    node_count = job.nodes_required,
-                    time_snapshot = timestamp,
-                    time_submission = _offset_to_time(config.start, job.submit_time),
-                    time_limit = job.wall_time,
-                    time_start = _offset_to_time(config.start, job.start_time),
-                    time_end = _offset_to_time(config.start, job.end_time),
-                    state_current = JobStateEnum(job.state.name),
-                    node_ranges = node_ranges,
-                    xnames = xnames,
-                )))
+                    xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
+                    scheduler_sim_jobs.append(SchedulerSimJob.model_validate(dict(
+                        job_id = str(job.id) if job.id else None,
+                        name = job.name,
+                        node_count = job.nodes_required,
+                        time_snapshot = timestamp,
+                        time_submission = _offset_to_time(config.start, job.submit_time),
+                        time_limit = job.wall_time,
+                        time_start = _offset_to_time(config.start, job.start_time),
+                        time_end = time_end,
+                        state_current = JobStateEnum(job.state.name),
+                        node_ranges = node_ranges,
+                        xnames = xnames,
+                    )))
 
             cooling_sim_cdus: list[CoolingSimCDU] = []
-            if data.cooling_df is not None:
+            if unix_timestamp % sample_cooling_sim_cdus == 0 and data.cooling_df is not None:
                 for i, point in data.cooling_df.iterrows():
                     xname = _cdu_index_to_xname(int(point["CDU"]))
                     row, col = int(xname[2]), int(xname[3:5])
