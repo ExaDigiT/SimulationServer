@@ -1,6 +1,6 @@
 from typing import Optional, Any
 from datetime import datetime, timedelta, timezone
-import uuid, time, json
+import uuid, time, json, base64
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
@@ -43,7 +43,8 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
 
 def run_simulation(sim_config, deps: AppDeps):
     sim = Sim(
-        id = str(uuid.uuid4()),
+        # Random sim id, use base32 to make it a bit shorter
+        id = base64.b32encode(uuid.uuid4().bytes).decode().rstrip('=').lower(),
         user = "unknown", # TODO pull this from cookie/auth header
         state = "running",
         start = sim_config.start,
