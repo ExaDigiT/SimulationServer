@@ -1,9 +1,9 @@
 from typing import Callable, Optional, Generic, TypeVar, NamedTuple, Union, Any, Literal, Annotated as A, cast
 from collections.abc import Collection
-from datetime import datetime, timedelta
-import functools, re, inspect, math, dataclasses, itertools
+from datetime import datetime, timedelta, timezone
+import functools, re, inspect, math, dataclasses, itertools, math
 
-from pydantic import BaseModel, model_validator, TypeAdapter, Field, AwareDatetime
+from pydantic import BaseModel, model_validator, field_validator, TypeAdapter, AwareDatetime
 from annotated_types import Ge, Predicate
 import sqlalchemy as sqla
 from sqlalchemy.sql import FromClause, ColumnElement
@@ -123,6 +123,18 @@ class QuerySpan(BaseModel):
         if self.start > self.end:
             raise ValueError('end must be >= start')
         return self
+
+
+    @field_validator("start", mode="after")
+    @classmethod
+    def trunc_start(cls, v: datetime, info):
+        return v.fromtimestamp(math.floor(v.timestamp()), tz=timezone.utc)
+
+
+    @field_validator("start", mode="after")
+    @classmethod
+    def trunc_end(cls, v: datetime, info):
+        return v.fromtimestamp(math.ceil(v.timestamp()), tz=timezone.utc)
 
 
     def floor(self, timestamp_col):
