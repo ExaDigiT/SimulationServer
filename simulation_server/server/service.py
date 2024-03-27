@@ -13,7 +13,7 @@ from ..models.output import (
 )
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job, get_job
-from ..util.druid import get_table, to_timestamp, any_value, latest
+from ..util.druid import get_table, to_timestamp, any_value, latest, earliest
 from .api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
 )
@@ -481,18 +481,18 @@ def build_scheduler_sim_system_query(*,
     tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine).alias("jobs")
     
     cols = {
-        "down_nodes": latest(tbl.c.down_nodes, 1024),
-        "num_samples": latest(tbl.c.num_samples),
-        "jobs_completed": latest(tbl.c.jobs_completed),
-        "jobs_running": latest(tbl.c.jobs_running),
-        "jobs_pending": latest(tbl.c.jobs_pending),
-        "throughput": latest(tbl.c.throughput),
-        "average_power": latest(tbl.c.average_power),
-        "average_loss": latest(tbl.c.average_loss),
-        "system_power_efficiency": latest(tbl.c.system_power_efficiency),
-        "total_energy_consumed": latest(tbl.c.total_energy_consumed),
-        "carbon_emissions": latest(tbl.c.carbon_emissions),
-        "total_cost": latest(tbl.c.total_cost),
+        "down_nodes": earliest(tbl.c.down_nodes, 1024),
+        "num_samples": earliest(tbl.c.num_samples),
+        "jobs_completed": earliest(tbl.c.jobs_completed),
+        "jobs_running": earliest(tbl.c.jobs_running),
+        "jobs_pending": earliest(tbl.c.jobs_pending),
+        "throughput": earliest(tbl.c.throughput),
+        "average_power": earliest(tbl.c.average_power),
+        "average_loss": earliest(tbl.c.average_loss),
+        "system_power_efficiency": earliest(tbl.c.system_power_efficiency),
+        "total_energy_consumed": earliest(tbl.c.total_energy_consumed),
+        "carbon_emissions": earliest(tbl.c.carbon_emissions),
+        "total_cost": earliest(tbl.c.total_cost),
     }
 
     fields = [*cols.keys()] # TODO add fields to endpoint
