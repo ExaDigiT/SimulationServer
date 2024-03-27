@@ -131,7 +131,7 @@ class QuerySpan(BaseModel):
         return v.fromtimestamp(math.floor(v.timestamp()), tz=timezone.utc)
 
 
-    @field_validator("start", mode="after")
+    @field_validator("end", mode="after")
     @classmethod
     def trunc_end(cls, v: datetime, info):
         return v.fromtimestamp(math.ceil(v.timestamp()), tz=timezone.utc)
