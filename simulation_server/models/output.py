@@ -82,7 +82,13 @@ class SchedulerSimSystem(BaseModel):
     average_power: float
     """ In Watts """
 
+    min_loss: float
+    """ In watts """
+
     average_loss: float
+    """ In watts """
+
+    max_loss: float
     """ In watts """
 
     system_power_efficiency: float

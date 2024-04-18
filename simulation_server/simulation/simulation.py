@@ -10,6 +10,7 @@ from .raps.raps.cooling import ThermoFluidsModel
 from .raps.raps.power import PowerManager
 from .raps.raps.scheduler import Scheduler
 from .raps.raps.telemetry import index_to_xname, xname_to_index, Telemetry
+from .raps.raps.workload import Workload
 from ..models.sim import SimConfig
 from ..models.output import JobStateEnum, SchedulerSimJob, SchedulerSimSystem, CoolingSimCDU
 from .node_set import FrontierNodeSet
@@ -85,14 +86,19 @@ def run_simulation(config: SimConfig):
             cooling_model = cooling_model,
             debug = False,
         )
+        workload = Workload(sc) # Why does Workload take a Scheduler? It never uses it.
 
-        if config.scheduler.jobs_mode == "replay":
+        if config.scheduler.jobs_mode == "random":
+            num_jobs = config.scheduler.num_jobs if config.scheduler.num_jobs is not None else 1000
+            jobs = workload.random(num_jobs=num_jobs)
+        elif config.scheduler.jobs_mode == "test":
+            jobs = workload.test()
+        elif config.scheduler.jobs_mode == "replay":
             raise Exception("Replay not supported yet")
         elif config.scheduler.jobs_mode == "custom":
             raise Exception("Custom not supported")
-        elif config.scheduler.jobs_mode == "random":
-            num_jobs = config.scheduler.num_jobs if config.scheduler.num_jobs is not None else 1000
-            jobs = sc.generate_random_jobs(num_jobs=num_jobs)
+        else:
+            raise Exception(f'Unknown jobs_mode "{config.scheduler.jobs_mode}"')
 
         for data in sc.run_simulation(jobs, timesteps=timesteps):
             timestamp: datetime = _offset_to_time(config.start, data.current_time)
@@ -115,7 +121,9 @@ def run_simulation(config: SimConfig):
 
                     throughput = float(stats['throughput'].split(' ')[0]),
                     average_power = float(stats['average power'].split(' ')[0]) * 1_000_000,
+                    min_loss = float(stats['min loss'].split(' ')[0]) * 1_000_000,
                     average_loss = float(stats['average loss'].split(' ')[0]) * 1_000_000,
+                    max_loss = float(stats['max loss'].split(' ')[0]) * 1_000_000,
                     system_power_efficiency = float(stats['system power efficiency']),
                     total_energy_consumed = float(stats['total energy consumed'].split(' ')[0]),
                     carbon_emissions = float(stats['carbon emissions'].split(' ')[0]),
@@ -141,6 +149,9 @@ def run_simulation(config: SimConfig):
                         state_current = JobStateEnum(job.state.name),
                         node_ranges = node_ranges,
                         xnames = xnames,
+                        # How does the new job.power attribute work? Is it total_energy?
+                        # Or just the current wattage?
+                        # power = job.power,
                     )))
 
             cooling_sim_cdus: list[CoolingSimCDU] = []
