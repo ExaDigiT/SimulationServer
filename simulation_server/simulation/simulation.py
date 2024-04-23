@@ -23,6 +23,10 @@ from .node_set import FrontierNodeSet
 RAPS_PATH = Path(__file__).parent / 'raps'
 
 
+class SimException(Exception):
+    pass
+
+
 def _offset_to_time(start, offset):
     if offset is not None:
         return start + timedelta(seconds=offset)
@@ -109,7 +113,7 @@ def fetch_telemetry_data(start: datetime, end: datetime):
     ])
 
     if (job_data.empty or job_profile_data.empty):
-        raise Exception(f"No telemetry data for {start.isoformat()} -> {end.isoformat()}")
+        raise SimException(f"No telemetry data for {start.isoformat()} -> {end.isoformat()}")
 
     telemetry = Telemetry()
     jobs = telemetry.parse_dataframes(job_data, job_profile_data, min_time=start)
@@ -159,9 +163,9 @@ def run_simulation(config: SimConfig):
             logger.info("Fetching telemetry data")
             jobs = fetch_telemetry_data(config.start, config.end)
         elif config.scheduler.jobs_mode == "custom":
-            raise Exception("Custom not supported")
+            raise SimException("Custom not supported")
         else:
-            raise Exception(f'Unknown jobs_mode "{config.scheduler.jobs_mode}"')
+            raise SimException(f'Unknown jobs_mode "{config.scheduler.jobs_mode}"')
 
         for data in sc.run_simulation(jobs, timesteps=timesteps):
             timestamp: datetime = _offset_to_time(config.start, data.current_time)
@@ -270,6 +274,4 @@ def run_simulation(config: SimConfig):
                 cooling_sim_cdus = cooling_sim_cdus
             )
     else:
-        raise Exception("No simulations specified")
-
-
+        raise SimException("No simulations specified")

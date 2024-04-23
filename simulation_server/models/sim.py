@@ -19,6 +19,9 @@ class Sim(BaseModel):
 
     state: Optional[Literal['running', 'success', 'fail']] = None
 
+    error_messages: Optional[str] = None
+    """ Any warnings or error messages from the simulation run """
+
     start: Optional[AwareDatetime] = None
     """
     The start of the date range the simulation is running over.
@@ -58,6 +61,7 @@ SIM_API_FIELDS = {
     'id': 'string',
     'user': 'string',
     'state': 'string',
+    'error_messages': 'string',
     'start': 'date',
     'end': 'date',
     'execution_start': 'date',
@@ -66,7 +70,10 @@ SIM_API_FIELDS = {
     'config': 'string',
 }
 SIM_FIELD_SELECTORS = {
-    "default": ["user", "state", "start", "end", "execution_start", "execution_end", "progress"],
+    "default": [
+        "user", "state", "error_messages", "start", "end", "execution_start", "execution_end",
+        "progress",
+    ],
     "all": ['default', 'config'],
 }
 

@@ -34,6 +34,7 @@ def background_job(sim: Sim):
     except BaseException as e:
         sim.state = "fail"
         sim.execution_end = datetime.now(timezone.utc)
+        sim.error_messages = str(e)
         kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
         kafka_producer.close() # Close and wait for messages to be sent
         logger.info(f"Simulation {sim.id} failed")

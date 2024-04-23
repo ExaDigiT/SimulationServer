@@ -65,6 +65,10 @@
                     "state",
                     {
                         "type": "string",
+                        "name": "error_messages"
+                    },
+                    {
+                        "type": "string",
                         "name": "start"
                     },
                     {
