@@ -86,12 +86,13 @@ def run_simulation(config: SimConfig):
             cooling_model = cooling_model,
             debug = False,
         )
-        workload = Workload(sc) # Why does Workload take a Scheduler? It never uses it.
 
         if config.scheduler.jobs_mode == "random":
             num_jobs = config.scheduler.num_jobs if config.scheduler.num_jobs is not None else 1000
+            workload = Workload(sc) # Why does Workload take a Scheduler? It never uses it.
             jobs = workload.random(num_jobs=num_jobs)
         elif config.scheduler.jobs_mode == "test":
+            workload = Workload(sc)
             jobs = workload.test()
         elif config.scheduler.jobs_mode == "replay":
             raise Exception("Replay not supported yet")
