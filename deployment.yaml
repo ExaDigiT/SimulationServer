@@ -8,6 +8,8 @@ parameters:
   # For some reason, oc will ignore the namespace in templates unless its parameterized
   - name: NAMESPACE
     value: stf218-app
+  - name: SERVER_IMAGE
+  - name: JOB_IMAGE
 objects:
   - apiVersion: apps/v1
     kind: Deployment
@@ -32,7 +34,7 @@ objects:
         spec:
           serviceAccountName: ${ENV}-exadigit-simulation-server
           containers:
-          - image: registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server:latest-${ENV}
+          - image: ${SERVER_IMAGE}
             name: main
             imagePullPolicy: Always
             env:
@@ -41,7 +43,7 @@ objects:
               - name: EXADIGIT_DEBUG_MODE
                 value: "false"
               - name: EXADIGIT_JOB_IMAGE
-                value: "registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server-simulation-job:latest-${ENV}"
+                value: ${JOB_IMAGE}
             envFrom:
               - secretRef:
                   name: ${ENV}-infra-envconfig-service-sens-creds
