@@ -1,8 +1,11 @@
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 from datetime import datetime, timedelta
 from pathlib import Path
-import random, math, functools
+import random, math, functools, json
+import pandas as pd
 import numpy as np
+import sqlalchemy as sqla
+from loguru import logger
 from .raps.raps.config import (
     SC_SHAPE, TOTAL_NODES, DOWN_NODES, MISSING_NODES, TRACE_QUANTA, FMU_PATH,
 )
@@ -13,6 +16,7 @@ from .raps.raps.telemetry import index_to_xname, xname_to_index, Telemetry
 from .raps.raps.workload import Workload
 from ..models.sim import SimConfig
 from ..models.output import JobStateEnum, SchedulerSimJob, SchedulerSimSystem, CoolingSimCDU
+from ..util.druid import get_druid_engine, get_table, to_timestamp
 from .node_set import FrontierNodeSet
 
 
@@ -53,6 +57,63 @@ class SimOutput(NamedTuple):
     scheduler_sim_jobs: list[SchedulerSimJob]
     cooling_sim_cdus: list[CoolingSimCDU]
 
+
+def fetch_telemetry_data(start: datetime, end: datetime):
+    """
+    Fetch and parse real telemetry data
+    """
+    engine = get_druid_engine()
+
+    job_tbl = get_table("sens-svc-log-frontier-joblive", engine)
+    job_query = (
+        sqla.select(
+            job_tbl.c['__time'].label("time_snapshot"),
+            *[v for k, v in job_tbl.c.items() if k != '__time'],
+        )
+            .where(
+                to_timestamp(start) <= job_tbl.c['__time'],
+                job_tbl.c['__time'] < to_timestamp(end),
+            )
+    )
+    job_data = pd.read_sql(job_query, engine, parse_dates=[
+        "time_snapshot", "time_submission", "time_eligible", "time_start", "time_end", 
+        "batch_time_start", "batch_time_end",
+    ])
+
+    # TODO: Even with sqlStringifyArrays: false, multivalue columns are returned as json strings.
+    # And single rows are returned as raw strings. When we update Druid we can use ARRAYS and remove
+    # this. Moving the jobs table to postgres would also fix this (and other issues).
+    def split_xnames(xnames):
+        if not xnames:
+            return []
+        elif xnames.startswith('['):
+            return json.loads(xnames)
+        else:
+            return [xnames]
+
+    job_data['xnames'] = job_data['xnames'].map(split_xnames)
+
+    job_profile_tbl = get_table("pub-ts-frontier-job-profile", engine)
+    job_profile_query = (
+        sqla.select(
+            job_profile_tbl.c['__time'].label("timestamp"),
+            *[v for k, v in job_profile_tbl.c.items() if k != '__time'],
+        )
+            .where(
+                to_timestamp(start) <= job_profile_tbl.c['__time'],
+                job_profile_tbl.c['__time'] < to_timestamp(end),
+            )
+    )
+    job_profile_data = pd.read_sql(job_profile_query, engine, parse_dates=[
+        "timestamp",
+    ])
+
+    if (job_data.empty or job_profile_data.empty):
+        raise Exception(f"No telemetry data for {start.isoformat()} -> {end.isoformat()}")
+
+    telemetry = Telemetry()
+    jobs = telemetry.parse_dataframes(job_data, job_profile_data, min_time=start)
+    return jobs
 
 
 def run_simulation(config: SimConfig):
@@ -95,7 +156,8 @@ def run_simulation(config: SimConfig):
             workload = Workload(sc)
             jobs = workload.test()
         elif config.scheduler.jobs_mode == "replay":
-            raise Exception("Replay not supported yet")
+            logger.info("Fetching telemetry data")
+            jobs = fetch_telemetry_data(config.start, config.end)
         elif config.scheduler.jobs_mode == "custom":
             raise Exception("Custom not supported")
         else:
