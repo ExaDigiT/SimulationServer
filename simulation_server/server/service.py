@@ -30,7 +30,7 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
         start = time.time()
         record = conn.execute(stmt).first()
         while (time.time() - start) < timeout.total_seconds() and not record:
-            time.sleep(0.1)
+            time.sleep(0.5)
             record = conn.execute(stmt).first()
 
     if not record:
@@ -49,11 +49,14 @@ def run_simulation(sim_config, deps: AppDeps):
         state = "running",
         start = sim_config.start,
         end = sim_config.end,
+        progress = 0,
         execution_start = datetime.now(timezone.utc),
         execution_end = None,
         config = sim_config.model_dump(mode = 'json'),
     )
+    logger.info(f"Launching simulation {sim.id}")
     deps.kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
+    deps.kafka_producer.flush()
 
     submit_job({
         "metadata": {
@@ -90,6 +93,7 @@ def run_simulation(sim_config, deps: AppDeps):
     sim_table = get_table("svc-event-exadigit-sim", deps.druid_engine)
     stmt = sqla.select(sim_table.c.id).where(sim_table.c.id == sim.id)
     wait_until_exists(stmt, timeout = timedelta(minutes=1), druid_engine = deps.druid_engine)
+    logger.info(f"Simulation {sim.id} launched")
 
     return sim
 

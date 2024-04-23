@@ -46,7 +46,8 @@ objects:
                 value: ${JOB_IMAGE}
             envFrom:
               - secretRef:
-                  name: ${ENV}-infra-envconfig-service-sens-creds
+                  # TODO Should split out the kafka, druid tables, and secrets
+                  name: prod-infra-envconfig-service-sens-creds
             resources:
               requests:
                 cpu: 500m
