@@ -68,7 +68,15 @@
                     },
                     {
                         "type": "double",
+                        "name": "min_loss"
+                    },
+                    {
+                        "type": "double",
                         "name": "average_loss"
+                    },
+                    {
+                        "type": "double",
+                        "name": "max_loss"
                     },
                     {
                         "type": "double",
