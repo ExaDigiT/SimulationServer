@@ -78,8 +78,8 @@ def run_simulation(sim_config, deps: AppDeps):
                                 {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
                             ],
                             "resources": {
-                                "requests": {"cpu": "1000m", "memory": "512Mi"},
-                                "limits": {"cpu": "4000m", "memory": "3Gi"},
+                                "requests": {"cpu": "2000m", "memory": "1Gi"},
+                                "limits": {"cpu": "4000m", "memory": "6Gi"},
                             },
                         }
                     ],
