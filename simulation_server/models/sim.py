@@ -6,7 +6,8 @@ from pydantic import AwareDatetime, model_validator, Field
 
 from .base import BaseModel
 from .job_state import JobStateEnum
-
+from ..util.misc import omit
+from ..util.api_queries import filter_params, sort_params
 
 class Sim(BaseModel):
     """ Represents a single simulation run """
@@ -76,6 +77,10 @@ SIM_FIELD_SELECTORS = {
     ],
     "all": ['default', 'config'],
 }
+SIM_FILTERS = filter_params(omit(SIM_API_FIELDS, ['progress', 'config']))
+SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'config']), [
+    "asc:execution_start", "asc:execution_end", "asc:start", "asc:end", "asc:id",
+])
 
 class SimConfig(BaseModel):
     start: AwareDatetime

@@ -10,7 +10,7 @@ from sqlalchemy.sql import FromClause, ColumnElement
 from fastapi import Query, HTTPException, Depends
 
 from ..models.base import BaseModel, NumTimedelta
-from ..util.druid import to_timestamp, time_floor
+from .druid import to_timestamp, time_floor
 
 T = TypeVar("T")
 

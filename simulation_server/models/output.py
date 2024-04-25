@@ -1,6 +1,8 @@
 from typing import Optional
 from pydantic import AwareDatetime
 
+from ..util.misc import omit
+from  ..util.api_queries import filter_params, sort_params
 from .base import BaseModel, NumTimedelta
 from .job_state import JobStateEnum
 
@@ -62,6 +64,14 @@ SCHEDULER_SIM_JOB_API_FIELDS = {
 SCHEDULER_SIM_JOB_FIELD_SELECTORS = {
     "default": list(SchedulerSimJob.model_fields.keys()),
 }
+
+SCHEDULER_SIM_JOB_FILTERS = filter_params(
+    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']) # TODO: Allow filtering on nodes
+)
+SCHEDULER_SIM_JOB_SORT = sort_params(
+    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']),
+    ["asc:time_start", "asc:time_end", "asc:job_id"],
+)
 
 
 class SchedulerSimSystem(BaseModel):
@@ -194,3 +204,5 @@ COOLING_CDU_FIELD_SELECTORS = {
     "default": [*COOLING_CDU_API_FIELDS.keys()],
     "pos": ['row', 'col'],
 }
+
+COOLING_CDU_FILTERS = filter_params(COOLING_CDU_API_FIELDS)

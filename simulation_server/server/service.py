@@ -4,7 +4,7 @@ import uuid, time, json, base64
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
-from ..models.sim import Sim, SIM_FIELD_SELECTORS
+from ..models.sim import Sim, SimConfig, SIM_FIELD_SELECTORS
 from .config import AppDeps
 from ..models.base import ResponseFormat
 from ..models.output import (
@@ -14,7 +14,7 @@ from ..models.output import (
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job, get_job
 from ..util.druid import get_table, to_timestamp, any_value, latest, earliest
-from .api_queries import (
+from ..util.api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
 )
 
@@ -41,7 +41,7 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
 
 
 
-def run_simulation(sim_config, deps: AppDeps):
+def run_simulation(sim_config: SimConfig, deps: AppDeps):
     sim = Sim(
         # Random sim id, use base32 to make it a bit shorter
         id = base64.b32encode(uuid.uuid4().bytes).decode().rstrip('=').lower(),
