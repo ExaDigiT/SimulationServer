@@ -62,28 +62,48 @@ class SimOutput(NamedTuple):
     cooling_sim_cdus: list[CoolingSimCDU]
 
 
+def build_jobs_query(start: datetime, end: datetime, engine: sqla.engine.Engine):
+    job_tbl = get_table("sens-svc-log-frontier-joblive", engine)
+
+    # This is overly complicated. Should move jobs to postgres so we can do normal SQL style queries
+    inner_query = (
+        sqla.select(
+            sqla.func.max(job_tbl.c['__time']).label('time_snapshot'), job_tbl.c.job_id,
+        )
+        .where(
+            job_tbl.c.time_start != None,
+            to_timestamp(start) < sqla.func.coalesce(to_timestamp(job_tbl.c.time_end), job_tbl.c['__time']),
+            to_timestamp(job_tbl.c.time_start) < to_timestamp(end),
+        )
+        .group_by("job_id")
+        .subquery().alias("inner")
+    )
+
+    outer_query = (
+        sqla.select(
+            job_tbl.c['__time'].label("time_snapshot"),
+            *[v for k, v in job_tbl.c.items() if k != '__time'],
+        )
+        .join(inner_query,
+            (inner_query.c.time_snapshot == job_tbl.c['__time']) &
+            (inner_query.c.job_id == job_tbl.c.job_id)
+        )
+    )
+
+    return outer_query
+
+
 def fetch_telemetry_data(start: datetime, end: datetime):
     """
     Fetch and parse real telemetry data
     """
     engine = get_druid_engine()
 
-    job_tbl = get_table("sens-svc-log-frontier-joblive", engine)
-    job_query = (
-        sqla.select(
-            job_tbl.c['__time'].label("time_snapshot"),
-            *[v for k, v in job_tbl.c.items() if k != '__time'],
-        )
-            .where(
-                to_timestamp(start) <= job_tbl.c['__time'],
-                job_tbl.c['__time'] < to_timestamp(end),
-            )
-    )
-    job_data = pd.read_sql(job_query, engine, parse_dates=[
+    job_query = build_jobs_query(start, end, engine)
+    job_data = pd.read_sql_query(job_query, engine, parse_dates=[
         "time_snapshot", "time_submission", "time_eligible", "time_start", "time_end", 
         "batch_time_start", "batch_time_end",
     ])
-
     # TODO: Even with sqlStringifyArrays: false, multivalue columns are returned as json strings.
     # And single rows are returned as raw strings. When we update Druid we can use ARRAYS and remove
     # this. Moving the jobs table to postgres would also fix this (and other issues).
@@ -94,14 +114,15 @@ def fetch_telemetry_data(start: datetime, end: datetime):
             return json.loads(xnames)
         else:
             return [xnames]
-
     job_data['xnames'] = job_data['xnames'].map(split_xnames)
 
     job_profile_tbl = get_table("pub-ts-frontier-job-profile", engine)
     job_profile_query = (
         sqla.select(
             job_profile_tbl.c['__time'].label("timestamp"),
-            *[v for k, v in job_profile_tbl.c.items() if k != '__time'],
+            job_profile_tbl.c.allocation_id,
+            job_profile_tbl.c.sum_cpu0_power,
+            job_profile_tbl.c.sum_gpu_power,
         )
             .where(
                 to_timestamp(start) <= job_profile_tbl.c['__time'],
