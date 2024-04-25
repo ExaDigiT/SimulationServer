@@ -37,14 +37,17 @@ async def lifespan(api: FastAPI):
     for dep in deps:
         api.dependency_overrides.get(dep, dep)()
 
-    background_task_loop = repeat_task(
-        lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
-        seconds = 5 * 60,
-    )
+    background_task_loop = None
+    if settings.env == 'prod':
+        background_task_loop = repeat_task(
+            lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
+            seconds = 5 * 60,
+        )
 
     yield
 
-    background_task_loop.cancel()
+    if background_task_loop:
+        background_task_loop.cancel()
 
 
 app = FastAPI(

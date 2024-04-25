@@ -1,5 +1,5 @@
 from typing import Annotated as A, NamedTuple
-import os, functools
+import functools
 from pydantic import StringConstraints
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from fastapi import Depends
@@ -10,6 +10,8 @@ from ..util.druid import get_druid_engine as _get_druid_engine
 
 
 class AppSettings(BaseSettings):
+    env: str
+
     log_level: A[str, StringConstraints(to_upper=True)] = "INFO"
     debug_mode: bool = True
     
