@@ -26,3 +26,19 @@ def get_job(name: str):
         else:
             raise e
 
+
+def get_job_state(job):
+    if job:
+        if job.status.succeeded:
+            return 'success'
+        elif not job.status.active and job.status.failed:
+            return 'fail'
+        else:
+            return 'running'
+    else:
+        return 'deleted'
+
+
+def get_job_end_time(job):
+    # completion_time for failed jobs is null
+    return job.status.completion_time or job.status.conditions[-1].last_transition_time

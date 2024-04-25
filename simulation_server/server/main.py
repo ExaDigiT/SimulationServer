@@ -1,30 +1,50 @@
 """ A simple REST API for triggering and querying the results from the digital twin """
 
-import subprocess
+import subprocess, asyncio, functools
 from contextlib import asynccontextmanager
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
+from starlette.concurrency import run_in_threadpool
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
-from ..util.json import update_jsonpaths
-
 import uvicorn
-from loguru import logger
+from ..util.json import update_jsonpaths
+from .service import cleanup_jobs
+from .config import AppSettings, get_app_settings, get_druid_engine, get_kafka_producer
 
-from .config import AppSettings
 settings = AppSettings()
+
+
+def repeat_task(func, seconds):
+    if not asyncio.iscoroutinefunction(func):
+        func = functools.partial(run_in_threadpool, func)
+
+    async def loop() -> None:
+        while True:
+            await func()
+            await asyncio.sleep(seconds)
+
+    return asyncio.create_task(loop())
 
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
     # Force initializing deps on startup so database connection errors etc. show up immediately
-    deps = [] # TODO: Add Druid DB
+    deps = [get_app_settings, get_druid_engine, get_kafka_producer]
     for dep in deps:
         api.dependency_overrides.get(dep, dep)()
+
+    background_task_loop = repeat_task(
+        lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
+        seconds = 5 * 60,
+    )
+
     yield
+
+    background_task_loop.cancel()
 
 
 app = FastAPI(

@@ -4,19 +4,19 @@ import uuid, time, json, base64
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
-from ..models.sim import Sim, SimConfig, SIM_FIELD_SELECTORS
-from .config import AppDeps
+from ..models.sim import Sim, SimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS
 from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
     SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
 )
 from ..util.misc import pick, omit
-from ..util.k8s import submit_job, get_job
+from ..util.k8s import submit_job, get_job, get_job_state, get_job_end_time
 from ..util.druid import get_table, to_timestamp, any_value, latest, earliest
 from ..util.api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
 )
+from .config import AppDeps
 
 
 def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minutes=1), druid_engine: sqla.Engine):
@@ -113,53 +113,55 @@ def get_sim_job(sim_id: str):
     return _sim_jobs_cache[sim_id][0]
 
 
-# def get_job_state(job):
-#     if job:
-#         if job.status.succeeded:
-#             return 'success'
-#         elif not job.status.active and job.status.failed:
-#             return 'fail'
-#         else:
-#             return 'running'
-#     else:
-#         return 'deleted'
+def cleanup_jobs(druid_engine, kafka_producer):
+    """
+    If a simulation job dies unexpectedly (e.g. OOM error), it won't be able to send the kafka
+    message marking the sim as complete, leaving the sim stuck as running. This task checks all
+    running sim jobs and cleans them up if their job is dead.
+    """
+    logger.info(f"Checking for stuck jobs")
 
+    now = datetime.now(timezone.utc)
+    threshold = timedelta(minutes=5)
 
-# def correct_stuck_jobs(sims: list[Sim], deps: AppDeps):
-#     now = datetime.now(timezone.utc)
-
-#     stuck: list[Sim] = []
-#     for sim in sims:
-#         if sim.state == 'running':
-#             job_state = get_job_state(get_sim_job(sim.id))
-#             if job_state != 'running':
-#                 stuck.append(sim)
+    sims, _ = query_sims(
+        filters=SIM_FILTERS(state = ["eq:running"]),
+        fields = ["id"],
+        limit = 1000, # If somehow there's more than that we'll just get them next trigger
+        druid_engine = druid_engine,
+    )
     
-#     if stuck:
-#         # TODO reuse filters from endpoint
-#         SIM_FILTERS = filter_params(SIM_API_FIELDS)
-#         refreshed = query_sims(
-#             filters = SIM_FILTERS(id = [f'one_of:{",".join(s.id for s in stuck)}']),
-#             fields = ['all'], # Get all fields
-#             limit = len(stuck),
-#             druid_engine = deps.druid_engine
-#         )
-#         refreshed = {s.id: s for s in refreshed}
+    stuck_ids = []
+    for sim in sims:
+        job = get_sim_job(sim.id)
+        job_state = get_job_state(job)
+        if job_state != 'running' and (not job or get_job_end_time(job) < now - threshold):
+            stuck_ids.append(sim.id)
+
+    if stuck_ids:
+        stuck_sims, _ = query_sims(
+            filters = SIM_FILTERS(id = [f'one_of:{",".join(stuck_ids)}']),
+            fields = ['all'],
+            limit = len(stuck_ids),
+            druid_engine = druid_engine,
+        )
     
-#         for sim in stuck:
-#             if refreshed[sim.id].state == 'running':
-#                 sim.state = 'fail'
-#                 sim.execution_end = now
-#                 refreshed[sim.id].state = 'fail'
-#                 refreshed[sim.id].execution_end = now
-#                 deps.kafka_producer.send("svc-event-exadigit-sim",
-#                     value = refreshed[sim.id].serialize_for_druid()
-#                 )
-#             else:
-#                 # TODO: This function is a race condition, we could output duplicate "fail"
-#                 # corrections. That wouldn't really break anything though.
-#                 sim.state = refreshed[sim.id].state
-#                 sim.execution_end = refreshed[sim.id].execution_end
+        for sim in stuck_sims:
+            sim.state = 'fail'
+            sim.execution_end = now
+            sim.error_messages = "Simulation crashed"
+            logger.warning(f"Marking stuck sim {sim.id} as failed")
+            kafka_producer.send("svc-event-exadigit-sim",
+                value = sim.serialize_for_druid()
+            )
+
+        sim_table = get_table("svc-event-exadigit-sim", druid_engine)
+        for sim in stuck_sims:
+            stmt = (
+                sqla.select(sim_table.c.id)
+                    .where(sim_table.c.id == sim.id, sim_table.c.state == 'fail')
+            )
+            wait_until_exists(stmt, timeout = timedelta(minutes=1), druid_engine = druid_engine)
 
 
 def query_sims(*,
