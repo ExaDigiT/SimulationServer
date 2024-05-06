@@ -247,7 +247,7 @@ def run_simulation(config: SimConfig):
                 for i, point in data.cooling_df.iterrows():
                     xname = _cdu_index_to_xname(int(point["CDU"]))
                     row, col = int(xname[2]), int(xname[3:5])
-                    cooling_sim_cdus.append(CoolingSimCDU.model_validate(dict(
+                    model = dict(
                         timestamp = timestamp,
                         xname = xname,
                         row = row,
@@ -262,32 +262,37 @@ def run_simulation(config: SimConfig):
                         rack_2_loss = point['Loss 2'],
                         rack_3_loss = point['Loss 3'],
                         total_loss = point['Loss Sum'],
+                    )
 
-                        work_done_by_cdup = point['Work Done by CDUP'],
-                        rack_return_temp = point['Rack Return Temperature'],
-                        rack_supply_temp = point['Rack Supply Temperature'],
-                        rack_supply_pressure = point['Rack Supply Pressure'],
-                        rack_return_pressure = point['Rack Return Pressure'],
-                        rack_flowrate = point['Rack Flowrate'],
-                        htw_ctw_flowrate = point['HTW/CTW Flowrate'],
-                        htwr_htws_ctwr_ctws_pressure = point['HTWR/HTWS/CTWR/CTWS Pressure'],
-                        htwr_htws_ctwr_ctws_temp = point['HTWR/HTWS/CTWR/CTWS Temperature'],
-                        power_cunsumption_htwps = point['Power Consumption HTWPS'],
-                        power_consumption_ctwps = point['Power Consumption CTWPs'],
-                        power_consumption_fan = point['Power Consumption Fan'],
-                        htwp_speed = point['HTWP Speed'],
-                        nctwps_staged = point['nCTWPs Staged'],
-                        nhtwps_staged = point['nHTWPs Staged'],
-                        pue_output = point['PUE Output'],
-                        nehxs_staged = point['nEHXs Staged'],
-                        ncts_staged = point['nCTs Staged'],
-                        facility_return_temp = point['Facility Return Temperature'],
-                        facility_supply_temp = point['Facility Supply Temperature'],
-                        facility_supply_pressure = point['Facility Supply Pressure'],
-                        facility_return_pressure = point['Facility Return Pressure'],
-                        cdu_loop_bypass_flowrate = point['CDU Loop Bypass Flowrate'],
-                        facility_flowrate = point['Facility Flowrate'],
-                    )))
+                    if config.cooling.enabled:
+                        model.update(
+                            work_done_by_cdup = point['Work Done by CDUP'],
+                            rack_return_temp = point['Rack Return Temperature'],
+                            rack_supply_temp = point['Rack Supply Temperature'],
+                            rack_supply_pressure = point['Rack Supply Pressure'],
+                            rack_return_pressure = point['Rack Return Pressure'],
+                            rack_flowrate = point['Rack Flowrate'],
+                            htw_ctw_flowrate = point['HTW/CTW Flowrate'],
+                            htwr_htws_ctwr_ctws_pressure = point['HTWR/HTWS/CTWR/CTWS Pressure'],
+                            htwr_htws_ctwr_ctws_temp = point['HTWR/HTWS/CTWR/CTWS Temperature'],
+                            power_cunsumption_htwps = point['Power Consumption HTWPS'],
+                            power_consumption_ctwps = point['Power Consumption CTWPs'],
+                            power_consumption_fan = point['Power Consumption Fan'],
+                            htwp_speed = point['HTWP Speed'],
+                            nctwps_staged = point['nCTWPs Staged'],
+                            nhtwps_staged = point['nHTWPs Staged'],
+                            pue_output = point['PUE Output'],
+                            nehxs_staged = point['nEHXs Staged'],
+                            ncts_staged = point['nCTs Staged'],
+                            facility_return_temp = point['Facility Return Temperature'],
+                            facility_supply_temp = point['Facility Supply Temperature'],
+                            facility_supply_pressure = point['Facility Supply Pressure'],
+                            facility_return_pressure = point['Facility Return Pressure'],
+                            cdu_loop_bypass_flowrate = point['CDU Loop Bypass Flowrate'],
+                            facility_flowrate = point['Facility Flowrate'],
+                        )
+
+                    cooling_sim_cdus.append(CoolingSimCDU.model_validate(model))
 
             yield SimOutput(
                 scheduler_sim_system = scheduler_sim_system,
