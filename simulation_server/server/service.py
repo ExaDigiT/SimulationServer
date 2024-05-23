@@ -273,6 +273,7 @@ def get_extent(tbl,
     id: str, start: Optional[datetime], end: Optional[datetime],
     druid_engine: sqla.engine.Engine,
 ) -> tuple[datetime, datetime]:
+    assert not start or not end or start <= end
     if not start or not end:
         stmt = (
             sqla.select(
@@ -289,10 +290,16 @@ def get_extent(tbl,
                 extent_start = DatetimeValidator.validate_strings(row.start)
                 extent_end = DatetimeValidator.validate_strings(row.end)
             except ValidationError:
-                now = datetime.now(timezone.utc)
-                extent_start, extent_end = now, now
-            start = start or extent_start
-            end = end or extent_end
+                filler = start or end or datetime.now(timezone.utc)
+                extent_start, extent_end = filler, filler
+
+        if not start and end:
+            start = min(end, extent_start)
+        elif start and not end:
+            end = max(start, extent_end)
+        else: # neither are set
+            start, end = extent_start, extent_end
+
     return (start, end)
 
 

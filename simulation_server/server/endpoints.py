@@ -80,6 +80,7 @@ def cooling_cdu(*,
     """
     Query the CDU output from a simulation.
     """
+    if start and end and end < start: raise HTTPException(422, "end must be >= start")
     result = query_cooling_sim_cdu(
         id = id, start = start, end = end, granularity = granularity,
         fields = fields, filters = filters, druid_engine = deps.druid_engine,
@@ -130,6 +131,7 @@ def scheduler_jobs(*,
     - Show all jobs that ran over a given interval
         - `?start=2024-03-01T00:00:00Z&end=2024-03-01T01:00:00Z`
     """
+    if start and end and end < start: raise HTTPException(422, "end must be >= start")
     results, total_results = query_scheduler_sim_jobs(
         id = id, start = start, end = end,
         time_travel = time_travel, limit = limit, offset = offset,
@@ -156,6 +158,7 @@ def scheduler_system(*,
     By default will return just the most recent stats, but you can pass a granularity to get stats
     at different sampling rates.
     """
+    if start and end and end < start: raise HTTPException(422, "end must be >= start")
     result = query_scheduler_sim_system(
         id = id, start = start, end = end, granularity = granularity,
         druid_engine = deps.druid_engine,
