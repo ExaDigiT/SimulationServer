@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import Optional, Literal, Annotated as A
-from datetime import timedelta
-import json
-from pydantic import AwareDatetime, model_validator, Field
+from datetime import timedelta, datetime, timezone
+import json, math
+from pydantic import AwareDatetime, model_validator, field_validator, Field
 
 from .base import BaseModel
 from .job_state import JobStateEnum
@@ -99,6 +99,16 @@ class SimConfig(BaseModel):
         if self.cooling.enabled and not self.scheduler.enabled:
             raise ValueError("Currently can't run cooling simulation without the scheduler")
         return self
+
+    @field_validator("start", mode="after")
+    @classmethod
+    def trunc_start(cls, v: datetime, info):
+        return v.fromtimestamp(math.floor(v.timestamp()), tz=timezone.utc)
+
+    @field_validator("end", mode="after")
+    @classmethod
+    def trunc_end(cls, v: datetime, info):
+        return v.fromtimestamp(math.ceil(v.timestamp()), tz=timezone.utc)
 
 
 class SchedulerSimConfig(BaseModel):
