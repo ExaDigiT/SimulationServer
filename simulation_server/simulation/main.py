@@ -10,8 +10,8 @@ from ..util.kafka import get_kafka_producer
 
 
 def cli_run(config: SimConfig):
-    for data in run_simulation(config):
-        print("TICK")
+    for i, data in enumerate(run_simulation(config)):
+        print(f"TICK {i}")
 
 
 def background_job(sim: Sim):

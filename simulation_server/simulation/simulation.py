@@ -6,9 +6,8 @@ import pandas as pd
 import numpy as np
 import sqlalchemy as sqla
 from loguru import logger
-from .raps.raps.config import (
-    SC_SHAPE, TOTAL_NODES, DOWN_NODES, MISSING_NODES, TRACE_QUANTA, FMU_PATH,
-)
+from .raps.raps.config import initialize_config, get_config
+initialize_config('frontier')
 from .raps.raps.cooling import ThermoFluidsModel
 from .raps.raps.power import PowerManager
 from .raps.raps.scheduler import Scheduler
@@ -22,6 +21,12 @@ from .node_set import FrontierNodeSet
 
 RAPS_PATH = Path(__file__).parent / 'raps'
 
+config = get_config()
+
+SC_SHAPE = config.get("SC_SHAPE")
+TOTAL_NODES = config.get("TOTAL_NODES")
+DOWN_NODES = config.get("DOWN_NODES")
+FMU_PATH = config.get("FMU_PATH")
 
 class SimException(Exception):
     pass
@@ -101,7 +106,7 @@ def fetch_telemetry_data(start: datetime, end: datetime):
 
     job_query = build_jobs_query(start, end, engine)
     job_data = pd.read_sql_query(job_query, engine, parse_dates=[
-        "time_snapshot", "time_submission", "time_eligible", "time_start", "time_end", 
+        "time_snapshot", "time_submission", "time_eligible", "time_start", "time_end",
         "batch_time_start", "batch_time_end",
     ])
     # TODO: Even with sqlStringifyArrays: false, multivalue columns are returned as json strings.
@@ -162,8 +167,7 @@ def run_simulation(config: SimConfig):
         else:
             cooling_model = None
 
-        # TODO: Why do we have down_nodes and missing_nodes?
-        power_manager = PowerManager(SC_SHAPE, down_nodes, down_nodes)
+        power_manager = PowerManager(SC_SHAPE, down_nodes)
 
         sc = Scheduler(
             TOTAL_NODES, down_nodes,
@@ -202,7 +206,7 @@ def run_simulation(config: SimConfig):
                     down_nodes = down_nodes,
                     # TODO: Update sc.get_stats to return more easily parsable data
                     num_samples = int(stats['num_samples']),
-    
+
                     jobs_completed = int(stats['jobs completed']),
                     jobs_running = len(stats['jobs still running']),
                     jobs_pending = len(stats['jobs still in queue']),
