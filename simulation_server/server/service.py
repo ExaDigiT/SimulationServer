@@ -9,12 +9,14 @@ from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
     SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
+    SCHEDULER_SIM_JOB_POWER_HISTORY_API_FIELDS, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS,
 )
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job, get_job, get_job_state, get_job_end_time
 from ..util.druid import get_table, to_timestamp, any_value, latest, earliest
 from ..util.api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
+    DEFAULT_FIELD_TYPES,
 )
 from .config import AppDeps
 
@@ -270,7 +272,7 @@ def query_sims(*,
 
 
 def get_extent(tbl,
-    id: str, start: Optional[datetime], end: Optional[datetime],
+    filters: list, start: Optional[datetime], end: Optional[datetime],
     druid_engine: sqla.engine.Engine,
 ) -> tuple[datetime, datetime]:
     assert not start or not end or start <= end
@@ -280,7 +282,7 @@ def get_extent(tbl,
                 sqla.func.min(tbl.c['__time']).label("start"),
                 sqla.func.max(tbl.c['__time']).label("end")
             )
-                .where(tbl.c['sim_id'] == id)
+                .where(*filters)
         )
         with druid_engine.connect() as conn:
             row = conn.execute(stmt).one()
@@ -381,7 +383,7 @@ def query_cooling_sim_cdu(*,
     druid_engine: sqla.engine.Engine,
 ):
     tbl = get_table('svc-ts-exadigit-cooling-sim-cdu', druid_engine)
-    start, end = get_extent(tbl, id, start, end, druid_engine = druid_engine)
+    start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_cooling_sim_cdu_query(
         id = id, span = span, fields = fields, filters = filters,
@@ -527,7 +529,7 @@ def query_scheduler_sim_system(*,
     druid_engine: sqla.engine.Engine,
 ):
     tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine)
-    start, end = get_extent(tbl, id, start, end, druid_engine = druid_engine)
+    start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_scheduler_sim_system_query(
         id = id, span = span,
@@ -543,3 +545,46 @@ def query_scheduler_sim_system(*,
             r['down_nodes'] = _split_list(r['down_nodes'])
 
     return results
+
+
+def query_scheduler_sim_power_history(*,
+    id: str, job_id: str,
+    start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: Granularity,
+    fields: Optional[list[str]] = None,
+    format: ResponseFormat = "object",
+    druid_engine: sqla.engine.Engine,
+):
+    tbl = get_table('svc-ts-exadigit-scheduler-sim-job-power-history', druid_engine)
+    start, end = get_extent(tbl, [
+        tbl.c.sim_id == id, tbl.c.job_id == job_id,
+    ], start, end, druid_engine = druid_engine)
+    span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
+    fields, stmt = build_scheduler_sim_power_history_query(
+        id = id, job_id = job_id, span = span, fields = fields,
+        druid_engine = druid_engine,
+    )
+    return _run_ts_query(
+        span = span, stmt = stmt, fields = fields,
+        format = format, druid_engine = druid_engine,
+    )
+
+
+def build_scheduler_sim_power_history_query(*,
+    id: str, job_id: str, span: QuerySpan,
+    fields: Optional[list[str]] = None,
+    druid_engine: sqla.engine.Engine,
+):
+    fields = expand_field_selectors(fields, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS)
+
+    tbl = get_table('svc-ts-exadigit-scheduler-sim-job-power-history', druid_engine).alias("power-history")
+    agg_cols: dict[str, sqla.sql.ColumnElement] = {
+        "power": sqla.func.max(tbl.c['power']),
+        "job_id": any_value(tbl.c['job_id'], 12), # We're filtering by job_id so they should all be the same
+    }
+    filters = Filters.parse_filters({'job_id': 'string'}, DEFAULT_FIELD_TYPES, {
+        'job_id': [f'eq:{job_id}'],
+    })
+    return _build_ts_query(tbl,
+        id = id, span = span, fields = fields, filters = filters,
+        group_cols = {}, agg_cols = agg_cols, filter_cols = {"job_id": tbl.c['job_id']},
+    )

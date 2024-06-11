@@ -74,6 +74,22 @@ SCHEDULER_SIM_JOB_SORT = sort_params(
 )
 
 
+class SchedulerSimJobPowerHistory(BaseModel):
+    timestamp: AwareDatetime
+    job_id: Optional[str] = None
+    power: Optional[float] = None
+
+SCHEDULER_SIM_JOB_POWER_HISTORY_API_FIELDS = {
+    'job_id': 'string',
+    'power': 'number',
+}
+
+SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS = {
+    "default": ['power'],
+    "all": ['job_id', 'power'],
+}
+
+
 class SchedulerSimSystem(BaseModel):
     timestamp: AwareDatetime
     

@@ -14,7 +14,9 @@ from .raps.raps.scheduler import Scheduler
 from .raps.raps.telemetry import index_to_xname, xname_to_index, Telemetry
 from .raps.raps.workload import Workload
 from ..models.sim import SimConfig
-from ..models.output import JobStateEnum, SchedulerSimJob, SchedulerSimSystem, CoolingSimCDU
+from ..models.output import (
+    JobStateEnum, SchedulerSimJob, SchedulerSimJobPowerHistory, SchedulerSimSystem, CoolingSimCDU,
+)
 from ..util.druid import get_druid_engine, get_table, to_timestamp
 from .node_set import FrontierNodeSet
 
@@ -65,6 +67,7 @@ class SimOutput(NamedTuple):
     scheduler_sim_system: list[SchedulerSimSystem]
     scheduler_sim_jobs: list[SchedulerSimJob]
     cooling_sim_cdus: list[CoolingSimCDU]
+    power_history: list[SchedulerSimJobPowerHistory]
 
 
 def build_jobs_query(start: datetime, end: datetime, engine: sqla.engine.Engine):
@@ -152,6 +155,9 @@ def run_simulation(config: SimConfig):
     # Sample CDU as fast as it is available
     sample_cooling_sim_cdus = timedelta(seconds = 1).total_seconds()
 
+    # Keep record of how many power history steps we've emitted for each job
+    power_history_counts: dict[int, int] = {}
+
     if config.scheduler.enabled:
         if config.scheduler.seed:
             # TODO: This is globabl and should probably be done in RAPS
@@ -194,10 +200,12 @@ def run_simulation(config: SimConfig):
 
         for data in sc.run_simulation(jobs, timesteps=timesteps):
             timestamp: datetime = _offset_to_time(config.start, data.current_time)
+            is_last_tick = (timestamp + timedelta(seconds=1) == config.end)
+
             unix_timestamp = int(timestamp.timestamp())
 
             scheduler_sim_system: list[SchedulerSimSystem] = []
-            if unix_timestamp % sample_scheduler_sim_system == 0:
+            if unix_timestamp % sample_scheduler_sim_system == 0 or is_last_tick:
                 down_nodes, _ = _parse_nodes(tuple(data.down_nodes))
                 stats = sc.get_stats()
 
@@ -223,7 +231,7 @@ def run_simulation(config: SimConfig):
                 ))]
 
             scheduler_sim_jobs: list[SchedulerSimJob] = []
-            if unix_timestamp % sample_scheduler_sim_jobs == 0:
+            if unix_timestamp % sample_scheduler_sim_jobs == 0 or is_last_tick:
                 for job in data.jobs:
                     # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
                     time_end = _offset_to_time(config.start, job.end_time) if job.start_time else None
@@ -246,8 +254,19 @@ def run_simulation(config: SimConfig):
                         # power = job.power,
                     )))
 
+            power_history: list[SchedulerSimJobPowerHistory] = []
+            for job in data.jobs:
+                if job.id and power_history_counts.get(job.id, 0) < len(job.power_history):
+                    power_history.append(SchedulerSimJobPowerHistory(
+                        timestamp = timestamp,
+                        job_id = str(job.id),
+                        power = job.power_history[-1],
+                    ))
+                    power_history_counts[job.id] = len(job.power_history)
+
+
             cooling_sim_cdus: list[CoolingSimCDU] = []
-            if unix_timestamp % sample_cooling_sim_cdus == 0 and data.cooling_df is not None:
+            if data.cooling_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
                 for i, point in data.cooling_df.iterrows():
                     xname = _cdu_index_to_xname(int(point["CDU"]))
                     row, col = int(xname[2]), int(xname[3:5])
@@ -301,7 +320,8 @@ def run_simulation(config: SimConfig):
             yield SimOutput(
                 scheduler_sim_system = scheduler_sim_system,
                 scheduler_sim_jobs = scheduler_sim_jobs,
-                cooling_sim_cdus = cooling_sim_cdus
+                cooling_sim_cdus = cooling_sim_cdus,
+                power_history = power_history,
             )
     else:
         raise SimException("No simulations specified")

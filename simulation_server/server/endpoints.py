@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 from ..models.base import ObjectTimeseries, Page, CommaSeparatedList
 from ..models.output import (
     SchedulerSimJob, SCHEDULER_SIM_JOB_FILTERS, SCHEDULER_SIM_JOB_SORT, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
-    SchedulerSimSystem,
+    SchedulerSimJobPowerHistory,
+    SchedulerSimSystem, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS,
     CoolingSimCDU, COOLING_CDU_FILTERS, COOLING_CDU_FIELD_SELECTORS,
 )
 from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, SimConfig
@@ -13,7 +14,7 @@ from ..util.api_queries import Granularity, granularity_params, Filters, Sort, g
 from .config import AppDeps
 from .service import (
     run_simulation, query_sims, query_cooling_sim_cdu, query_scheduler_sim_jobs,
-    query_scheduler_sim_system,
+    query_scheduler_sim_system, query_scheduler_sim_power_history,
 )
 
 router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
@@ -145,6 +146,26 @@ def scheduler_jobs(*,
         "total_results": total_results,
     })
 
+
+
+SchedulerSimPowerHistoryFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS)] # type: ignore
+SchedulerSimPowerHistoryFieldSelectors = A[CommaSeparatedList[SchedulerSimPowerHistoryFieldSelector], Query()]
+
+@router.get("/{id}/scheduler/jobs/{job_id}/power-history", response_model=ObjectTimeseries[SchedulerSimJobPowerHistory])
+def power_history(*,
+    id: str, job_id: str,
+    start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
+    fields: SchedulerSimPowerHistoryFieldSelectors = None, deps: AppDeps,
+):
+    """
+    Query power history of a single job
+    """
+    if start and end and end < start: raise HTTPException(422, "end must be >= start")
+    result = query_scheduler_sim_power_history(
+        id = id, job_id = job_id, start = start, end = end, granularity = granularity,
+        fields = fields, druid_engine = deps.druid_engine,
+    )
+    return JSONResponse(result)
 
 
 @router.get("/{id}/scheduler/system", response_model=ObjectTimeseries[SchedulerSimSystem])

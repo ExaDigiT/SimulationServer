@@ -1,0 +1,55 @@
+{
+    "type": "kafka",
+    "spec": {
+        "ioConfig": {
+            "type": "kafka",
+            "topic": "svc-ts-exadigit-jobpowerhistory",
+            "consumerProperties": {
+                "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
+                "security.protocol": "SASL_PLAINTEXT",
+                "sasl.mechanism": "PLAIN",
+                "druid.dynamic.config.provider": {
+                    "type": "environment",
+                    "variables": {
+                        "sasl.jaas.config": "KAFKA_SASL_JAAS_CONFIG"
+                    }
+                }
+            },
+            "inputFormat": {
+                "type": "json"
+            },
+            "useEarliestOffset": true
+        },
+        "tuningConfig": {
+            "type": "kafka"
+        },
+        "dataSchema": {
+            "dataSource": "svc-ts-exadigit-scheduler-sim-job-power-history",
+            "timestampSpec": {
+                "column": "timestamp",
+                "format": "iso"
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    "sim_id",
+                    {
+                        "type": "string",
+                        "name": "job_id"
+                    }
+                ]
+            },
+            "metricsSpec": [
+                {
+                    "name": "power",
+                    "type": "doubleMax",
+                    "fieldName": "power"
+                }
+            ],
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "week"
+            }
+        }
+    }
+}
