@@ -39,7 +39,8 @@ simulation = [
     "fmpy==0.3.19",
     "pandas==2.0.3",
     "scipy==1.10.1",
-    "pyarrow==15.0.0",
+    "pyarrow==15.0.1",
+    "uncertainties==3.2.1",
     "ClusterShell==1.9.2", 
 ]
 dev = [
