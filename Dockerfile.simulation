@@ -5,7 +5,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip
-RUN pip install install hatch
+RUN pip install hatch
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY pyproject.toml /app
 RUN hatch dep show requirements > /app/requirements.txt
 RUN hatch dep show requirements --feature=simulation >> /app/requirements.txt
 RUN python3 -m pip install -r /app/requirements.txt
-ENV RAPS_CONFIG /app/simulation_server/simulation/raps/config
+ENV RAPS_CONFIG=/app/simulation_server/simulation/raps/config
 
 COPY ["simulation_server", "/app/simulation_server/"]
 COPY ["README.md", "/app"]

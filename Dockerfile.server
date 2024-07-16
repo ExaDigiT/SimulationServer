@@ -5,7 +5,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip
-RUN pip install install hatch
+RUN pip install hatch
 
 WORKDIR /app
 
