@@ -129,6 +129,9 @@ class SchedulerSimSystem(BaseModel):
     total_cost: float
     """ Cost in US dollars """
 
+    p_flops: Optional[float]
+    g_flops_w: Optional[float]
+
 
 class CoolingSimCDU(BaseModel):
     timestamp: AwareDatetime

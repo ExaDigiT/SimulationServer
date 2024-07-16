@@ -93,6 +93,14 @@
                     {
                         "type": "double",
                         "name": "total_cost"
+                    },
+                    {
+                        "type": "double",
+                        "name": "p_flops"
+                    },
+                    {
+                        "type": "double",
+                        "name": "g_flops_w"
                     }
                 ]
             },

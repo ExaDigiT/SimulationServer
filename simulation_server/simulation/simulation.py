@@ -233,6 +233,9 @@ def run_simulation(config: SimConfig):
                     total_energy_consumed = float(stats['total energy consumed'].split(' ')[0]),
                     carbon_emissions = float(stats['carbon emissions'].split(' ')[0]),
                     total_cost = float(stats['total cost'].removeprefix("$")),
+
+                    p_flops = data.p_flops,
+                    g_flops_w = data.g_flops_w,
                 ))]
 
             scheduler_sim_jobs: list[SchedulerSimJob] = []
