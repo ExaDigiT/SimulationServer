@@ -130,7 +130,10 @@ class SchedulerSimSystem(BaseModel):
     """ Cost in US dollars """
 
     p_flops: Optional[float]
+    """ Estimate of the floating operations per second in petaflops """
+
     g_flops_w: Optional[float]
+    """ GigaFlops per watt energy efficiency estimate """
 
 
 class CoolingSimCDU(BaseModel):
