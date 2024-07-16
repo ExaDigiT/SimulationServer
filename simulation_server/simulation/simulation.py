@@ -10,6 +10,7 @@ from .raps.raps.config import initialize_config, get_config
 initialize_config('frontier')
 from .raps.raps.cooling import ThermoFluidsModel
 from .raps.raps.power import PowerManager
+from .raps.raps.flops import FLOPSManager
 from .raps.raps.scheduler import Scheduler
 from .raps.raps.telemetry import index_to_xname, xname_to_index, Telemetry
 from .raps.raps.workload import Workload
@@ -21,7 +22,7 @@ from ..util.druid import get_druid_engine, get_table, to_timestamp
 from .node_set import FrontierNodeSet
 
 
-RAPS_PATH = Path(__file__).parent / 'raps'
+MODELS_PATH = Path(__file__).parent.parent.parent / 'models'
 
 config = get_config()
 
@@ -29,6 +30,8 @@ SC_SHAPE = config.get("SC_SHAPE")
 TOTAL_NODES = config.get("TOTAL_NODES")
 DOWN_NODES = config.get("DOWN_NODES")
 FMU_PATH = config.get("FMU_PATH")
+# TODO: Fetch this from mlflow
+FMU_PATH = MODELS_PATH / "DataCenterTH_Examples_fullSystem_Test1_FMU_export.fmu"
 
 class SimException(Exception):
     pass
@@ -168,16 +171,18 @@ def run_simulation(config: SimConfig):
         down_nodes = [*DOWN_NODES, *config.scheduler.down_nodes]
 
         if config.cooling.enabled:
-            cooling_model = ThermoFluidsModel(str(RAPS_PATH / FMU_PATH))
+            cooling_model = ThermoFluidsModel(str(FMU_PATH))
             cooling_model.initialize()
         else:
             cooling_model = None
 
         power_manager = PowerManager(SC_SHAPE, down_nodes)
+        flops_manager = FLOPSManager(SC_SHAPE)
 
         sc = Scheduler(
             TOTAL_NODES, down_nodes,
             power_manager = power_manager,
+            flops_manager = flops_manager,
             layout_manager = None,
             cooling_model = cooling_model,
             debug = False,
