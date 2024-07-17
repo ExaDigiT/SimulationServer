@@ -8,4 +8,7 @@ cd "$SCRIPT_DIR"
 docker build -t exadigit-simulation-server:latest -f Dockerfile.server .
 # docker build -t exadigit-simulation-server-simulation-job:latest -f Dockerfile.simulation .
 
-docker compose up --exit-code-from simulation-server
+trap 'docker compose down' SIGINT SIGTERM EXIT
+
+docker compose up -d
+docker compose logs -f --no-log-prefix simulation-server
