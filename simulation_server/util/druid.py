@@ -119,3 +119,21 @@ latest = _size_func(sqla.func.latest)
 latest_by = _size_func(sqla.func.latest_by)
 earliest = _size_func(sqla.func.earliest)
 earliest_py = _size_func(sqla.func.earliest_py)
+
+
+def execute_ignore_missing(conn, stmt) -> sqla.CursorResult:
+    """
+    Wrapper conn.execute that handles missing tables.
+    Druid can't have "empty" tables, so if any table in the query is missing this return an empty
+    cursor. Note this may have unexpected results if you have joins/aggregations/etc that would have
+    returned data with an empty table.
+    """
+    try:
+        return conn.execute(stmt)
+    except Exception as e:
+        existing_tables = set(sqla.inspect(conn.engine).get_table_names())
+        stmt_tables = [t.name for t in stmt.get_final_froms()]
+        if any((t not in existing_tables) for t in stmt_tables):
+            return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
+        else:
+            raise e

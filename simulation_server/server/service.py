@@ -13,11 +13,12 @@ from ..models.output import (
 )
 from ..util.misc import pick, omit
 from ..util.k8s import submit_job, get_job, get_job_state, get_job_end_time
-from ..util.druid import get_table, to_timestamp, any_value, latest, earliest
+from ..util.druid import to_timestamp, any_value, latest, execute_ignore_missing
 from ..util.api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
     DEFAULT_FIELD_TYPES,
 )
+from . import orm
 from .config import AppDeps
 
 
@@ -30,10 +31,10 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
     record = False
     with druid_engine.connect() as conn:
         start = time.time()
-        record = conn.execute(stmt).first()
+        record = execute_ignore_missing(conn, stmt).first()
         while (time.time() - start) < timeout.total_seconds() and not record:
             time.sleep(0.5)
-            record = conn.execute(stmt).first()
+            record = execute_ignore_missing(conn, stmt).first()
 
     if not record:
         logger.error("Timeout while waiting for record to be saved to druid")
@@ -92,8 +93,8 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
         }
     })
 
-    sim_table = get_table("svc-event-exadigit-sim", deps.druid_engine)
-    stmt = sqla.select(sim_table.c.id).where(sim_table.c.id == sim.id)
+    tbl = orm.sim
+    stmt = sqla.select(tbl.c.id).where(tbl.c.id == sim.id)
     wait_until_exists(stmt, timeout = timedelta(minutes=1), druid_engine = deps.druid_engine)
     logger.info(f"Simulation {sim.id} launched")
 
@@ -157,11 +158,10 @@ def cleanup_jobs(druid_engine, kafka_producer):
                 value = sim.serialize_for_druid()
             )
 
-        sim_table = get_table("svc-event-exadigit-sim", druid_engine)
         for sim in stuck_sims:
             stmt = (
-                sqla.select(sim_table.c.id)
-                    .where(sim_table.c.id == sim.id, sim_table.c.state == 'fail')
+                sqla.select(orm.sim.c.id)
+                    .where(orm.sim.c.id == sim.id, orm.sim.c.state == 'fail')
             )
             wait_until_exists(stmt, timeout = timedelta(minutes=1), druid_engine = druid_engine)
 
@@ -185,11 +185,11 @@ def query_sims(*,
     else:
         query_fields = fields
 
-    sims = get_table("svc-event-exadigit-sim", druid_engine)
+    sims = orm.sim
     sim_output_tables = [
-        get_table("sens-svc-event-exadigit-scheduler-sim-job", druid_engine),
-        get_table("svc-ts-exadigit-scheduler-sim-system", druid_engine),
-        get_table("svc-ts-exadigit-cooling-sim-cdu", druid_engine),
+        orm.scheduler_sim_job,
+        orm.scheduler_sim_system,
+        orm.cooling_sim_cdu,
     ]
 
     cols = {
@@ -228,13 +228,13 @@ def query_sims(*,
     stmt = stmt.limit(limit).offset(offset)
 
     with druid_engine.connect() as conn:
-        results = (r._asdict() for r in conn.execute(stmt))
+        results = (r._asdict() for r in execute_ignore_missing(conn, stmt))
         if 'config' in fields:
             results = ({**r, 'config': json.loads(r['config'])} for r in results)
         results = [Sim.model_validate(r) for r in results]
 
         if len(results) >= limit:
-            total_results = conn.execute(count_stmt).scalar()
+            total_results = execute_ignore_missing(conn, count_stmt).scalar() or 0
         else:
             total_results = len(results)
 
@@ -252,7 +252,7 @@ def query_sims(*,
                             .where(tbl.c.sim_id.in_(incomplete))
                             .group_by(tbl.c.sim_id)
                     )
-                    for r in conn.execute(stmt).all():
+                    for r in execute_ignore_missing(conn, stmt).all():
                         progress = DatetimeValidator.validate_strings(r.progress)
                         progresses[r.sim_id] = max(progress, progresses.get(r.sim_id, progress))
 
@@ -285,13 +285,19 @@ def get_extent(tbl,
                 .where(*filters)
         )
         with druid_engine.connect() as conn:
-            row = conn.execute(stmt).one()
+            row = execute_ignore_missing(conn, stmt).one_or_none()
+            extent_start, extent_end = None, None
+
             # If result set is empty, Druid returns invalid date strings (max/min possible date)
             # This bug will probably be fixed when we update Druid
-            try:
-                extent_start = DatetimeValidator.validate_strings(row.start)
-                extent_end = DatetimeValidator.validate_strings(row.end)
-            except ValidationError:
+            if row:
+                try:
+                    extent_start = DatetimeValidator.validate_strings(row.start)
+                    extent_end = DatetimeValidator.validate_strings(row.end)
+                except ValidationError:
+                    pass
+
+            if not extent_start or not extent_end:
                 filler = start or end or datetime.now(timezone.utc)
                 extent_start, extent_end = filler, filler
 
@@ -342,21 +348,20 @@ def _run_ts_query(*, stmt,
     with druid_engine.connect() as conn:
         if format == "array":
             response['fields'] = fields
-            response['data'] = [list(r) for r in conn.execute(stmt)]
+            response['data'] = [list(r) for r in execute_ignore_missing(conn, stmt)]
         else:
-            response['data'] = [r._asdict() for r in conn.execute(stmt)]
+            response['data'] = [r._asdict() for r in execute_ignore_missing(conn, stmt)]
     return response
 
 
 def build_cooling_sim_cdu_query(*,
     id: str, span: QuerySpan,
     fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
-    druid_engine: sqla.engine.Engine,
 ):
     fields = expand_field_selectors(fields, COOLING_CDU_FIELD_SELECTORS)
     filters = filters or Filters()
 
-    tbl = get_table('svc-ts-exadigit-cooling-sim-cdu', druid_engine).alias("cdus")
+    tbl = orm.cooling_sim_cdu.alias("cdus")
     filter_cols = {c: tbl.c[c] for c in COOLING_CDU_API_FIELDS}
     group_cols = {
         "xname": tbl.c['xname'],
@@ -382,12 +387,11 @@ def query_cooling_sim_cdu(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = get_table('svc-ts-exadigit-cooling-sim-cdu', druid_engine)
+    tbl = orm.cooling_sim_cdu
     start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_cooling_sim_cdu_query(
         id = id, span = span, fields = fields, filters = filters,
-        druid_engine = druid_engine,
     )
     return _run_ts_query(
         span = span, stmt = stmt, fields = fields,
@@ -400,13 +404,12 @@ def build_scheduler_sim_jobs_query(*,
     time_travel: Optional[datetime] = None, limit = 100, offset = 0,
     fields: Optional[list[str]] = None, filters: Optional[Filters] = None,
     sort: Optional[Sort] = None,
-    druid_engine: sqla.engine.Engine,
 ):
     fields = expand_field_selectors(fields, SCHEDULER_SIM_JOB_FIELD_SELECTORS)
     filters = filters or Filters()
     sort = sort or Sort()
 
-    tbl = get_table('sens-svc-event-exadigit-scheduler-sim-job', druid_engine).alias("jobs")
+    tbl = orm.scheduler_sim_job.alias("jobs")
     
     cols = {
         "job_id": tbl.c.job_id,
@@ -470,11 +473,10 @@ def query_scheduler_sim_jobs(*,
         id = id, start = start, end = end,
         time_travel = time_travel, limit = limit, offset = offset,
         fields = fields, filters = filters, sort = sort,
-        druid_engine = druid_engine,
     )
 
     with druid_engine.connect() as conn:
-        results = (r._asdict() for r in conn.execute(stmt))
+        results = (r._asdict() for r in execute_ignore_missing(conn, stmt))
         if 'xnames' in fields:
             results = [{
                 **j,
@@ -484,7 +486,7 @@ def query_scheduler_sim_jobs(*,
             results = [j for j in results]
 
         if len(results) >= limit:
-            total_results = conn.execute(count_stmt).scalar()
+            total_results = execute_ignore_missing(conn, count_stmt).scalar() or 0
         else:
             total_results = len(results)
 
@@ -493,9 +495,8 @@ def query_scheduler_sim_jobs(*,
 
 def build_scheduler_sim_system_query(*,
     id: str, span: QuerySpan,
-    druid_engine: sqla.engine.Engine,
 ):
-    tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine).alias("jobs")
+    tbl = orm.scheduler_sim_system.alias("system")
     
     cols = {
         "down_nodes": latest(tbl.c.down_nodes, 1024),
@@ -530,13 +531,10 @@ def query_scheduler_sim_system(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = get_table('svc-ts-exadigit-scheduler-sim-system', druid_engine)
+    tbl = orm.scheduler_sim_system.alias("system")
     start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
-    fields, stmt = build_scheduler_sim_system_query(
-        id = id, span = span,
-        druid_engine = druid_engine,
-    )
+    fields, stmt = build_scheduler_sim_system_query(id = id, span = span)
     results = _run_ts_query(
         span = span, stmt = stmt, fields = fields,
         format = format, druid_engine = druid_engine,
@@ -556,14 +554,13 @@ def query_scheduler_sim_power_history(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = get_table('svc-ts-exadigit-scheduler-sim-job-power-history', druid_engine)
+    tbl = orm.scheduler_sim_job_power_history.alias("power-history")
     start, end = get_extent(tbl, [
         tbl.c.sim_id == id, tbl.c.job_id == job_id,
     ], start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_scheduler_sim_power_history_query(
         id = id, job_id = job_id, span = span, fields = fields,
-        druid_engine = druid_engine,
     )
     return _run_ts_query(
         span = span, stmt = stmt, fields = fields,
@@ -574,11 +571,10 @@ def query_scheduler_sim_power_history(*,
 def build_scheduler_sim_power_history_query(*,
     id: str, job_id: str, span: QuerySpan,
     fields: Optional[list[str]] = None,
-    druid_engine: sqla.engine.Engine,
 ):
     fields = expand_field_selectors(fields, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS)
 
-    tbl = get_table('svc-ts-exadigit-scheduler-sim-job-power-history', druid_engine).alias("power-history")
+    tbl = orm.scheduler_sim_job_power_history.alias("power-history")
     agg_cols: dict[str, sqla.sql.ColumnElement] = {
         "power": sqla.func.max(tbl.c['power']),
         "job_id": any_value(tbl.c['job_id'], 12), # We're filtering by job_id so they should all be the same
