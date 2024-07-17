@@ -32,11 +32,10 @@ def repeat_task(func, seconds):
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
-    # TODO
-    # # Force initializing deps on startup so database connection errors etc. show up immediately
-    # deps = [get_app_settings, get_druid_engine, get_kafka_producer]
-    # for dep in deps:
-    #     api.dependency_overrides.get(dep, dep)()
+    # Force initializing deps on startup so database connection errors etc. show up immediately
+    deps = [get_app_settings, get_druid_engine, get_kafka_producer]
+    for dep in deps:
+        api.dependency_overrides.get(dep, dep)()
 
     # background_task_loop = None
     # if settings.env == 'prod':

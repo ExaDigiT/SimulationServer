@@ -49,7 +49,7 @@ services:
     env_file:
       - druid-environment.txt
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/status/health"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8081/status/health || exit 1"]
       interval: 10s
       retries: 10
   
@@ -70,7 +70,7 @@ services:
     env_file:
       - druid-environment.txt
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/druid/broker/v1/readiness"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8082/druid/broker/v1/readiness || exit 1"]
       interval: 10s
       retries: 10
 
@@ -92,7 +92,7 @@ services:
     env_file:
       - druid-environment.txt
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/druid/historical/v1/readiness"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8083/druid/historical/v1/readiness || exit 1"]
       interval: 10s
       retries: 10
 
@@ -132,10 +132,20 @@ services:
     env_file:
       - druid-environment.txt
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8888/status/health"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8888/status/health || exit 1"]
       interval: 10s
       retries: 10
 
+  kafka:
+    image: apache/kafka:3.7.1
+    container_name: kafka
+    # ports:
+    #   - 9092:9092
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 10s
+      retries: 10
+  
   simulation-server:
     image: exadigit-simulation-server
     container_name: simulation-server
@@ -152,9 +162,12 @@ services:
         condition: service_started
       druid-router:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
     environment:
       - EXADIGIT_ENV=dev
       # - EXADIGIT_ROOT_PATH
       - EXADIGIT_DEBUG_MODE=true
       # - EXADIGIT_JOB_IMAGE
       - DRUID_SERVICE_URL=http://druid-router:8888
+      - KAFKA_BOOTSTRAP=kafka:9092
