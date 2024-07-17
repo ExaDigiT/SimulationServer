@@ -1,0 +1,160 @@
+# See https://druid.apache.org/docs/latest/tutorials/docker/
+# Docker UI will be available from http://localhost:8888
+
+volumes:
+  metadata_data: {}
+  middle_var: {}
+  historical_var: {}
+  broker_var: {}
+  coordinator_var: {}
+  router_var: {}
+  druid_shared: {}
+
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:latest
+    # ports:
+    #   - "5432:5432"
+    volumes:
+      - metadata_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=FoolishPassword
+      - POSTGRES_USER=druid
+      - POSTGRES_DB=druid
+
+  zookeeper:
+    container_name: zookeeper
+    image: zookeeper:3.5.10
+    # ports:
+    #   - "2181:2181"
+    environment:
+      - ZOO_MY_ID=1
+
+  druid-coordinator:
+    image: apache/druid:30.0.0
+    container_name: druid-coordinator
+    volumes:
+      - druid_shared:/opt/shared
+      - coordinator_var:/opt/druid/var
+      # - ./data:/data
+    depends_on:
+      - zookeeper
+      - postgres
+    # ports:
+    #   - "8081:8081"
+    command:
+      - coordinator
+    env_file:
+      - druid-environment.txt
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/status/health"]
+      interval: 10s
+      retries: 10
+  
+  druid-broker:
+    image: apache/druid:30.0.0
+    container_name: druid-broker
+    volumes:
+      - broker_var:/opt/druid/var
+      # - ./data:/data
+    depends_on:
+      - zookeeper
+      - postgres
+      - druid-coordinator
+    # ports:
+    #   - "8082:8082"
+    command:
+      - broker
+    env_file:
+      - druid-environment.txt
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/druid/broker/v1/readiness"]
+      interval: 10s
+      retries: 10
+
+  druid-historical:
+    image: apache/druid:30.0.0
+    container_name: druid-historical
+    volumes:
+      - druid_shared:/opt/shared
+      - historical_var:/opt/druid/var
+      # - ./data:/data
+    depends_on: 
+      - zookeeper
+      - postgres
+      - druid-coordinator
+    # ports:
+    #   - "8083:8083"
+    command:
+      - historical
+    env_file:
+      - druid-environment.txt
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/druid/historical/v1/readiness"]
+      interval: 10s
+      retries: 10
+
+  druid-middlemanager:
+    image: apache/druid:30.0.0
+    container_name: druid-middlemanager
+    volumes:
+      - druid_shared:/opt/shared
+      - middle_var:/opt/druid/var
+      # - ./data:/data
+    depends_on: 
+      - zookeeper
+      - postgres
+      - druid-coordinator
+    # ports:
+    #   - "8091:8091"
+    #   - "8100-8105:8100-8105"
+    command:
+      - middleManager
+    env_file:
+      - druid-environment.txt
+  
+  druid-router:
+    image: apache/druid:30.0.0
+    container_name: druid-router
+    volumes:
+      - router_var:/opt/druid/var
+      # - ./data:/data
+    depends_on:
+      - zookeeper
+      - postgres
+      - druid-coordinator
+    ports:
+      - "8888:8888"
+    command:
+      - router
+    env_file:
+      - druid-environment.txt
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8888/status/health"]
+      interval: 10s
+      retries: 10
+
+  simulation-server:
+    image: exadigit-simulation-server
+    container_name: simulation-server
+    ports:
+      - "8080:8080"
+    depends_on:
+      druid-coordinator:
+        condition: service_healthy
+      druid-broker:
+        condition: service_healthy
+      druid-historical:
+        condition: service_healthy
+      druid-middlemanager:
+        condition: service_started
+      druid-router:
+        condition: service_healthy
+    environment:
+      - EXADIGIT_ENV=dev
+      # - EXADIGIT_ROOT_PATH
+      - EXADIGIT_DEBUG_MODE=true
+      # - EXADIGIT_JOB_IMAGE
+      - DRUID_SERVICE_URL=http://druid-router:8888

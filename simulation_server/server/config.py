@@ -53,6 +53,6 @@ class AppDeps_(NamedTuple):
     def settings(self): return get_app_settings()
     @property
     def druid_engine(self): return get_druid_engine()
-    @property
-    def kafka_producer(self): return get_kafka_producer()
+    # @property
+    # def kafka_producer(self): return get_kafka_producer()
 AppDeps = A[AppDeps_, Depends(AppDeps_)]

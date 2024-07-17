@@ -32,22 +32,23 @@ def repeat_task(func, seconds):
 
 @asynccontextmanager
 async def lifespan(api: FastAPI):
-    # Force initializing deps on startup so database connection errors etc. show up immediately
-    deps = [get_app_settings, get_druid_engine, get_kafka_producer]
-    for dep in deps:
-        api.dependency_overrides.get(dep, dep)()
+    # TODO
+    # # Force initializing deps on startup so database connection errors etc. show up immediately
+    # deps = [get_app_settings, get_druid_engine, get_kafka_producer]
+    # for dep in deps:
+    #     api.dependency_overrides.get(dep, dep)()
 
-    background_task_loop = None
-    if settings.env == 'prod':
-        background_task_loop = repeat_task(
-            lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
-            seconds = 5 * 60,
-        )
+    # background_task_loop = None
+    # if settings.env == 'prod':
+    #     background_task_loop = repeat_task(
+    #         lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
+    #         seconds = 5 * 60,
+    #     )
 
     yield
 
-    if background_task_loop:
-        background_task_loop.cancel()
+    # if background_task_loop:
+    #     background_task_loop.cancel()
 
 
 app = FastAPI(
@@ -125,7 +126,7 @@ app.include_router(router)
 if __name__ == "__main__":
     if settings.debug_mode:
         uvicorn.run(app,
-            host='localhost',
+            host='0.0.0.0',
             port=settings.http_port,
             reload=False,
         )

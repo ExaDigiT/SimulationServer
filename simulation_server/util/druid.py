@@ -1,6 +1,7 @@
 from typing import Union
 from datetime import datetime, date, timedelta
 import functools, os
+import urllib.parse
 
 import sqlalchemy as sqla
 from sqlalchemy.sql import ColumnElement
@@ -11,12 +12,16 @@ from .misc import to_iso_duration
 def get_druid_engine(**kwargs):
     """ Get an SQLAlchemy Engine object towards production Druid """
     # Acquire the credentials
-    DRUID_URL = os.environ['DRUID_SERVICE_URL']
-    DRUID_SCHEME = DRUID_URL.split(':')[0]
-    DRUID_HOST = DRUID_URL.split(':')[1][2:]
-    DRUID_USERNAME = os.environ['DRUID_SERVICE_USERNAME']
-    DRUID_PASSWORD = os.environ['DRUID_SERVICE_PASSWORD']
-    DRUID_SQLA_URL = f'druid+https://{DRUID_USERNAME}:{DRUID_PASSWORD}@{DRUID_HOST}:443/druid/v2/sql/?header=true'
+    url = urllib.parse.urlparse(os.environ['DRUID_SERVICE_URL'])
+    path = "druid/v2/sql/?header=true"
+    port = url.port or 443
+    username = os.environ.get('DRUID_SERVICE_USERNAME')
+    password = os.environ.get('DRUID_SERVICE_PASSWORD')
+
+    if username:
+        sqla_url =  f"druid+{url.scheme}://{username}:{password}@{url.hostname}:{port}/{path}"
+    else:
+        sqla_url =  f"druid+{url.scheme}://{url.hostname}:{port}/{path}"
 
     # For some reason sqla/pydruid renders `cast(col, sqla.TIMESTAMP)` to `CAST(col AS LONG)`. LONG
     # isn't even a valid druid type. Several other cast types seem to be broken as well. This is a
@@ -43,8 +48,7 @@ def get_druid_engine(**kwargs):
         **kwargs,
     }
 
-    return sqla.create_engine(DRUID_SQLA_URL, **kwargs)
-
+    return sqla.create_engine(sqla_url, **kwargs)
 
 @functools.cache
 def get_table(name: str, engine: sqla.engine.Engine):
