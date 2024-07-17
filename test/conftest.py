@@ -10,9 +10,9 @@ def api_client():
         yield client
 
 
-@pytest.fixture(scope="module")
-def druid_engine():
-    """ Get a reference to the druid engine"""
-    return get_obs_druid_engine()
+# @pytest.fixture(scope="module")
+# def druid_engine():
+#     """ Get a reference to the druid engine"""
+#     return get_obs_druid_engine()
 
 

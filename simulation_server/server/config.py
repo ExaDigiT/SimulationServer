@@ -10,7 +10,7 @@ from ..util.druid import get_druid_engine as _get_druid_engine
 
 
 class AppSettings(BaseSettings):
-    env: str
+    env: str = "DEV"
 
     log_level: A[str, StringConstraints(to_upper=True)] = "INFO"
     debug_mode: bool = True
