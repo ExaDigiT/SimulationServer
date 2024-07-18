@@ -1,6 +1,6 @@
 """ A simple REST API for triggering and querying the results from the digital twin """
 
-import subprocess, asyncio, functools
+import subprocess, asyncio, functools, os
 from contextlib import asynccontextmanager
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -37,12 +37,13 @@ async def lifespan(api: FastAPI):
     for dep in deps:
         api.dependency_overrides.get(dep, dep)()
 
-    # background_task_loop = None
-    # if settings.env == 'prod':
-    #     background_task_loop = repeat_task(
-    #         lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
-    #         seconds = 5 * 60,
-    #     )
+    # TODO: Should add cleanup handler for local as well
+    background_task_loop = None
+    if settings.env == 'prod' and 'KUBERNETES_SERVICE_HOST' in os.environ:
+        background_task_loop = repeat_task(
+            lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
+            seconds = 5 * 60,
+        )
 
     yield
 
