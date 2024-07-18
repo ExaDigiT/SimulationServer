@@ -14,7 +14,6 @@ def get_kafka_producer(**configs):
        'security_protocol': os.environ.get('KAFKA_SECURITY_PROTOCOL'),
     }
     env_configs = {k: v for k, v in env_configs.items() if v is not None}
-    print(env_configs)
     return KafkaProducer(**{**env_configs, **configs})
 
 
