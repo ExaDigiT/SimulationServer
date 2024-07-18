@@ -29,12 +29,18 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
     # Perhaps we should move the sim table table out of Druid and into our Postgres instance so we
     # can directly update it, and just use Druid for the large timeseries tables
     record = False
+    def find_record():
+        try:
+            return conn.execute(stmt).first()
+        except Exception:
+            return None
+
     with druid_engine.connect() as conn:
         start = time.time()
-        record = execute_ignore_missing(conn, stmt).first()
+        record = find_record()
         while (time.time() - start) < timeout.total_seconds() and not record:
             time.sleep(0.5)
-            record = execute_ignore_missing(conn, stmt).first()
+            record = find_record()
 
     if not record:
         logger.error("Timeout while waiting for record to be saved to druid")
