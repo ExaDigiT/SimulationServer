@@ -153,6 +153,22 @@ def fetch_telemetry_data(start: datetime, end: datetime):
     return jobs
 
 
+def get_scheduler(down_nodes = [], cooling_model = None):
+    down_nodes = [*DOWN_NODES, *down_nodes]
+
+    power_manager = PowerManager(SC_SHAPE, down_nodes)
+    flops_manager = FLOPSManager(SC_SHAPE)
+
+    return Scheduler(
+        TOTAL_NODES, down_nodes,
+        power_manager = power_manager,
+        flops_manager = flops_manager,
+        layout_manager = None,
+        cooling_model = cooling_model,
+        debug = False,
+    )
+
+
 def run_simulation(config: SimConfig):
     sample_scheduler_sim_system = timedelta(seconds = 1).total_seconds()
     sample_scheduler_sim_jobs = timedelta(seconds = 10).total_seconds()
@@ -169,7 +185,6 @@ def run_simulation(config: SimConfig):
             np.random.seed(config.scheduler.seed)
 
         timesteps = math.ceil((config.end - config.start).total_seconds())
-        down_nodes = [*DOWN_NODES, *config.scheduler.down_nodes]
 
         if config.cooling.enabled:
             cooling_model = ThermoFluidsModel(str(FMU_PATH))
@@ -177,16 +192,9 @@ def run_simulation(config: SimConfig):
         else:
             cooling_model = None
 
-        power_manager = PowerManager(SC_SHAPE, down_nodes)
-        flops_manager = FLOPSManager(SC_SHAPE)
-
-        sc = Scheduler(
-            TOTAL_NODES, down_nodes,
-            power_manager = power_manager,
-            flops_manager = flops_manager,
-            layout_manager = None,
-            cooling_model = cooling_model,
-            debug = False,
+        sc = get_scheduler(
+            down_nodes = config.scheduler.down_nodes,
+            cooling_model = cooling_model
         )
 
         if config.scheduler.jobs_mode == "random":
