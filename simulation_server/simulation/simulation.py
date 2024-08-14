@@ -12,7 +12,8 @@ from .raps.raps.cooling import ThermoFluidsModel
 from .raps.raps.power import PowerManager
 from .raps.raps.flops import FLOPSManager
 from .raps.raps.scheduler import Scheduler
-from .raps.raps.telemetry import index_to_xname, xname_to_index, Telemetry
+from .raps.raps.telemetry import Telemetry
+from .raps.raps.dataloaders.frontier import index_to_xname, xname_to_index
 from .raps.raps.workload import Workload
 from ..models.sim import SimConfig
 from ..models.output import (
@@ -190,10 +191,10 @@ def run_simulation(config: SimConfig):
 
         if config.scheduler.jobs_mode == "random":
             num_jobs = config.scheduler.num_jobs if config.scheduler.num_jobs is not None else 1000
-            workload = Workload(sc) # Why does Workload take a Scheduler? It never uses it.
+            workload = Workload()
             jobs = workload.random(num_jobs=num_jobs)
         elif config.scheduler.jobs_mode == "test":
-            workload = Workload(sc)
+            workload = Workload()
             jobs = workload.test()
         elif config.scheduler.jobs_mode == "replay":
             logger.info("Fetching telemetry data")
