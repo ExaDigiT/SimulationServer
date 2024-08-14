@@ -228,3 +228,9 @@ COOLING_CDU_FIELD_SELECTORS = {
 }
 
 COOLING_CDU_FILTERS = filter_params(COOLING_CDU_API_FIELDS)
+
+
+class SystemInfo(BaseModel):
+  peak_flops: float
+  peak_power: float
+  g_flops_w_peak: float

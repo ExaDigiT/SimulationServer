@@ -10,6 +10,7 @@ from ..models.output import (
     CoolingSimCDU, COOLING_CDU_FILTERS, COOLING_CDU_FIELD_SELECTORS,
 )
 from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, SimConfig
+from ..models.output import SystemInfo
 from ..util.api_queries import Granularity, granularity_params, Filters, Sort, get_selectors
 from .config import AppDeps
 from .service import (
@@ -17,13 +18,13 @@ from .service import (
     query_scheduler_sim_system, query_scheduler_sim_power_history,
 )
 
-router = APIRouter(prefix="/frontier/simulation", tags=['frontier-simulation'])
+router = APIRouter(prefix="/frontier", tags=['frontier'])
 
 
 GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=timedelta(seconds=1)))]
 
 
-@router.post("/run", response_model=Sim)
+@router.post("/simulation/run", response_model=Sim)
 def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
     """
     Start running a simulation in the background. POST the configuration for the simulation. Returns
@@ -36,7 +37,7 @@ SimSort = A[Sort, Depends(SIM_SORT)]
 SimFieldSelector = Literal[get_selectors(SIM_FIELD_SELECTORS)] # type: ignore
 SimFieldSelectors = A[CommaSeparatedList[SimFieldSelector], Query()]
 
-@router.get("/list", response_model=Page[Sim], response_model_exclude_none=True)
+@router.get("/simulation/list", response_model=Page[Sim], response_model_exclude_none=True)
 def sim_list(*,
     filters: SimFilters, sort: SimSort,
     fields: SimFieldSelectors = None,
@@ -54,7 +55,7 @@ def sim_list(*,
     return Page(results = results, limit = limit, offset = offset, total_results = total_results)
 
 
-@router.get("/{id}", response_model=Sim, response_model_exclude_none=True)
+@router.get("/simulation/{id}", response_model=Sim, response_model_exclude_none=True)
 def get(id: str, deps: AppDeps):
     """ Get simulation by id or 404 if not found. """
     results, total_results = query_sims(
@@ -72,7 +73,7 @@ CoolingCDUFilters = A[Filters, Depends(COOLING_CDU_FILTERS)]
 CoolingSimCDUFieldSelector = Literal[get_selectors(COOLING_CDU_FIELD_SELECTORS)] # type: ignore
 CoolingSimCDUFieldSelectors = A[CommaSeparatedList[CoolingSimCDUFieldSelector], Query()]
 
-@router.get("/{id}/cooling/cdu", response_model=ObjectTimeseries[CoolingSimCDU])
+@router.get("/simulation/{id}/cooling/cdu", response_model=ObjectTimeseries[CoolingSimCDU])
 def cooling_cdu(*,
     id: str,
     start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
@@ -95,7 +96,7 @@ SchedulerSimJobSort = A[Sort, Depends(SCHEDULER_SIM_JOB_SORT)]
 SchedulerSimJobFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_FIELD_SELECTORS)] # type: ignore
 SchedulerSimJobFieldSelectors = A[CommaSeparatedList[SchedulerSimJobFieldSelector], Query()]
 
-@router.get("/{id}/scheduler/jobs", response_model=Page[SchedulerSimJob])
+@router.get("/simulation/{id}/scheduler/jobs", response_model=Page[SchedulerSimJob])
 def scheduler_jobs(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     time_travel: Optional[datetime] = None, limit: int = 100, offset: int = 0,
@@ -151,7 +152,7 @@ def scheduler_jobs(*,
 SchedulerSimPowerHistoryFieldSelector = Literal[get_selectors(SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS)] # type: ignore
 SchedulerSimPowerHistoryFieldSelectors = A[CommaSeparatedList[SchedulerSimPowerHistoryFieldSelector], Query()]
 
-@router.get("/{id}/scheduler/jobs/{job_id}/power-history", response_model=ObjectTimeseries[SchedulerSimJobPowerHistory])
+@router.get("/simulation/{id}/scheduler/jobs/{job_id}/power-history", response_model=ObjectTimeseries[SchedulerSimJobPowerHistory])
 def power_history(*,
     id: str, job_id: str,
     start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: GranularityDep,
@@ -168,7 +169,7 @@ def power_history(*,
     return JSONResponse(result)
 
 
-@router.get("/{id}/scheduler/system", response_model=ObjectTimeseries[SchedulerSimSystem])
+@router.get("/simulation/{id}/scheduler/system", response_model=ObjectTimeseries[SchedulerSimSystem])
 def scheduler_system(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     granularity: A[Granularity, Depends(granularity_params(default_resolution=1))],
@@ -185,3 +186,10 @@ def scheduler_system(*,
         druid_engine = deps.druid_engine,
     )
     return result
+
+
+@router.get("/system-info", response_model=SystemInfo)
+def system_info(deps: AppDeps):
+    from ..simulation.simulation import get_scheduler
+    sc = get_scheduler()
+    return sc.get_gauge_limits()
