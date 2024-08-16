@@ -20,6 +20,7 @@ from ..models.output import (
     JobStateEnum, SchedulerSimJob, SchedulerSimJobPowerHistory, SchedulerSimSystem, CoolingSimCDU,
 )
 from ..util.druid import get_druid_engine, get_table, to_timestamp
+from ..util.es import get_nccs_cadence_engine
 from .node_set import FrontierNodeSet
 
 
@@ -74,61 +75,40 @@ class SimOutput(NamedTuple):
     power_history: list[SchedulerSimJobPowerHistory]
 
 
-def build_jobs_query(start: datetime, end: datetime, engine: sqla.engine.Engine):
-    job_tbl = get_table("sens-svc-log-frontier-joblive", engine)
-
-    # This is overly complicated. Should move jobs to postgres so we can do normal SQL style queries
-    inner_query = (
-        sqla.select(
-            sqla.func.max(job_tbl.c['__time']).label('time_snapshot'), job_tbl.c.job_id,
-        )
-        .where(
-            job_tbl.c.time_start != None,
-            to_timestamp(start) < sqla.func.coalesce(to_timestamp(job_tbl.c.time_end), job_tbl.c['__time']),
-            to_timestamp(job_tbl.c.time_start) < to_timestamp(end),
-        )
-        .group_by("job_id")
-        .subquery().alias("inner")
-    )
-
-    outer_query = (
-        sqla.select(
-            job_tbl.c['__time'].label("time_snapshot"),
-            *[v for k, v in job_tbl.c.items() if k != '__time'],
-        )
-        .join(inner_query,
-            (inner_query.c.time_snapshot == job_tbl.c['__time']) &
-            (inner_query.c.job_id == job_tbl.c.job_id)
-        )
-    )
-
-    return outer_query
-
 
 def fetch_telemetry_data(start: datetime, end: datetime):
     """
     Fetch and parse real telemetry data
     """
-    engine = get_druid_engine()
+    # TODO: Should consider using LVA API instead of directly querying the DB for this
+    nccs_cadence_engine = get_nccs_cadence_engine()
+    druid_engine = get_druid_engine()
 
-    job_query = build_jobs_query(start, end, engine)
-    job_data = pd.read_sql_query(job_query, engine, parse_dates=[
+    job_query = sqla.text("""
+        SELECT
+            "allocation_id", "job_id", "slurm_version", "account", "group", "user", "name",
+            "time_limit", "time_submission", "time_eligible", "time_start", "time_end", "time_elapsed",
+            "node_count", "node_ranges", xnames_str AS "xnames", "state_current", "state_reason",
+            "time_snapshot"
+        FROM "stf218.frontier.job-summary"
+        WHERE (time_end IS NOT NULL)
+            AND (
+                time_end > CONVERT(:start, TIMESTAMP) OR
+                (time_end IS NULL AND time_snapshot >= CONVERT(:start, TIMESTAMP))
+            )
+            AND time_start <= CONVERT(:end, TIMESTAMP)
+    """).bindparams(
+        start = start.isoformat(), end = end.isoformat(),
+    )
+    job_data = pd.read_sql_query(job_query, nccs_cadence_engine, parse_dates=[
         "time_snapshot", "time_submission", "time_eligible", "time_start", "time_end",
-        "batch_time_start", "batch_time_end",
     ])
     # TODO: Even with sqlStringifyArrays: false, multivalue columns are returned as json strings.
     # And single rows are returned as raw strings. When we update Druid we can use ARRAYS and remove
     # this. Moving the jobs table to postgres would also fix this (and other issues).
-    def split_xnames(xnames):
-        if not xnames:
-            return []
-        elif xnames.startswith('['):
-            return json.loads(xnames)
-        else:
-            return [xnames]
-    job_data['xnames'] = job_data['xnames'].map(split_xnames)
+    job_data['xnames'] = job_data['xnames'].map(lambda x: x.split(",") if x else [])
 
-    job_profile_tbl = get_table("pub-ts-frontier-job-profile", engine)
+    job_profile_tbl = get_table("pub-ts-frontier-job-profile", druid_engine)
     job_profile_query = (
         sqla.select(
             job_profile_tbl.c['__time'].label("timestamp"),
@@ -141,19 +121,19 @@ def fetch_telemetry_data(start: datetime, end: datetime):
                 job_profile_tbl.c['__time'] < to_timestamp(end),
             )
     )
-    job_profile_data = pd.read_sql(job_profile_query, engine, parse_dates=[
+    job_profile_data = pd.read_sql(job_profile_query, druid_engine, parse_dates=[
         "timestamp",
     ])
 
     if (job_data.empty or job_profile_data.empty):
         raise SimException(f"No telemetry data for {start.isoformat()} -> {end.isoformat()}")
 
-    telemetry = Telemetry()
-    jobs = telemetry.parse_dataframes(job_data, job_profile_data, min_time=start)
+    telemetry = Telemetry(system = "frontier")
+    jobs = telemetry.load_data_from_df(job_data, job_profile_data, min_time=start)
     return jobs
 
 
-def get_scheduler(down_nodes = [], cooling_model = None):
+def get_scheduler(down_nodes = [], cooling_model = None, replay = False):
     down_nodes = [*DOWN_NODES, *down_nodes]
 
     power_manager = PowerManager(SC_SHAPE, down_nodes)
@@ -165,7 +145,7 @@ def get_scheduler(down_nodes = [], cooling_model = None):
         flops_manager = flops_manager,
         layout_manager = None,
         cooling_model = cooling_model,
-        debug = False,
+        debug = False, replay = replay,
     )
 
 
@@ -194,7 +174,8 @@ def run_simulation(config: SimConfig):
 
         sc = get_scheduler(
             down_nodes = config.scheduler.down_nodes,
-            cooling_model = cooling_model
+            cooling_model = cooling_model,
+            replay = (config.scheduler.jobs_mode == "replay"),
         )
 
         if config.scheduler.jobs_mode == "random":

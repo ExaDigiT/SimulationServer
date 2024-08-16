@@ -36,6 +36,8 @@ dependencies = [
     "pyarrow==15.0.1",
     "uncertainties==3.2.1",
     "ClusterShell==1.9.2", 
+    "elasticsearch==7.13.4",
+    "elasticsearch-dbapi==0.2.11",
 ]
 
 [project.optional-dependencies]
