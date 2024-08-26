@@ -135,6 +135,9 @@ class SchedulerSimSystem(BaseModel):
     g_flops_w: Optional[float]
     """ GigaFlops per watt energy efficiency estimate """
 
+    system_util: Optional[float]
+    """ """
+
 
 class CoolingSimCDU(BaseModel):
     timestamp: AwareDatetime

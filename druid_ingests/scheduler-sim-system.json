@@ -101,6 +101,9 @@
                     {
                         "type": "double",
                         "name": "g_flops_w"
+                    }, {
+                        "type": "double",
+                        "name": "system_util"
                     }
                 ]
             },

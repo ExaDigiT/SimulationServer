@@ -226,6 +226,7 @@ def run_simulation(config: SimConfig):
 
                     p_flops = data.p_flops,
                     g_flops_w = data.g_flops_w,
+                    system_util = data.system_util,
                 ))]
 
             scheduler_sim_jobs: list[SchedulerSimJob] = []
