@@ -133,7 +133,7 @@ def fetch_telemetry_data(start: datetime, end: datetime):
     return jobs
 
 
-def get_scheduler(down_nodes = [], cooling_model = None, replay = False):
+def get_scheduler(down_nodes = [], cooling_model = None, replay = False, schedule_policy = 'fcfs'):
     down_nodes = [*DOWN_NODES, *down_nodes]
 
     power_manager = PowerManager(SC_SHAPE, down_nodes)
@@ -146,6 +146,7 @@ def get_scheduler(down_nodes = [], cooling_model = None, replay = False):
         layout_manager = None,
         cooling_model = cooling_model,
         debug = False, replay = replay,
+        schedule = schedule_policy,
     )
 
 
@@ -176,6 +177,7 @@ def run_simulation(config: SimConfig):
             down_nodes = config.scheduler.down_nodes,
             cooling_model = cooling_model,
             replay = (config.scheduler.jobs_mode == "replay"),
+            schedule_policy = config.scheduler.schedule_policy,
         )
 
         if config.scheduler.jobs_mode == "random":

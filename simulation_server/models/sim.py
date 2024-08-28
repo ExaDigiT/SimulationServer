@@ -124,6 +124,7 @@ class SchedulerSimConfig(BaseModel):
     down_nodes: list[str] = [] # List of hostnames. TODO: allow parsing from xnames/hostname or int maybe?
     
     jobs_mode: Literal['replay', 'custom', 'random', 'test'] = 'random'
+    schedule_policy: Literal['fcfs', 'sjf', 'prq'] = 'fcfs'
 
     jobs: Optional[list[SchedulerSimCustomJob]] = None
     """
