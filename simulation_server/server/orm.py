@@ -96,6 +96,7 @@ scheduler_sim_system = Table(
     Column("total_cost", Double),
     Column("p_flops", Double),
     Column("g_flops_w", Double),
+    Column("system_util", Double),
 )
 
 sim = Table(

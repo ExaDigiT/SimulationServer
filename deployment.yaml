@@ -33,6 +33,7 @@ objects:
             app: exadigit-simulation-server
         spec:
           serviceAccountName: ${ENV}-exadigit-simulation-server
+          terminationGracePeriodSeconds: 0
           containers:
           - image: ${SERVER_IMAGE}
             name: main

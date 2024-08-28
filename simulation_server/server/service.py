@@ -503,6 +503,8 @@ def build_scheduler_sim_system_query(*,
     id: str, span: QuerySpan,
 ):
     tbl = orm.scheduler_sim_system.alias("system")
+    def agg(col):
+        return sqla.func.coalesce(latest(sqla.func.nullif(col, 0)), 0)
     
     cols = {
         "down_nodes": latest(tbl.c.down_nodes, 1024),
@@ -510,18 +512,18 @@ def build_scheduler_sim_system_query(*,
         "jobs_completed": latest(tbl.c.jobs_completed),
         "jobs_running": latest(tbl.c.jobs_running),
         "jobs_pending": latest(tbl.c.jobs_pending),
-        "throughput": latest(sqla.func.nullif(tbl.c.throughput, 0)),
-        "average_power": latest(sqla.func.nullif(tbl.c.average_power, 0)),
-        "min_loss": latest(sqla.func.nullif(sqla.func.coalesce(tbl.c.min_loss, 0), 0)),
-        "average_loss": latest(sqla.func.nullif(tbl.c.average_loss, 0)),
-        "max_loss": latest(sqla.func.nullif(sqla.func.coalesce(tbl.c.max_loss, 0), 0)),
-        "system_power_efficiency": latest(sqla.func.nullif(tbl.c.system_power_efficiency, 0)),
-        "total_energy_consumed": latest(sqla.func.nullif(tbl.c.total_energy_consumed, 0)),
-        "carbon_emissions": latest(sqla.func.nullif(tbl.c.carbon_emissions, 0)),
-        "total_cost": latest(sqla.func.nullif(tbl.c.total_cost, 0)),
-        "p_flops": latest(sqla.func.nullif(tbl.c.p_flops, 0)),
-        "g_flops_w": latest(sqla.func.nullif(tbl.c.g_flops_w, 0)),
-        "system_util": latest(sqla.func.nullif(tbl.c.system_util, 0)),
+        "throughput": agg(tbl.c.throughput),
+        "average_power": agg(tbl.c.average_power),
+        "min_loss": agg(tbl.c.min_loss),
+        "average_loss": agg(tbl.c.average_loss),
+        "max_loss": agg(tbl.c.max_loss),
+        "system_power_efficiency": agg(tbl.c.system_power_efficiency),
+        "total_energy_consumed": agg(tbl.c.total_energy_consumed),
+        "carbon_emissions": agg(tbl.c.carbon_emissions),
+        "total_cost": agg(tbl.c.total_cost),
+        "p_flops": agg(tbl.c.p_flops),
+        "g_flops_w": agg(tbl.c.g_flops_w),
+        "system_util": agg(tbl.c.system_util),
     }
 
     fields = [*cols.keys()] # TODO add fields to endpoint
