@@ -92,12 +92,9 @@ def fetch_telemetry_data(config: SimConfig):
             "node_count", "node_ranges", xnames_str AS "xnames", "state_current", "state_reason",
             "time_snapshot"
         FROM "stf218.frontier.job-summary"
-        WHERE (time_end IS NOT NULL)
-            AND (
-                time_end > CONVERT(:start, TIMESTAMP) OR
-                (time_end IS NULL AND time_snapshot >= CONVERT(:start, TIMESTAMP))
-            )
-            AND time_start <= CONVERT(:end, TIMESTAMP)
+        WHERE
+            (time_start IS NOT NULL AND time_start <= CONVERT(:end, TIMESTAMP)) AND
+            (time_end IS NULL OR time_end > CONVERT(:start, TIMESTAMP))
     """).bindparams(
         start = start.isoformat(), end = end.isoformat(),
     )
