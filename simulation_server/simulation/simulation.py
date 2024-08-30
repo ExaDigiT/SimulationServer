@@ -76,13 +76,14 @@ class SimOutput(NamedTuple):
 
 
 
-def fetch_telemetry_data(start: datetime, end: datetime):
+def fetch_telemetry_data(config: SimConfig):
     """
     Fetch and parse real telemetry data
     """
     # TODO: Should consider using LVA API instead of directly querying the DB for this
     nccs_cadence_engine = get_nccs_cadence_engine()
     druid_engine = get_druid_engine()
+    start, end = config.start, config.end
 
     job_query = sqla.text("""
         SELECT
@@ -129,7 +130,10 @@ def fetch_telemetry_data(start: datetime, end: datetime):
         raise SimException(f"No telemetry data for {start.isoformat()} -> {end.isoformat()}")
 
     telemetry = Telemetry(system = "frontier")
-    jobs = telemetry.load_data_from_df(job_data, job_profile_data, min_time=start)
+    jobs = telemetry.load_data_from_df(job_data, job_profile_data,
+        min_time = start,
+        reschedule = config.scheduler.reschedule,
+    )
     return jobs
 
 
@@ -189,7 +193,7 @@ def run_simulation(config: SimConfig):
             jobs = workload.test()
         elif config.scheduler.jobs_mode == "replay":
             logger.info("Fetching telemetry data")
-            jobs = fetch_telemetry_data(config.start, config.end)
+            jobs = fetch_telemetry_data(config)
         elif config.scheduler.jobs_mode == "custom":
             raise SimException("Custom not supported")
         else:

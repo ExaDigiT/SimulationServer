@@ -124,7 +124,14 @@ class SchedulerSimConfig(BaseModel):
     down_nodes: list[str] = [] # List of hostnames. TODO: allow parsing from xnames/hostname or int maybe?
     
     jobs_mode: Literal['replay', 'custom', 'random', 'test'] = 'random'
-    schedule_policy: Literal['fcfs', 'sjf', 'prq'] = 'fcfs'
+    schedule_policy: Literal['fcfs', 'sjf', 'prq'] ='fcfs'
+    """"
+    Policy to use when scheduling jobs.
+    Replay mode will ignore this and use the real time jobs were scheduled unless you also set
+    reschedule to true.
+    """
+    reschedule: bool = False
+    """ If true, will apply schedule_policy in replay mode """
 
     jobs: Optional[list[SchedulerSimCustomJob]] = None
     """
