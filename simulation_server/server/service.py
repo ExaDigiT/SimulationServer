@@ -503,8 +503,6 @@ def build_scheduler_sim_system_query(*,
     id: str, span: QuerySpan,
 ):
     tbl = orm.scheduler_sim_system.alias("system")
-    def agg(col):
-        return sqla.func.coalesce(latest(sqla.func.nullif(col, 0)), 0)
     
     cols = {
         "down_nodes": latest(tbl.c.down_nodes, 1024),
@@ -512,18 +510,20 @@ def build_scheduler_sim_system_query(*,
         "jobs_completed": latest(tbl.c.jobs_completed),
         "jobs_running": latest(tbl.c.jobs_running),
         "jobs_pending": latest(tbl.c.jobs_pending),
-        "throughput": agg(tbl.c.throughput),
-        "average_power": agg(tbl.c.average_power),
-        "min_loss": agg(tbl.c.min_loss),
-        "average_loss": agg(tbl.c.average_loss),
-        "max_loss": agg(tbl.c.max_loss),
-        "system_power_efficiency": agg(tbl.c.system_power_efficiency),
-        "total_energy_consumed": agg(tbl.c.total_energy_consumed),
-        "carbon_emissions": agg(tbl.c.carbon_emissions),
-        "total_cost": agg(tbl.c.total_cost),
-        "p_flops": agg(tbl.c.p_flops),
-        "g_flops_w": agg(tbl.c.g_flops_w),
-        "system_util": agg(tbl.c.system_util),
+        "throughput": latest(tbl.c.throughput),
+        "average_power": latest(tbl.c.average_power),
+        "min_loss": latest(tbl.c.min_loss),
+        "average_loss": latest(tbl.c.average_loss),
+        "max_loss": latest(tbl.c.max_loss),
+        "system_power_efficiency": latest(tbl.c.system_power_efficiency),
+        "total_energy_consumed": latest(tbl.c.total_energy_consumed),
+        "carbon_emissions": latest(tbl.c.carbon_emissions),
+        "total_cost": latest(tbl.c.total_cost),
+        # TODO: max is not the best aggregation here, we want latest, but there's issue in our druid
+        # version with LATEST and null handling. Should be fixed when we update druid.
+        "p_flops": sqla.func.max(tbl.c.p_flops),
+        "g_flops_w": sqla.func.max(tbl.c.g_flops_w),
+        "system_util": latest(tbl.c.system_util),
     }
 
     fields = [*cols.keys()] # TODO add fields to endpoint
