@@ -38,6 +38,8 @@ dependencies = [
     "ClusterShell==1.9.2", 
     "elasticsearch==7.13.4",
     "elasticsearch-dbapi==0.2.11",
+    "tqdm==4.66.5",
+    "requests==2.32.3",
 ]
 
 [project.optional-dependencies]

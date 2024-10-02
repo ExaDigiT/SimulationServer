@@ -267,17 +267,10 @@ def run_simulation(config: SimConfig):
                     power_history_counts[job.id] = len(job.power_history)
 
 
-            cooling_sim_cdus: list[CoolingSimCDU] = []
-            if data.cooling_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
-                for i, point in data.cooling_df.iterrows():
-                    xname = _cdu_index_to_xname(int(point["CDU"]))
-                    row, col = int(xname[2]), int(xname[3:5])
-                    model = dict(
-                        timestamp = timestamp,
-                        xname = xname,
-                        row = row,
-                        col = col,
-
+            cooling_sim_cdu_map: dict[int, dict] = {}
+            if data.power_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
+                for i, point in data.power_df.iterrows():
+                    cooling_sim_cdu_map[int(point['CDU'])] = dict(
                         rack_1_power = point['Rack 1'],
                         rack_2_power = point['Rack 2'],
                         rack_3_power = point['Rack 3'],
@@ -289,35 +282,66 @@ def run_simulation(config: SimConfig):
                         total_loss = point['Loss'],
                     )
 
-                    if config.cooling.enabled:
-                        model.update(
-                            work_done_by_cdup = point['W_CDUP_Out'],
-                            rack_return_temp = point['Tr_sec_Out'],
-                            rack_supply_temp = point['Ts_sec_Out'],
-                            rack_supply_pressure = point['ps_sec_Out'],
-                            rack_return_pressure = point['pr_sec_Out'],
-                            rack_flowrate = point['Q_sec_Out'],
-                            htw_ctw_flowrate = point['Q_fac_Out'],
-                            htwr_htws_ctwr_ctws_pressure = point['p_fac_Out'],
-                            htwr_htws_ctwr_ctws_temp = point['T_fac_Out'],
-                            power_cunsumption_htwps = point['W_HTWP_Out'],
-                            power_consumption_ctwps = point['W_CTWP_Out'],
-                            power_consumption_fan = point['W_CT_Out'],
-                            htwp_speed = point['N_HTWP_Out'],
-                            nctwps_staged = point['n_CTWPs_Out'],
-                            nhtwps_staged = point['n_HTWPs_Out'],
-                            pue_output = point['PUE_Out'],
-                            nehxs_staged = point['n_EHXs_Out'],
-                            ncts_staged = point['n_CTs_Out'],
-                            facility_return_temp = point['Tr_pri_Out'],
-                            facility_supply_temp = point['Ts_pri_Out'],
-                            facility_supply_pressure = point['ps_pri_Out'],
-                            facility_return_pressure = point['pr_pri_Out'],
-                            cdu_loop_bypass_flowrate = point['Q_bypass_Out'],
-                            facility_flowrate = point['Q_pri_Out'],
-                        )
+            # if data.cooling_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
+            #     for i, point in data.cooling_df.iterrows():
+            #         xname = _cdu_index_to_xname(int(point["CDU"]))
+            #         row, col = int(xname[2]), int(xname[3:5])
+            #         model = dict(
+            #             timestamp = timestamp,
+            #             xname = xname,
+            #             row = row,
+            #             col = col,
 
-                    cooling_sim_cdus.append(CoolingSimCDU.model_validate(model))
+            #             rack_1_power = point['Rack 1'],
+            #             rack_2_power = point['Rack 2'],
+            #             rack_3_power = point['Rack 3'],
+            #             total_power = point['Sum'],
+
+            #             rack_1_loss = point['Loss 1'],
+            #             rack_2_loss = point['Loss 2'],
+            #             rack_3_loss = point['Loss 3'],
+            #             total_loss = point['Loss'],
+            #         )
+
+            #         if config.cooling.enabled:
+            #             model.update(
+            #                 work_done_by_cdup = point['W_CDUP_Out'],
+            #                 rack_return_temp = point['Tr_sec_Out'],
+            #                 rack_supply_temp = point['Ts_sec_Out'],
+            #                 rack_supply_pressure = point['ps_sec_Out'],
+            #                 rack_return_pressure = point['pr_sec_Out'],
+            #                 rack_flowrate = point['Q_sec_Out'],
+            #                 htw_ctw_flowrate = point['Q_fac_Out'],
+            #                 htwr_htws_ctwr_ctws_pressure = point['p_fac_Out'],
+            #                 htwr_htws_ctwr_ctws_temp = point['T_fac_Out'],
+            #                 power_cunsumption_htwps = point['W_HTWP_Out'],
+            #                 power_consumption_ctwps = point['W_CTWP_Out'],
+            #                 power_consumption_fan = point['W_CT_Out'],
+            #                 htwp_speed = point['N_HTWP_Out'],
+            #                 nctwps_staged = point['n_CTWPs_Out'],
+            #                 nhtwps_staged = point['n_HTWPs_Out'],
+            #                 pue_output = point['PUE_Out'],
+            #                 nehxs_staged = point['n_EHXs_Out'],
+            #                 ncts_staged = point['n_CTs_Out'],
+            #                 facility_return_temp = point['Tr_pri_Out'],
+            #                 facility_supply_temp = point['Ts_pri_Out'],
+            #                 facility_supply_pressure = point['ps_pri_Out'],
+            #                 facility_return_pressure = point['pr_pri_Out'],
+            #                 cdu_loop_bypass_flowrate = point['Q_bypass_Out'],
+            #                 facility_flowrate = point['Q_pri_Out'],
+            #             )
+
+            cooling_sim_cdus: list[CoolingSimCDU] = []
+            for cdu_index, cdu_data in cooling_sim_cdu_map.items():
+                xname = _cdu_index_to_xname(cdu_index)
+                row, col = int(xname[2]), int(xname[3:5])
+                cdu_data.update(
+                    timestamp = timestamp,
+                    xname = xname,
+                    row = row,
+                    col = col,
+                )
+                cooling_sim_cdus.append(CoolingSimCDU.model_validate(cdu_data))
 
             yield SimOutput(
                 scheduler_sim_system = scheduler_sim_system,
