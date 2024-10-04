@@ -10,6 +10,6 @@ docker build -t exadigit-simulation-server:latest -f Dockerfile.server .
 
 # trap 'docker compose down' SIGINT SIGTERM EXIT
 
-docker stop simulation-server || true
+docker stop simulation-server >/dev/null 2>&1 || true
 docker compose up -d
 docker compose logs -f --no-log-prefix simulation-server
