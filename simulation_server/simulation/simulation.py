@@ -33,7 +33,7 @@ TOTAL_NODES = config.get("TOTAL_NODES")
 DOWN_NODES = config.get("DOWN_NODES")
 FMU_PATH = config.get("FMU_PATH")
 # TODO: Fetch this from mlflow
-FMU_PATH = MODELS_PATH / "DataCenterTH_Examples_fullSystem_Test1_FMU_export.fmu"
+FMU_PATH = MODELS_PATH / "Simulator_olcf5_base.fmu"
 
 class SimException(Exception):
     pass
