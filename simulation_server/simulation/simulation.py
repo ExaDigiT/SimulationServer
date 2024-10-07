@@ -18,9 +18,11 @@ from .raps.raps.workload import Workload
 from ..models.sim import SimConfig
 from ..models.output import (
     JobStateEnum, SchedulerSimJob, SchedulerSimJobPowerHistory, SchedulerSimSystem, CoolingSimCDU,
+    CoolingSimCEP,
 )
 from ..util.druid import get_druid_engine, get_table, to_timestamp
 from ..util.es import get_nccs_cadence_engine
+from ..util.misc import nest_dict
 from .node_set import FrontierNodeSet
 
 
@@ -72,6 +74,7 @@ class SimOutput(NamedTuple):
     scheduler_sim_system: list[SchedulerSimSystem]
     scheduler_sim_jobs: list[SchedulerSimJob]
     cooling_sim_cdus: list[CoolingSimCDU]
+    cooling_sim_cep: list[CoolingSimCEP]
     power_history: list[SchedulerSimJobPowerHistory]
 
 
@@ -266,6 +269,8 @@ def run_simulation(config: SimConfig):
                     ))
                     power_history_counts[job.id] = len(job.power_history)
 
+            cooling_sim_cdus: list[CoolingSimCDU] = []
+            cooling_sim_cep: list[CoolingSimCEP] = []
 
             cooling_sim_cdu_map: dict[int, dict] = {}
             if data.power_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
@@ -282,56 +287,59 @@ def run_simulation(config: SimConfig):
                         total_loss = point['Loss'],
                     )
 
-            # if data.cooling_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
-            #     for i, point in data.cooling_df.iterrows():
-            #         xname = _cdu_index_to_xname(int(point["CDU"]))
-            #         row, col = int(xname[2]), int(xname[3:5])
-            #         model = dict(
-            #             timestamp = timestamp,
-            #             xname = xname,
-            #             row = row,
-            #             col = col,
+            if data.fmu_outputs:
+                fmu_data = nest_dict({**data.fmu_outputs})
 
-            #             rack_1_power = point['Rack 1'],
-            #             rack_2_power = point['Rack 2'],
-            #             rack_3_power = point['Rack 3'],
-            #             total_power = point['Sum'],
+                # CDU columns are output in the dict with keys like this:
+                # "simulator[1].datacenter[1].computeBlock[1].cdu[1].summary.m_flow_prim"
+                # "simulator[1].datacenter[1].computeBlock[1].cdu[1].summary.V_flow_prim_GPM"
+                # "simulator[1].datacenter[1].computeBlock[2].cdu[1].summary.m_flow_prim"
+                # "simulator[1].datacenter[1].computeBlock[2].cdu[1].summary.V_flow_prim_GPM"
+                # etc.
 
-            #             rack_1_loss = point['Loss 1'],
-            #             rack_2_loss = point['Loss 2'],
-            #             rack_3_loss = point['Loss 3'],
-            #             total_loss = point['Loss'],
-            #         )
+                cdus_data = fmu_data['simulator'][1]['datacenter'][1]['computeBlock']
+                for cdu, cdu_data in cdus_data.items():
+                    cdu_data = cdu_data['cdu'][1]['summary']
+                    cooling_sim_cdu_map[cdu].update(
+                        work_done_by_cdup = cdu_data['W_flow_CDUP_kW'],
+                        rack_return_temp = cdu_data['T_sec_r_C'],
+                        rack_supply_temp = cdu_data['T_sec_s_C'],
+                        rack_supply_pressure = cdu_data['p_sec_r_psig'],
+                        rack_return_pressure = cdu_data['p_sec_s_psig'],
+                        rack_flowrate = cdu_data['V_flow_sec_GPM'],
+                        facility_return_temp = cdu_data["T_prim_r_C"],
+                        facility_supply_temp = cdu_data['T_sec_s_C'],
+                        facility_supply_pressure = cdu_data['p_prim_s_psig'],
+                        facility_return_pressure = cdu_data['p_prim_r_psig'],
+                        facility_flowrate = cdu_data['V_flow_prim_GPM'],
+                    )
+                
+                cep_data = fmu_data['simulator'][1]['centralEnergyPlant'][1]
+                cooling_sim_cep = [CoolingSimCEP.model_validate(dict(
+                    timestamp = timestamp,
+                    htw_flowrate = cep_data['hotWaterLoop'][1]['summary']['V_flow_htw_GPM'],
+                    ctw_flowrate = cep_data['coolingTowerLoop'][1]['summary']['V_flow_ctw_GPM'],
+                    htw_return_pressure = cep_data['hotWaterLoop'][1]['summary']['p_fac_htw_r_psig'],
+                    htw_supply_pressure = cep_data['hotWaterLoop'][1]['summary']['p_fac_htw_s_psig'],
+                    ctw_return_pressure = cep_data['coolingTowerLoop'][1]['summary']['p_fac_ctw_r_psig'],
+                    ctw_supply_pressure = cep_data['coolingTowerLoop'][1]['summary']['p_fac_ctw_s_psig'],
+                    htw_retrun_temp = cep_data['hotWaterLoop'][1]['summary']['T_fac_htw_r_C'],
+                    htw_supply_temp = cep_data['hotWaterLoop'][1]['summary']['T_fac_htw_s_C'],
+                    ctw_return_temp = cep_data['coolingTowerLoop'][1]['summary']['T_fac_ctw_r_C'],
+                    ctw_supply_temp = cep_data['coolingTowerLoop'][1]['summary']['T_fac_ctw_s_C'],
+                    power_consumption_htwps = cep_data['hotWaterLoop'][1]['summary']['W_flow_HTWP_kW'],
+                    power_consumption_ctwps = cep_data['coolingTowerLoop'][1]['summary']['W_flow_CTWP_kW'],
+                    power_consumption_fan = cep_data['coolingTowerLoop'][1]['summary']['W_flow_CT_kW'],
+                    htwp_speed = cep_data['hotWaterLoop'][1]['summary']['N_HTWP'],
+                    nctwps_staged = cep_data['coolingTowerLoop'][1]['summary']['n_CTWPs'],
+                    nhtwps_staged = cep_data['hotWaterLoop'][1]['summary']['n_HTWPs'],
+                    pue_output = fmu_data['pue'],
+                    nehxs_staged = cep_data['hotWaterLoop'][1]['summary']['n_EHXs'],
+                    ncts_staged = cep_data['coolingTowerLoop'][1]['summary']['n_CTs'],
+                    cdu_loop_bypass_flowrate = fmu_data['simulator'][1]['datacenter'][1]['summary']['V_flow_bypass_GPM'],
+                ))]
 
-            #         if config.cooling.enabled:
-            #             model.update(
-            #                 work_done_by_cdup = point['W_CDUP_Out'],
-            #                 rack_return_temp = point['Tr_sec_Out'],
-            #                 rack_supply_temp = point['Ts_sec_Out'],
-            #                 rack_supply_pressure = point['ps_sec_Out'],
-            #                 rack_return_pressure = point['pr_sec_Out'],
-            #                 rack_flowrate = point['Q_sec_Out'],
-            #                 htw_ctw_flowrate = point['Q_fac_Out'],
-            #                 htwr_htws_ctwr_ctws_pressure = point['p_fac_Out'],
-            #                 htwr_htws_ctwr_ctws_temp = point['T_fac_Out'],
-            #                 power_cunsumption_htwps = point['W_HTWP_Out'],
-            #                 power_consumption_ctwps = point['W_CTWP_Out'],
-            #                 power_consumption_fan = point['W_CT_Out'],
-            #                 htwp_speed = point['N_HTWP_Out'],
-            #                 nctwps_staged = point['n_CTWPs_Out'],
-            #                 nhtwps_staged = point['n_HTWPs_Out'],
-            #                 pue_output = point['PUE_Out'],
-            #                 nehxs_staged = point['n_EHXs_Out'],
-            #                 ncts_staged = point['n_CTs_Out'],
-            #                 facility_return_temp = point['Tr_pri_Out'],
-            #                 facility_supply_temp = point['Ts_pri_Out'],
-            #                 facility_supply_pressure = point['ps_pri_Out'],
-            #                 facility_return_pressure = point['pr_pri_Out'],
-            #                 cdu_loop_bypass_flowrate = point['Q_bypass_Out'],
-            #                 facility_flowrate = point['Q_pri_Out'],
-            #             )
 
-            cooling_sim_cdus: list[CoolingSimCDU] = []
             for cdu_index, cdu_data in cooling_sim_cdu_map.items():
                 xname = _cdu_index_to_xname(cdu_index)
                 row, col = int(xname[2]), int(xname[3:5])
@@ -347,6 +355,7 @@ def run_simulation(config: SimConfig):
                 scheduler_sim_system = scheduler_sim_system,
                 scheduler_sim_jobs = scheduler_sim_jobs,
                 cooling_sim_cdus = cooling_sim_cdus,
+                cooling_sim_cep = cooling_sim_cep,
                 power_history = power_history,
             )
     else:

@@ -167,23 +167,10 @@ class CoolingSimCDU(BaseModel):
     rack_supply_pressure: Optional[float] = None
     rack_return_pressure: Optional[float] = None
     rack_flowrate: Optional[float] = None
-    htw_ctw_flowrate: Optional[float] = None
-    htwr_htws_ctwr_ctws_pressure: Optional[float] = None
-    htwr_htws_ctwr_ctws_temp: Optional[float] = None
-    power_cunsumption_htwps: Optional[float] = None
-    power_consumption_ctwps: Optional[float] = None
-    power_consumption_fan: Optional[float] = None
-    htwp_speed: Optional[float] = None
-    nctwps_staged: Optional[float] = None
-    nhtwps_staged: Optional[float] = None
-    pue_output: Optional[float] = None
-    nehxs_staged: Optional[float] = None
-    ncts_staged: Optional[float] = None
     facility_return_temp: Optional[float] = None
     facility_supply_temp: Optional[float] = None
     facility_supply_pressure: Optional[float] = None
     facility_return_pressure: Optional[float] = None
-    cdu_loop_bypass_flowrate: Optional[float] = None
     facility_flowrate: Optional[float] = None
 
 
@@ -199,30 +186,17 @@ COOLING_CDU_API_FIELDS = {
     "rack_2_loss": 'number',
     "rack_3_loss": 'number',
     "total_loss": 'number',
-    "work_done_by_cdup": "number",
-    "rack_return_temp": "number",
-    "rack_supply_temp": "number",
-    "rack_supply_pressure": "number",
-    "rack_return_pressure": "number",
-    "rack_flowrate": "number",
-    "htw_ctw_flowrate": "number",
-    "htwr_htws_ctwr_ctws_pressure": "number",
-    "htwr_htws_ctwr_ctws_temp": "number",
-    "power_cunsumption_htwps": "number",
-    "power_consumption_ctwps": "number",
-    "power_consumption_fan": "number",
-    "htwp_speed": "number",
-    "nctwps_staged": "number",
-    "nhtwps_staged": "number",
-    "pue_output": "number",
-    "nehxs_staged": "number",
-    "ncts_staged": "number",
-    "facility_return_temp": "number",
-    "facility_supply_temp": "number",
-    "facility_supply_pressure": "number",
-    "facility_return_pressure": "number",
-    "cdu_loop_bypass_flowrate": "number",
-    "facility_flowrate": "number",
+    "work_done_by_cdup": 'number',
+    "rack_return_temp": 'number',
+    "rack_supply_temp": 'number',
+    "rack_supply_pressure": 'number',
+    "rack_return_pressure": 'number',
+    "rack_flowrate": 'number',
+    "facility_return_temp": 'number',
+    "facility_supply_temp": 'number',
+    "facility_supply_pressure": 'number',
+    "facility_return_pressure": 'number',
+    "facility_flowrate": 'number',
 }
 
 COOLING_CDU_FIELD_SELECTORS = {
@@ -231,6 +205,31 @@ COOLING_CDU_FIELD_SELECTORS = {
 }
 
 COOLING_CDU_FILTERS = filter_params(COOLING_CDU_API_FIELDS)
+
+
+class CoolingSimCEP(BaseModel):
+    timestamp: AwareDatetime
+   
+    htw_flowrate: float
+    ctw_flowrate: float
+    htw_return_pressure: float
+    htw_supply_pressure: float
+    ctw_return_pressure: float
+    ctw_supply_pressure: float
+    htw_retrun_temp: float
+    htw_supply_temp: float
+    ctw_return_temp: float
+    ctw_supply_temp: float
+    power_consumption_htwps: float
+    power_consumption_ctwps: float
+    power_consumption_fan: float
+    htwp_speed: float
+    nctwps_staged: float
+    nhtwps_staged: float
+    pue_output: float
+    nehxs_staged: float
+    ncts_staged: float
+    cdu_loop_bypass_flowrate: float
 
 
 class SystemInfo(BaseModel):
