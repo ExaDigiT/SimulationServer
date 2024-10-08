@@ -5,12 +5,13 @@
             "type": "kafka",
             "topic": "svc-ts-exadigit-coolingsimcdu",
             "consumerProperties": {
-                "bootstrap.servers": "apps.marble.ccs.ornl.gov:31700",
-                "security.protocol": "SASL_PLAINTEXT",
-                "sasl.mechanism": "PLAIN",
+                "bootstrap.servers": "placeholder:9092",
                 "druid.dynamic.config.provider": {
                     "type": "environment",
                     "variables": {
+                        "bootstrap.servers": "KAFKA_BOOTSTRAP",
+                        "security.protocol": "KAFKA_SECURITY_PROTOCOL",
+                        "sasl.mechanism": "KAFKA_SASL_MECHANISM",
                         "sasl.jaas.config": "KAFKA_SASL_JAAS_CONFIG"
                     }
                 }
