@@ -57,6 +57,7 @@ cooling_sim_cep = Table(
     "svc-ts-exadigit-cooling-sim-cep",
     metadata,
     Column("__time", TIMESTAMP),
+    Column("sim_id", String),
     Column("htw_flowrate", Double),
     Column("ctw_flowrate", Double),
     Column("htw_return_pressure", Double),
