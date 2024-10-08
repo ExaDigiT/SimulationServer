@@ -1,6 +1,6 @@
 from typing import Optional, Any
 from datetime import datetime, timedelta, timezone
-import uuid, time, json, base64
+import uuid, time, json, base64, os, sys, subprocess
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
@@ -19,7 +19,7 @@ from ..util.api_queries import (
     DEFAULT_FIELD_TYPES,
 )
 from . import orm
-from .config import AppDeps
+from .config import AppDeps, AppSettings
 
 
 def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minutes=1), druid_engine: sqla.Engine):
@@ -67,37 +67,46 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
     deps.kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
     deps.kafka_producer.flush()
 
-    submit_job({
-        "metadata": {
-            "name": f"exadigit-simulation-server-{sim.id}",
-            "labels": {"app": "exadigit-simulation-server"},
-        },
-        "spec": {
-            "template": {
-                "spec": {
-                    "containers": [
-                        {
-                            "name": "main",
-                            "image": deps.settings.job_image,
-                            "command": ['python3', "-m", "simulation_server.simulation.main", "background-job"],
-                            "env": [
-                                {"name": "SIM", "value": sim.model_dump_json()},
-                            ],
-                            "envFrom": [
-                                {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
-                            ],
-                            "resources": {
-                                "requests": {"cpu": "2000m", "memory": "1Gi"},
-                                "limits": {"cpu": "4000m", "memory": "6Gi"},
-                            },
-                        }
-                    ],
-                    "restartPolicy": "Never",
-                }
+    if 'KUBERNETES_SERVICE_HOST' in os.environ: # We're running on k8s
+        submit_job({
+            "metadata": {
+                "name": f"exadigit-simulation-server-{sim.id}",
+                "labels": {"app": "exadigit-simulation-server"},
             },
-            "backoffLimit": 0, # Don't retry on failure
-        }
-    })
+            "spec": {
+                "template": {
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "main",
+                                "image": deps.settings.job_image,
+                                "command": ['python3', "-m", "simulation_server.simulation.main", "background-job"],
+                                "env": [
+                                    {"name": "SIM", "value": sim.model_dump_json()},
+                                ],
+                                "envFrom": [
+                                    {"secretRef": {'name': 'prod-infra-envconfig-service-sens-creds'}},
+                                ],
+                                "resources": {
+                                    "requests": {"cpu": "2000m", "memory": "1Gi"},
+                                    "limits": {"cpu": "4000m", "memory": "6Gi"},
+                                },
+                            }
+                        ],
+                        "restartPolicy": "Never",
+                    }
+                },
+                "backoffLimit": 0, # Don't retry on failure
+            }
+        })
+    else: # Running locally, just use a subprocess
+        proc = subprocess.Popen(
+            args = [sys.executable, "-m", "simulation_server.simulation.main", "background-job"],
+            env = {
+                "SIM": sim.model_dump_json(),
+                **os.environ,
+            },
+        )
 
     tbl = orm.sim
     stmt = sqla.select(tbl.c.id).where(tbl.c.id == sim.id)
