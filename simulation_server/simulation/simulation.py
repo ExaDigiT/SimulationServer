@@ -304,11 +304,11 @@ def run_simulation(config: SimConfig):
                         work_done_by_cdup = cdu_data['W_flow_CDUP_kW'],
                         rack_return_temp = cdu_data['T_sec_r_C'],
                         rack_supply_temp = cdu_data['T_sec_s_C'],
-                        rack_supply_pressure = cdu_data['p_sec_r_psig'],
-                        rack_return_pressure = cdu_data['p_sec_s_psig'],
+                        rack_supply_pressure = cdu_data['p_sec_s_psig'],
+                        rack_return_pressure = cdu_data['p_sec_r_psig'],
                         rack_flowrate = cdu_data['V_flow_sec_GPM'],
                         facility_return_temp = cdu_data["T_prim_r_C"],
-                        facility_supply_temp = cdu_data['T_sec_s_C'],
+                        facility_supply_temp = cdu_data['T_prim_s_C'],
                         facility_supply_pressure = cdu_data['p_prim_s_psig'],
                         facility_return_pressure = cdu_data['p_prim_r_psig'],
                         facility_flowrate = cdu_data['V_flow_prim_GPM'],
@@ -336,6 +336,7 @@ def run_simulation(config: SimConfig):
                     pue_output = fmu_data['pue'],
                     nehxs_staged = cep_data['hotWaterLoop'][1]['summary']['n_EHXs'],
                     ncts_staged = cep_data['coolingTowerLoop'][1]['summary']['n_CTs'],
+                    facility_return_temp = cep_data['hotWaterLoop'][1]['summary']['T_fac_htw_r_C'],
                     cdu_loop_bypass_flowrate = fmu_data['simulator'][1]['datacenter'][1]['summary']['V_flow_bypass_GPM'],
                 ))]
 
