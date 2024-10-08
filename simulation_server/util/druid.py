@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta
 import functools, os
 import urllib.parse
 
+import requests
 from loguru import logger
 import sqlalchemy as sqla
 from sqlalchemy.sql import ColumnElement
@@ -140,3 +141,20 @@ def execute_ignore_missing(conn, stmt) -> sqla.CursorResult:
             return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
         else:
             raise e
+
+
+def submit_ingest(ingest: dict):
+    tbl = ingest['spec']['dataSchema']['dataSource']
+    url = os.environ['DRUID_SERVICE_URL'].removesuffix("/")
+
+    # We only submit the ingests in standalone dev mode so we can skip the auth for now
+    # username = os.environ.get('DRUID_SERVICE_USERNAME')
+    # password = os.environ.get('DRUID_SERVICE_PASSWORD')
+
+    logger.info(f"Submitting ingest for {tbl}")
+    response = requests.post(f"{url}/druid/indexer/v1/supervisor",
+        json = ingest,
+        timeout = 30,
+    )
+    response.raise_for_status()
+

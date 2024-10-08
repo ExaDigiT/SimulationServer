@@ -1,6 +1,6 @@
 """ A simple REST API for triggering and querying the results from the digital twin """
-
-import subprocess, asyncio, functools, os
+from pathlib import Path
+import subprocess, asyncio, functools, os, json
 from contextlib import asynccontextmanager
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -11,7 +11,9 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import uvicorn
+from loguru import logger
 from ..util.json import update_jsonpaths
+from ..util.druid import submit_ingest
 from .service import cleanup_jobs
 from .config import AppSettings, get_app_settings, get_druid_engine, get_kafka_producer
 
@@ -44,6 +46,11 @@ async def lifespan(api: FastAPI):
             lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
             seconds = 5 * 60,
         )
+
+    if settings.env == 'dev':
+        druid_ingests_dir = Path(__file__).parent.parent.parent.resolve() / 'druid_ingests'
+        for ingest in druid_ingests_dir.glob("*.json"):
+            submit_ingest(json.loads(ingest.read_text()))
 
     yield
 

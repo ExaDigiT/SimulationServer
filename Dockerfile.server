@@ -16,6 +16,7 @@ RUN hatch dep show requirements > /app/requirements.txt
 RUN python3 -m pip install -r /app/requirements.txt
 ENV RAPS_CONFIG=/app/simulation_server/simulation/raps/config
 
+COPY ["druid_ingests", "/app/druid_ingests/"]
 COPY ["simulation_server", "/app/simulation_server/"]
 COPY ["README.md", "/app"]
 RUN python3 -m pip install -e .
