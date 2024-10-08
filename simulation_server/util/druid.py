@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta
 import functools, os
 import urllib.parse
 
+from loguru import logger
 import sqlalchemy as sqla
 from sqlalchemy.sql import ColumnElement
 from .misc import to_iso_duration
@@ -132,8 +133,10 @@ def execute_ignore_missing(conn, stmt) -> sqla.CursorResult:
         return conn.execute(stmt)
     except Exception as e:
         existing_tables = set(sqla.inspect(conn.engine).get_table_names())
-        stmt_tables = [t.name for t in stmt.get_final_froms()]
-        if any((t not in existing_tables) for t in stmt_tables):
+        stmt_tables = set([t.name for t in stmt.get_final_froms()])
+        missing_tables = stmt_tables - existing_tables
+        if missing_tables:
+            logger.info(f"table(s) {', '.join(stmt_tables)} missing, returning empty result")
             return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
         else:
             raise e
