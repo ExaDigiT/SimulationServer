@@ -33,70 +33,81 @@
             "dimensionsSpec": {
                 "dimensions": [
                     "sim_id",
-                    "xname",
                     {
-                        "type": "long",
-                        "name": "row"
-                    },
-                    {
-                        "type": "long",
-                        "name": "col"
+                        "type": "double",
+                        "name": "htw_flowrate"
                     },
                     {
                         "type": "double",
-                        "name": "rack_1_power"
+                        "name": "ctw_flowrate"
                     },
                     {
                         "type": "double",
-                        "name": "rack_2_power"
+                        "name": "htw_return_pressure"
                     },
                     {
                         "type": "double",
-                        "name": "rack_3_power"
+                        "name": "htw_supply_pressure"
                     },
                     {
                         "type": "double",
-                        "name": "total_power"
+                        "name": "ctw_return_pressure"
                     },
                     {
                         "type": "double",
-                        "name": "rack_1_loss"
+                        "name": "ctw_supply_pressure"
                     },
                     {
                         "type": "double",
-                        "name": "rack_2_loss"
+                        "name": "htw_retrun_temp"
                     },
                     {
                         "type": "double",
-                        "name": "rack_3_loss"
+                        "name": "htw_supply_temp"
                     },
                     {
                         "type": "double",
-                        "name": "total_loss"
+                        "name": "ctw_return_temp"
                     },
                     {
                         "type": "double",
-                        "name": "work_done_by_cdup"
+                        "name": "ctw_supply_temp"
                     },
                     {
                         "type": "double",
-                        "name": "rack_return_temp"
+                        "name": "power_consumption_htwps"
                     },
                     {
                         "type": "double",
-                        "name": "rack_supply_temp"
+                        "name": "power_consumption_ctwps"
                     },
                     {
                         "type": "double",
-                        "name": "rack_supply_pressure"
+                        "name": "power_consumption_fan"
                     },
                     {
                         "type": "double",
-                        "name": "rack_return_pressure"
+                        "name": "htwp_speed"
                     },
                     {
                         "type": "double",
-                        "name": "rack_flowrate"
+                        "name": "nctwps_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "nhtwps_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "pue_output"
+                    },
+                    {
+                        "type": "double",
+                        "name": "nehxs_staged"
+                    },
+                    {
+                        "type": "double",
+                        "name": "ncts_staged"
                     },
                     {
                         "type": "double",
@@ -104,19 +115,7 @@
                     },
                     {
                         "type": "double",
-                        "name": "facility_supply_temp"
-                    },
-                    {
-                        "type": "double",
-                        "name": "facility_supply_pressure"
-                    },
-                    {
-                        "type": "double",
-                        "name": "facility_return_pressure"
-                    },
-                    {
-                        "type": "double",
-                        "name": "facility_flowrate"
+                        "name": "cdu_loop_bypass_flowrate"
                     }
                 ]
             },
