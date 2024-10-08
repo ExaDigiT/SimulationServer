@@ -8,6 +8,7 @@ from ..models.sim import Sim, SimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS
 from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
+    COOLING_CEP_API_FIELDS, COOLING_CEP_FIELD_SELECTORS,
     SCHEDULER_SIM_JOB_API_FIELDS, SCHEDULER_SIM_JOB_FIELD_SELECTORS,
     SCHEDULER_SIM_JOB_POWER_HISTORY_API_FIELDS, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS,
 )
@@ -412,6 +413,61 @@ def query_cooling_sim_cdu(*,
         span = span, stmt = stmt, fields = fields,
         format = format, druid_engine = druid_engine,
     )
+
+
+def build_cooling_sim_cep_query(*,
+    id: str, span: QuerySpan, fields: Optional[list[str]] = None,
+):
+    tbl = orm.cooling_sim_cep.alias("cep")
+    
+    cols = {
+        "htw_flowrate": sqla.func.max(tbl.c.htw_flowrate),
+        "ctw_flowrate": sqla.func.max(tbl.c.ctw_flowrate),
+        "htw_return_pressure": sqla.func.max(tbl.c.htw_return_pressure),
+        "htw_supply_pressure": sqla.func.max(tbl.c.htw_supply_pressure),
+        "ctw_return_pressure": sqla.func.max(tbl.c.ctw_return_pressure),
+        "ctw_supply_pressure": sqla.func.max(tbl.c.ctw_supply_pressure),
+        "htw_retrun_temp": sqla.func.max(tbl.c.htw_retrun_temp),
+        "htw_supply_temp": sqla.func.max(tbl.c.htw_supply_temp),
+        "ctw_return_temp": sqla.func.max(tbl.c.ctw_return_temp),
+        "ctw_supply_temp": sqla.func.max(tbl.c.ctw_supply_temp),
+        "power_consumption_htwps": sqla.func.max(tbl.c.power_consumption_htwps),
+        "power_consumption_ctwps": sqla.func.max(tbl.c.power_consumption_ctwps),
+        "power_consumption_fan": sqla.func.max(tbl.c.power_consumption_fan),
+        "htwp_speed": sqla.func.max(tbl.c.htwp_speed),
+        "nctwps_staged": sqla.func.max(tbl.c.nctwps_staged),
+        "nhtwps_staged": sqla.func.max(tbl.c.nhtwps_staged),
+        "pue_output": sqla.func.max(tbl.c.pue_output),
+        "nehxs_staged": sqla.func.max(tbl.c.nehxs_staged),
+        "ncts_staged": sqla.func.max(tbl.c.ncts_staged),
+        "facility_return_temp": sqla.func.max(tbl.c.facility_return_temp),
+        "cdu_loop_bypass_flowrate": sqla.func.max(tbl.c.cdu_loop_bypass_flowrate),
+    }
+
+    fields = expand_field_selectors(fields, COOLING_CEP_FIELD_SELECTORS)
+
+    return _build_ts_query(tbl,
+        id = id, span = span, fields = fields, filters = Filters(),
+        group_cols = {}, agg_cols = cols, filter_cols = {},
+    )
+
+
+def query_cooling_sim_cep(*,
+    id: str,
+    start: Optional[datetime] = None, end: Optional[datetime] = None, granularity: Granularity,
+    fields: Optional[list[str]] = None,
+    format: ResponseFormat = "object",
+    druid_engine: sqla.engine.Engine,
+):
+    tbl = orm.cooling_sim_cep.alias("cep")
+    start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
+    span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
+    fields, stmt = build_cooling_sim_cep_query(id = id, span = span)
+    results = _run_ts_query(
+        span = span, stmt = stmt, fields = fields,
+        format = format, druid_engine = druid_engine,
+    )
+    return results
 
 
 def build_scheduler_sim_jobs_query(*,
