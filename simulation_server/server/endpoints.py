@@ -15,7 +15,7 @@ from ..util.api_queries import Granularity, granularity_params, Filters, Sort, g
 from .config import AppDeps
 from .service import (
     run_simulation, query_sims, query_cooling_sim_cdu, query_scheduler_sim_jobs,
-    query_scheduler_sim_system, query_scheduler_sim_power_history,
+    query_scheduler_sim_system, query_scheduler_sim_power_history, query_cooling_sim_cep,
 )
 
 router = APIRouter(prefix="/frontier", tags=['frontier'])
@@ -88,6 +88,25 @@ def cooling_cdu(*,
         fields = fields, filters = filters, druid_engine = deps.druid_engine,
     )
     return JSONResponse(result)
+
+
+@router.get("/simulation/{id}/cooling/cep", response_model=ObjectTimeseries[SchedulerSimSystem])
+def cooling_cep(*,
+    id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
+    granularity: A[Granularity, Depends(granularity_params(default_resolution=1))],
+    deps: AppDeps,
+):
+    """
+    Returns stats of the simulation.
+    By default will return just the most recent stats, but you can pass a granularity to get stats
+    at different sampling rates.
+    """
+    if start and end and end < start: raise HTTPException(422, "end must be >= start")
+    result = query_cooling_sim_cep(
+        id = id, start = start, end = end, granularity = granularity,
+        druid_engine = deps.druid_engine,
+    )
+    return result
 
 
 # Don't allow direct filter by time_snapshot to avoid confusion with time_travel
