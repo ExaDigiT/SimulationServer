@@ -3,7 +3,7 @@
     "spec": {
         "ioConfig": {
             "type": "kafka",
-            "topic": "svc-ts-exadigit-coolingsimcdu",
+            "topic": "svc-ts-exadigit-coolingsimcep",
             "consumerProperties": {
                 "bootstrap.servers": "placeholder:9092",
                 "druid.dynamic.config.provider": {
@@ -25,7 +25,7 @@
             "type": "kafka"
         },
         "dataSchema": {
-            "dataSource": "svc-ts-exadigit-cooling-sim-cdu",
+            "dataSource": "svc-ts-exadigit-cooling-sim-cep",
             "timestampSpec": {
                 "column": "timestamp",
                 "format": "iso"
