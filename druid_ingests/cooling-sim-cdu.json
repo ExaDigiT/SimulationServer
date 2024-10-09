@@ -19,7 +19,7 @@
             "inputFormat": {
                 "type": "json"
             },
-            "useEarliestOffset": true
+            "useEarliestOffset": false
         },
         "tuningConfig": {
             "type": "kafka"
