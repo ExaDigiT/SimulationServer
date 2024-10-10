@@ -8,6 +8,7 @@ from ..models.output import (
     SchedulerSimJobPowerHistory,
     SchedulerSimSystem, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS,
     CoolingSimCDU, COOLING_CDU_FILTERS, COOLING_CDU_FIELD_SELECTORS,
+    CoolingSimCEP, COOLING_CEP_FIELD_SELECTORS,
 )
 from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, SimConfig
 from ..models.output import SystemInfo
@@ -89,11 +90,14 @@ def cooling_cdu(*,
     )
     return JSONResponse(result)
 
+CoolingSimCEPFieldSelector = Literal[get_selectors(COOLING_CEP_FIELD_SELECTORS)] # type: ignore
+CoolingSimCEPFieldSelectors = A[CommaSeparatedList[CoolingSimCEPFieldSelector], Query()]
 
-@router.get("/simulation/{id}/cooling/cep", response_model=ObjectTimeseries[SchedulerSimSystem])
+@router.get("/simulation/{id}/cooling/cep", response_model=ObjectTimeseries[CoolingSimCEP])
 def cooling_cep(*,
     id: str, start: Optional[datetime] = None, end: Optional[datetime] = None,
     granularity: A[Granularity, Depends(granularity_params(default_resolution=1))],
+    fields: CoolingSimCEPFieldSelectors = None,
     deps: AppDeps,
 ):
     """
@@ -104,7 +108,7 @@ def cooling_cep(*,
     if start and end and end < start: raise HTTPException(422, "end must be >= start")
     result = query_cooling_sim_cep(
         id = id, start = start, end = end, granularity = granularity,
-        druid_engine = deps.druid_engine,
+        fields = fields, druid_engine = deps.druid_engine,
     )
     return result
 
