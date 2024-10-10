@@ -71,7 +71,7 @@ def get_table(name: str, engine: sqla.engine.Engine):
 def to_timestamp(col) -> ColumnElement:
     """ Cast col to sqla TIMESTAMP if needed. """
     if isinstance(col, (datetime, date)):
-        return sqla.cast(col.isoformat(), sqla.TIMESTAMP)
+        return sqla.literal(col.isoformat()).cast(sqla.TIMESTAMP)
     else:
         col_type = getattr(col, 'type', None)
         if isinstance(col_type, sqla.TIMESTAMP) or col_type == sqla.TIMESTAMP:
