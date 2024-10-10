@@ -26,6 +26,7 @@ dependencies = [
     "fastapi==0.108.0",
     "gunicorn==21.2.0",
     "uvicorn==0.27.1",
+    "sqlparse==0.5.1",
     "kubernetes==29.0.0",
     "matplotlib==3.7.2",
     "numpy==1.23.5",
