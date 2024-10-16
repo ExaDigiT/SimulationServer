@@ -158,7 +158,7 @@ def run_simulation(config: SimConfig):
     sample_scheduler_sim_system = timedelta(seconds = 1).total_seconds()
     sample_scheduler_sim_jobs = timedelta(seconds = 10).total_seconds()
     # Sample CDU as fast as it is available
-    sample_cooling_sim_cdus = timedelta(seconds = 1).total_seconds()
+    sample_cooling = timedelta(seconds = 1).total_seconds()
 
     # Keep record of how many power history steps we've emitted for each job
     power_history_counts: dict[int, int] = {}
@@ -273,7 +273,7 @@ def run_simulation(config: SimConfig):
             cooling_sim_cep: list[CoolingSimCEP] = []
 
             cooling_sim_cdu_map: dict[int, dict] = {}
-            if data.power_df is not None and (unix_timestamp % sample_cooling_sim_cdus == 0 or is_last_tick):
+            if data.power_df is not None and (unix_timestamp % sample_cooling == 0 or is_last_tick):
                 for i, point in data.power_df.iterrows():
                     cooling_sim_cdu_map[int(point['CDU'])] = dict(
                         rack_1_power = point['Rack 1'],
