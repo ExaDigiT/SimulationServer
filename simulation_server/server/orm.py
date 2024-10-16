@@ -64,7 +64,7 @@ cooling_sim_cep = Table(
     Column("htw_supply_pressure", Double),
     Column("ctw_return_pressure", Double),
     Column("ctw_supply_pressure", Double),
-    Column("htw_retrun_temp", Double),
+    Column("htw_return_temp", Double),
     Column("htw_supply_temp", Double),
     Column("ctw_return_temp", Double),
     Column("ctw_supply_temp", Double),

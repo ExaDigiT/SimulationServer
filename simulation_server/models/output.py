@@ -216,7 +216,7 @@ class CoolingSimCEP(BaseModel):
     htw_supply_pressure: float
     ctw_return_pressure: float
     ctw_supply_pressure: float
-    htw_retrun_temp: float
+    htw_return_temp: float
     htw_supply_temp: float
     ctw_return_temp: float
     ctw_supply_temp: float
@@ -240,7 +240,7 @@ COOLING_CEP_API_FIELDS = {
     "htw_supply_pressure": "number",
     "ctw_return_pressure": "number",
     "ctw_supply_pressure": "number",
-    "htw_retrun_temp": "number",
+    "htw_return_temp": "number",
     "htw_supply_temp": "number",
     "ctw_return_temp": "number",
     "ctw_supply_temp": "number",

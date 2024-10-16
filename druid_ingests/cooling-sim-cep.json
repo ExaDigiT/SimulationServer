@@ -59,7 +59,7 @@
                     },
                     {
                         "type": "double",
-                        "name": "htw_retrun_temp"
+                        "name": "htw_return_temp"
                     },
                     {
                         "type": "double",
