@@ -12,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 import uvicorn
 from loguru import logger
-from ..util.json import update_jsonpaths
 from ..util.druid import submit_ingest
 from .service import cleanup_jobs
 from .config import AppSettings, get_app_settings, get_druid_engine, get_kafka_producer
@@ -87,28 +86,6 @@ def custom_openapi():
             title=app.title, version=app.version,
             description=app.description, routes=app.routes, servers=app.servers,
         )
-
-        # Pydantic 2 `anyOf: [{type: "foo"}, type: "null"]` causes issues in the generated docs
-        # See https://github.com/pydantic/pydantic/issues/6647
-        def replace_null_unions(match):
-            types = [
-                i for i in match.value['anyOf']
-                if not (isinstance(i, dict) and i.get('type') == 'null')
-            ]
-            if len(types) == 1:
-                value = {
-                    **match.value,
-                    **types[0],
-                }
-                value.pop("anyOf")
-                return value
-            else:
-                return {
-                    **match.value,
-                    "anyOf": types,
-                }
-
-        schema = update_jsonpaths(schema, {"$..* where anyOf": replace_null_unions})
 
         app.openapi_schema = schema
 

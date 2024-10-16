@@ -14,8 +14,8 @@ readme = "README.md"
 # license = {file = "LICENSE.txt"}
 
 dependencies = [
-    "pydantic==2.7.1",
-    "pydantic-settings==2.2.1 ",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2 ",
     "loguru==0.7.2",
     "SQLAlchemy==2.0.27",
     "pydruid==0.6.6",
@@ -23,9 +23,9 @@ dependencies = [
     "kafka-python==2.0.2",
     "python-snappy==0.6.1",
     "jsonpath-ng==1.6.1",
-    "fastapi==0.108.0",
-    "gunicorn==21.2.0",
-    "uvicorn==0.27.1",
+    "fastapi==0.115.2",
+    "gunicorn==23.0.0",
+    "uvicorn==0.32.0",
     "sqlparse==0.5.1",
     "kubernetes==29.0.0",
     "matplotlib==3.7.2",
