@@ -59,7 +59,6 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
         state = "running",
         start = sim_config.start,
         end = sim_config.end,
-        progress = 0,
         execution_start = datetime.now(timezone.utc),
         execution_end = None,
         config = sim_config.model_dump(mode = 'json'),
@@ -192,9 +191,10 @@ def query_sims(*,
     sort = sort or Sort()
     fields = expand_field_selectors(fields, SIM_FIELD_SELECTORS)
     fields = ['id', *fields]
+    needs_progress = bool(set(fields).intersection(['progress', 'progress_date']))
 
-    if 'progress' in fields:
-        query_fields = [f for f in fields if f != 'progress']
+    if needs_progress:
+        query_fields = [f for f in fields if f not in ['progress', 'progress_date']]
         query_fields = [*dict.fromkeys(query_fields + [ # Need these to calculate progress
             'id', 'start', 'end', 'execution_start', 'execution_end',
         ])]
@@ -202,11 +202,7 @@ def query_sims(*,
         query_fields = fields
 
     sims = orm.sim
-    sim_output_tables = [
-        orm.scheduler_sim_job,
-        orm.scheduler_sim_system,
-        orm.cooling_sim_cdu,
-    ]
+    progress_tbl = orm.scheduler_sim_system
 
     cols = {
         "id": sims.c.id,
@@ -254,32 +250,33 @@ def query_sims(*,
         else:
             total_results = len(results)
 
-        if 'progress' in fields:
+        if needs_progress:
             incomplete = [sim.id for sim in results if not sim.execution_end]
             progresses = {}
 
             if len(incomplete) > 0:
-                for tbl in sim_output_tables:
-                    stmt = (
-                        sqla.select(
-                            tbl.c.sim_id,
-                            sqla.func.max(to_timestamp(tbl.c['__time'])).label('progress')
-                        )
-                            .where(tbl.c.sim_id.in_(incomplete))
-                            .group_by(tbl.c.sim_id)
+                stmt = (
+                    sqla.select(
+                        progress_tbl.c.sim_id,
+                        sqla.func.max(to_timestamp(progress_tbl.c['__time'])).label('progress')
                     )
-                    for r in execute_ignore_missing(conn, stmt).all():
-                        progress = DatetimeValidator.validate_strings(r.progress)
-                        progresses[r.sim_id] = max(progress, progresses.get(r.sim_id, progress))
+                        .where(progress_tbl.c.sim_id.in_(incomplete))
+                        .group_by(progress_tbl.c.sim_id)
+                )
+                for r in execute_ignore_missing(conn, stmt).all():
+                    progresses[r.sim_id] = DatetimeValidator.validate_strings(r.progress)
 
             for sim in results:
                 if sim.id in progresses:
-                    progress = (progresses[sim.id] - sim.start) / (sim.end - sim.start)
-                    # Never return 1 if incomplete
-                    sim.progress = round(min(max(0, progress), 0.99), 3)
+                    # Never return progress 1 if incomplete
+                    sim.progress_date = min(progresses[sim.id], sim.end - timedelta(seconds=1))
+                    progress = round((progresses[sim.id] - sim.start) / (sim.end - sim.start), 3)
+                    sim.progress = min(max(0, progress), 0.99)
                 elif not sim.execution_end:
+                    sim.progress_date = sim.start
                     sim.progress = 0
                 else:
+                    sim.progress_date = sim.end
                     sim.progress = 1
         
         results = [Sim.model_validate(pick(r.model_dump(), fields)) for r in results]

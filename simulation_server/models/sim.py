@@ -42,6 +42,9 @@ class Sim(BaseModel):
     execution_end: Optional[AwareDatetime] = None
     """ The real time the simulation finished """
 
+    progress_date: Optional[AwareDatetime] = None
+    """ Current point in the simulation. For complete sims, this will always be the same as end. """
+
     progress: A[Optional[float], Field(ge=0, le=1)] = None
     """ Float from 0 -> 1 summarizing the simulation progress """
 
@@ -67,18 +70,19 @@ SIM_API_FIELDS = {
     'end': 'date',
     'execution_start': 'date',
     'execution_end': 'date',
+    'progress_date': 'date',
     'progress': 'number',
     'config': 'string',
 }
 SIM_FIELD_SELECTORS = {
     "default": [
         "user", "state", "error_messages", "start", "end", "execution_start", "execution_end",
-        "progress",
+        "progress", "progress_date",
     ],
     "all": ['default', 'config'],
 }
-SIM_FILTERS = filter_params(omit(SIM_API_FIELDS, ['progress', 'config']))
-SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'config']), [
+SIM_FILTERS = filter_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'config']))
+SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'config']), [
     "asc:execution_start", "asc:execution_end", "asc:start", "asc:end", "asc:id",
 ])
 
