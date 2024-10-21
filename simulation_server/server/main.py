@@ -66,6 +66,9 @@ app = FastAPI(
     root_path = settings.root_path,
     lifespan = lifespan,
     debug = settings.debug_mode,
+    swagger_ui_parameters = {
+        "tryItOutEnabled": True,
+    },
 )
 
 
