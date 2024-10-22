@@ -43,7 +43,10 @@ class Sim(BaseModel):
     """ The real time the simulation finished """
 
     progress_date: Optional[AwareDatetime] = None
-    """ Current point in the simulation. For complete sims, this will always be the same as end. """
+    """
+    Current point in the simulation. You can assume every time step smaller than this has been
+    generated. For succesfully completed sims, this will always be the same as end.
+    """
 
     progress: A[Optional[float], Field(ge=0, le=1)] = None
     """ Float from 0 -> 1 summarizing the simulation progress """
