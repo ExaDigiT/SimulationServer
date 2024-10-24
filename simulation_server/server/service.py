@@ -567,7 +567,10 @@ def build_scheduler_sim_system_query(*,
     tbl = orm.scheduler_sim_system.alias("system")
     
     cols = {
-        "down_nodes": latest(tbl.c.down_nodes, 1024),
+        # "down_nodes": latest(tbl.c.down_nodes, 1024),
+        # Bug in druid causes this to error sometimes. This is fixed in recent versions, for now
+        # just omit the column. https://lists.apache.org/api/plain?thread=3oodx9x08p0zbstqmz0o0ydxhyl1o88s
+        "down_nodes": sqla.literal(""),
         "num_samples": latest(tbl.c.num_samples),
         "jobs_completed": latest(tbl.c.jobs_completed),
         "jobs_running": latest(tbl.c.jobs_running),
