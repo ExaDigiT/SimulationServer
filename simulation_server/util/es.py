@@ -1,7 +1,7 @@
 """
 Connection to Cadence ES
 """
-import os
+import os, json
 import urllib.parse
 from datetime import datetime
 import sqlalchemy as sqla
