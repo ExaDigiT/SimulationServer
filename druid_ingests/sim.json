@@ -56,6 +56,11 @@
                         "type": "expression",
                         "name": "execution_end",
                         "expression": "timestamp_format(timestamp_parse(execution_end))"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "progress_date",
+                        "expression": "timestamp_format(timestamp_parse(progress_date))"
                     }
                 ]
             },
@@ -83,6 +88,10 @@
                     {
                         "type": "string",
                         "name": "execution_end"
+                    },
+                    {
+                        "type": "string",
+                        "name": "progress_date"
                     },
                     "config"
                 ]

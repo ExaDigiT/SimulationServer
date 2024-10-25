@@ -126,5 +126,6 @@ sim = Table(
     Column("end", String),
     Column("execution_start", String),
     Column("execution_end", String),
+    Column("progress_date", String),
     Column("config", String),
 )

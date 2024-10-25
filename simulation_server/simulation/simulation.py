@@ -71,6 +71,7 @@ def _cdu_index_to_xname(index: int):
 
 
 class SimOutput(NamedTuple):
+    timestamp: datetime
     scheduler_sim_system: list[SchedulerSimSystem]
     scheduler_sim_jobs: list[SchedulerSimJob]
     cooling_sim_cdus: list[CoolingSimCDU]
@@ -353,6 +354,7 @@ def run_simulation(config: SimConfig):
                 cooling_sim_cdus.append(CoolingSimCDU.model_validate(cdu_data))
 
             yield SimOutput(
+                timestamp = timestamp,
                 scheduler_sim_system = scheduler_sim_system,
                 scheduler_sim_jobs = scheduler_sim_jobs,
                 cooling_sim_cdus = cooling_sim_cdus,

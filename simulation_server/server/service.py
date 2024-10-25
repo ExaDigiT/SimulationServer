@@ -61,6 +61,8 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
         end = sim_config.end,
         execution_start = datetime.now(timezone.utc),
         execution_end = None,
+        progress = 0,
+        progress_date = sim_config.start,
         config = sim_config.model_dump(mode = 'json'),
     )
     logger.info(f"Launching simulation {sim.id}")
@@ -196,7 +198,7 @@ def query_sims(*,
     if needs_progress:
         query_fields = [f for f in fields if f not in ['progress', 'progress_date']]
         query_fields = [*dict.fromkeys(query_fields + [ # Need these to calculate progress
-            'id', 'start', 'end', 'execution_start', 'execution_end',
+            'id', 'start', 'end', 'execution_start', 'execution_end', 'progress_date',
         ])]
     else:
         query_fields = fields
@@ -213,6 +215,7 @@ def query_sims(*,
         "end": to_timestamp(sims.c.end),
         "execution_start": sims.c.execution_start,
         "execution_end": to_timestamp(sims.c.execution_end),
+        "progress_date": to_timestamp(sims.c.progress_date),
         "config": sims.c.config,
     }
 
@@ -225,6 +228,7 @@ def query_sims(*,
         "end": to_timestamp(any_value(sims.c.end, 32)),
         "execution_start": to_timestamp(any_value(sims.c.execution_start, 32)),
         "execution_end": to_timestamp(latest(sims.c.execution_end, 32)),
+        "progress_date": to_timestamp(latest(sims.c.progress_date, 32)),
         "config": any_value(sims.c.config, 4 * 1024),
     }
 
@@ -267,17 +271,18 @@ def query_sims(*,
                     progresses[r.sim_id] = DatetimeValidator.validate_strings(r.progress)
 
             for sim in results:
+                sim_dur = sim.end - sim.start
                 if sim.id in progresses:
                     # Never return progress 1 if incomplete
                     sim.progress_date = min(progresses[sim.id], sim.end - timedelta(seconds=1))
-                    progress = round((progresses[sim.id] - sim.start) / (sim.end - sim.start), 3)
+                    progress = round((progresses[sim.id] - sim.start) / sim_dur, 3)
                     sim.progress = min(max(0, progress), 0.99)
                 elif not sim.execution_end:
                     sim.progress_date = sim.start
                     sim.progress = 0
                 else:
-                    sim.progress_date = sim.end
-                    sim.progress = 1
+                    # Use progress_date from the DB
+                    sim.progress = round((sim.progress_date - sim.start) / sim_dur, 3)
         
         results = [Sim.model_validate(pick(r.model_dump(), fields)) for r in results]
     

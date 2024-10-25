@@ -25,6 +25,7 @@ def background_job(sim: Sim):
 
     logger.info(f"Starting simulation {sim.model_dump_json()}")
     config = SimConfig.model_validate(sim.config)
+    progress_date = sim.start
 
     try:
         for data in run_simulation(config):
@@ -33,10 +34,12 @@ def background_job(sim: Sim):
             output_rows("svc-ts-exadigit-coolingsimcdu", data.cooling_sim_cdus)
             output_rows("svc-ts-exadigit-coolingsimcep", data.cooling_sim_cep)
             output_rows("svc-ts-exadigit-jobpowerhistory", data.power_history)
+            progress_date = data.timestamp
     except BaseException as e:
         sim.state = "fail"
         sim.execution_end = datetime.now(timezone.utc)
         sim.error_messages = str(e)
+        sim.progress_date = progress_date
         kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
         kafka_producer.close() # Close and wait for messages to be sent
         logger.info(f"Simulation {sim.id} failed")
@@ -44,6 +47,7 @@ def background_job(sim: Sim):
     
     sim.state = "success"
     sim.execution_end = datetime.now(timezone.utc)
+    sim.progress_date = sim.end
     kafka_producer.send(topic = "svc-event-exadigit-sim", value = sim.serialize_for_druid())
     kafka_producer.close() # Close and wait for messages to be sent
     logger.info(f"Simulation {sim.id} finished")
