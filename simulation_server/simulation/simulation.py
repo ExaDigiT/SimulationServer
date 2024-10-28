@@ -240,7 +240,10 @@ def run_simulation(config: SimConfig):
             if unix_timestamp % sample_scheduler_sim_jobs == 0 or is_last_tick:
                 for job in data.jobs:
                     # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
-                    time_end = _offset_to_time(config.start, job.end_time) if job.start_time else None
+                    if job.start_time is not None:
+                        time_end = _offset_to_time(config.start, job.end_time)
+                    else:
+                        time_end = None
 
                     xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
                     scheduler_sim_jobs.append(SchedulerSimJob.model_validate(dict(
