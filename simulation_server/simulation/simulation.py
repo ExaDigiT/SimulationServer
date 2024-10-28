@@ -155,14 +155,19 @@ def get_scheduler(down_nodes = [], cooling_model = None, replay = False, schedul
     )
 
 
+def get_job_state_hash(job: SchedulerSimJob):
+    """ Return string that can be used to check if any meaningful state changed """
+    return job.model_dump_json(exclude={"time_snapshot"})
+
+
 def run_simulation(config: SimConfig):
     sample_scheduler_sim_system = timedelta(seconds = 1).total_seconds()
-    sample_scheduler_sim_jobs = timedelta(seconds = 10).total_seconds()
     # Sample CDU as fast as it is available
     sample_cooling = timedelta(seconds = 1).total_seconds()
 
     # Keep record of how many power history steps we've emitted for each job
     power_history_counts: dict[int, int] = {}
+    prev_jobs: dict[str, str] = {}
 
     if config.scheduler.enabled:
         if config.scheduler.seed:
@@ -237,31 +242,37 @@ def run_simulation(config: SimConfig):
                 ))]
 
             scheduler_sim_jobs: list[SchedulerSimJob] = []
-            if unix_timestamp % sample_scheduler_sim_jobs == 0 or is_last_tick:
-                for job in data.jobs:
-                    # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
-                    if job.start_time is not None:
-                        time_end = _offset_to_time(config.start, job.end_time)
-                    else:
-                        time_end = None
+            curr_jobs = {}
+            for job in data.jobs:
+                # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
+                if job.start_time is not None:
+                    time_end = _offset_to_time(config.start, job.end_time)
+                else:
+                    time_end = None
+                xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
+                parsed_job = SchedulerSimJob.model_validate(dict(
+                    job_id = str(job.id),
+                    name = job.name,
+                    node_count = job.nodes_required,
+                    time_snapshot = timestamp,
+                    time_submission = _offset_to_time(config.start, job.submit_time),
+                    time_limit = job.wall_time,
+                    time_start = _offset_to_time(config.start, job.start_time),
+                    time_end = time_end,
+                    state_current = JobStateEnum(job.state.name),
+                    node_ranges = node_ranges,
+                    xnames = xnames,
+                    # How does the new job.power attribute work? Is it total_energy?
+                    # Or just the current wattage?
+                    # power = job.power,
+                ))
+                job_state_hash = get_job_state_hash(parsed_job)
 
-                    xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
-                    scheduler_sim_jobs.append(SchedulerSimJob.model_validate(dict(
-                        job_id = str(job.id) if job.id else None,
-                        name = job.name,
-                        node_count = job.nodes_required,
-                        time_snapshot = timestamp,
-                        time_submission = _offset_to_time(config.start, job.submit_time),
-                        time_limit = job.wall_time,
-                        time_start = _offset_to_time(config.start, job.start_time),
-                        time_end = time_end,
-                        state_current = JobStateEnum(job.state.name),
-                        node_ranges = node_ranges,
-                        xnames = xnames,
-                        # How does the new job.power attribute work? Is it total_energy?
-                        # Or just the current wattage?
-                        # power = job.power,
-                    )))
+                # Output jobs if something other than time_snapshot changed
+                if is_last_tick or prev_jobs.get(parsed_job.job_id) != job_state_hash:
+                    scheduler_sim_jobs.append(parsed_job)
+                curr_jobs[parsed_job.job_id] = job_state_hash
+            prev_jobs = curr_jobs
 
             power_history: list[SchedulerSimJobPowerHistory] = []
             for job in data.jobs:

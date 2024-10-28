@@ -10,7 +10,7 @@ from .job_state import JobStateEnum
 
 class SchedulerSimJob(BaseModel):
     job_id: Optional[str] = None
-    """ Job id. Will be null if job is PENDING """
+    """ Job id. """
 
     name: Optional[str] = None
 
