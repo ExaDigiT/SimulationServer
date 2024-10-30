@@ -2,6 +2,8 @@
 # Deploy the pod. Pass the environment (prod or stage) you want to deploy to
 set -e # Exit if any commmand fails
 
+REGISTRY="registry.apps.marble.ccs.ornl.gov/stf218-app"
+
 SCRIPT_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
 cd "$SCRIPT_DIR"
 ENV=$1
@@ -9,8 +11,8 @@ if [ "$ENV" != "prod" ] && [ "$ENV" != "stage" ]; then
     echo 'You need to pass either "prod" or "stage"'
     exit
 fi
-SERVER_IMAGE_STREAM="registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server"
-JOB_IMAGE_STREAM="registry.apps.marble.ccs.ornl.gov/stf218-app/exadigit-simulation-server-simulation-job"
+SERVER_IMAGE_STREAM="$REGISTRY/exadigit-simulation-server"
+JOB_IMAGE_STREAM="$REGISTRY/exadigit-simulation-server-simulation-job"
 
 docker build -t $SERVER_IMAGE_STREAM:latest -f Dockerfile.server .
 docker build -t $JOB_IMAGE_STREAM:latest -f Dockerfile.simulation .
