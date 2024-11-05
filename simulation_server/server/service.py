@@ -311,11 +311,42 @@ def get_extent(tbl,
             if row:
                 try:
                     extent_start = DatetimeValidator.validate_strings(row.start)
-                    extent_end = DatetimeValidator.validate_strings(row.end)
+                    extent_end = DatetimeValidator.validate_strings(row.end) + timedelta(seconds=1)
                 except ValidationError:
                     pass
 
             if not extent_start or not extent_end:
+                filler = start or end or datetime.now(timezone.utc)
+                extent_start, extent_end = filler, filler
+
+        if not start and end:
+            start = min(end, extent_start)
+        elif start and not end:
+            end = max(start, extent_end)
+        else: # neither are set
+            start, end = extent_start, extent_end
+
+    return (start, end)
+
+
+def get_sim_extent(
+    sim_id: str, start: Optional[datetime], end: Optional[datetime],
+    druid_engine: sqla.engine.Engine,
+):
+    tbl = orm.sim
+    if not start or not end:
+        stmt = (
+            sqla.select(tbl.c.start, tbl.c.end)
+            .where(tbl.c.id == sim_id)
+        )
+        with druid_engine.connect() as conn:
+            row = execute_ignore_missing(conn, stmt).first()
+            extent_start, extent_end = None, None
+
+            if row:
+                extent_start = DatetimeValidator.validate_strings(row.start)
+                extent_end = DatetimeValidator.validate_strings(row.end)
+            else:
                 filler = start or end or datetime.now(timezone.utc)
                 extent_start, extent_end = filler, filler
 
@@ -405,8 +436,7 @@ def query_cooling_sim_cdu(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = orm.cooling_sim_cdu
-    start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
+    start, end = get_sim_extent(id, start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_cooling_sim_cdu_query(
         id = id, span = span, fields = fields, filters = filters,
@@ -461,8 +491,7 @@ def query_cooling_sim_cep(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = orm.cooling_sim_cep.alias("cep")
-    start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
+    start, end = get_sim_extent(id, start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_cooling_sim_cep_query(id = id, span = span)
     results = _run_ts_query(
@@ -610,8 +639,7 @@ def query_scheduler_sim_system(*,
     format: ResponseFormat = "object",
     druid_engine: sqla.engine.Engine,
 ):
-    tbl = orm.scheduler_sim_system.alias("system")
-    start, end = get_extent(tbl, [tbl.c.sim_id == id], start, end, druid_engine = druid_engine)
+    start, end = get_sim_extent(id, start, end, druid_engine = druid_engine)
     span = QuerySpan(start = start, end = end, granularity = granularity.get(start, end))
     fields, stmt = build_scheduler_sim_system_query(id = id, span = span)
     results = _run_ts_query(
