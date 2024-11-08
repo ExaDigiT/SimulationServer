@@ -28,12 +28,12 @@ from .node_set import FrontierNodeSet
 
 MODELS_PATH = Path(__file__).parent.parent.parent / 'models'
 
-config = get_config()
+raps_config = get_config()
 
-SC_SHAPE = config.get("SC_SHAPE")
-TOTAL_NODES = config.get("TOTAL_NODES")
-DOWN_NODES = config.get("DOWN_NODES")
-FMU_PATH = config.get("FMU_PATH")
+SC_SHAPE = raps_config.get("SC_SHAPE")
+TOTAL_NODES = raps_config.get("TOTAL_NODES")
+DOWN_NODES = raps_config.get("DOWN_NODES")
+FMU_PATH = raps_config.get("FMU_PATH")
 # TODO: Fetch this from mlflow
 FMU_PATH = MODELS_PATH / "Simulator_olcf5_base.fmu"
 
@@ -80,14 +80,14 @@ class SimOutput(NamedTuple):
 
 
 
-def fetch_telemetry_data(config: SimConfig):
+def fetch_telemetry_data(sim_config: SimConfig):
     """
     Fetch and parse real telemetry data
     """
     # TODO: Should consider using LVA API instead of directly querying the DB for this
     nccs_cadence_engine = get_nccs_cadence_engine()
     druid_engine = get_druid_engine()
-    start, end = config.start, config.end
+    start, end = sim_config.start, sim_config.end
 
     job_query = sqla.text("""
         SELECT
@@ -133,7 +133,7 @@ def fetch_telemetry_data(config: SimConfig):
     telemetry = Telemetry(system = "frontier")
     jobs = telemetry.load_data_from_df(job_data, job_profile_data,
         min_time = start,
-        reschedule = config.scheduler.reschedule,
+        reschedule = sim_config.scheduler.reschedule,
     )
     return jobs
 
@@ -160,7 +160,7 @@ def get_job_state_hash(job: SchedulerSimJob):
     return job.model_dump_json(exclude={"time_snapshot"})
 
 
-def run_simulation(config: SimConfig):
+def run_simulation(sim_config: SimConfig):
     sample_scheduler_sim_system = timedelta(seconds = 1).total_seconds()
     # Sample CDU as fast as it is available
     sample_cooling = timedelta(seconds = 1).total_seconds()
@@ -169,45 +169,45 @@ def run_simulation(config: SimConfig):
     power_history_counts: dict[int, int] = {}
     prev_jobs: dict[str, str] = {}
 
-    if config.scheduler.enabled:
-        if config.scheduler.seed:
+    if sim_config.scheduler.enabled:
+        if sim_config.scheduler.seed:
             # TODO: This is globabl and should probably be done in RAPS
-            random.seed(config.scheduler.seed)
-            np.random.seed(config.scheduler.seed)
+            random.seed(sim_config.scheduler.seed)
+            np.random.seed(sim_config.scheduler.seed)
 
-        timesteps = math.ceil((config.end - config.start).total_seconds())
+        timesteps = math.ceil((sim_config.end - sim_config.start).total_seconds())
 
-        if config.cooling.enabled:
+        if sim_config.cooling.enabled:
             cooling_model = ThermoFluidsModel(str(FMU_PATH))
             cooling_model.initialize()
         else:
             cooling_model = None
 
         sc = get_scheduler(
-            down_nodes = config.scheduler.down_nodes,
+            down_nodes = sim_config.scheduler.down_nodes,
             cooling_model = cooling_model,
-            replay = (config.scheduler.jobs_mode == "replay"),
-            schedule_policy = config.scheduler.schedule_policy,
+            replay = (sim_config.scheduler.jobs_mode == "replay"),
+            schedule_policy = sim_config.scheduler.schedule_policy,
         )
 
-        if config.scheduler.jobs_mode == "random":
-            num_jobs = config.scheduler.num_jobs if config.scheduler.num_jobs is not None else 1000
+        if sim_config.scheduler.jobs_mode == "random":
+            num_jobs = sim_config.scheduler.num_jobs if sim_config.scheduler.num_jobs is not None else 1000
             workload = Workload()
             jobs = workload.random(num_jobs=num_jobs)
-        elif config.scheduler.jobs_mode == "test":
+        elif sim_config.scheduler.jobs_mode == "test":
             workload = Workload()
             jobs = workload.test()
-        elif config.scheduler.jobs_mode == "replay":
+        elif sim_config.scheduler.jobs_mode == "replay":
             logger.info("Fetching telemetry data")
-            jobs = fetch_telemetry_data(config)
-        elif config.scheduler.jobs_mode == "custom":
+            jobs = fetch_telemetry_data(sim_config)
+        elif sim_config.scheduler.jobs_mode == "custom":
             raise SimException("Custom not supported")
         else:
-            raise SimException(f'Unknown jobs_mode "{config.scheduler.jobs_mode}"')
+            raise SimException(f'Unknown jobs_mode "{sim_config.scheduler.jobs_mode}"')
 
         for data in sc.run_simulation(jobs, timesteps=timesteps):
-            timestamp: datetime = _offset_to_time(config.start, data.current_time)
-            is_last_tick = (timestamp + timedelta(seconds=1) == config.end)
+            timestamp: datetime = _offset_to_time(sim_config.start, data.current_time)
+            is_last_tick = (timestamp + timedelta(seconds=1) == sim_config.end)
 
             unix_timestamp = int(timestamp.timestamp())
 
@@ -246,7 +246,7 @@ def run_simulation(config: SimConfig):
             for job in data.jobs:
                 # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
                 if job.start_time is not None:
-                    time_end = _offset_to_time(config.start, job.end_time)
+                    time_end = _offset_to_time(sim_config.start, job.end_time)
                 else:
                     time_end = None
                 xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
@@ -255,9 +255,9 @@ def run_simulation(config: SimConfig):
                     name = job.name,
                     node_count = job.nodes_required,
                     time_snapshot = timestamp,
-                    time_submission = _offset_to_time(config.start, job.submit_time),
+                    time_submission = _offset_to_time(sim_config.start, job.submit_time),
                     time_limit = job.wall_time,
-                    time_start = _offset_to_time(config.start, job.start_time),
+                    time_start = _offset_to_time(sim_config.start, job.start_time),
                     time_end = time_end,
                     state_current = JobStateEnum(job.state.name),
                     node_ranges = node_ranges,
