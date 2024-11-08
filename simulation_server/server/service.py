@@ -693,3 +693,10 @@ def build_scheduler_sim_power_history_query(*,
         id = id, span = span, fields = fields, filters = filters,
         group_cols = {}, agg_cols = agg_cols, filter_cols = {"job_id": tbl.c['job_id']},
     )
+
+
+def get_system_info():
+    from ..simulation.simulation import get_scheduler
+    sc = get_scheduler()
+    return sc.get_gauge_limits()
+

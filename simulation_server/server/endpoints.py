@@ -17,6 +17,7 @@ from .config import AppDeps
 from .service import (
     run_simulation, query_sims, query_cooling_sim_cdu, query_scheduler_sim_jobs,
     query_scheduler_sim_system, query_scheduler_sim_power_history, query_cooling_sim_cep,
+    get_system_info,
 )
 
 router = APIRouter(prefix="/frontier", tags=['frontier'])
@@ -212,7 +213,5 @@ def scheduler_system(*,
 
 
 @router.get("/system-info", response_model=SystemInfo)
-def system_info(deps: AppDeps):
-    from ..simulation.simulation import get_scheduler
-    sc = get_scheduler()
-    return sc.get_gauge_limits()
+def system_info():
+    return get_system_info()
