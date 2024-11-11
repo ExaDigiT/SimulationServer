@@ -20,8 +20,7 @@ scheduler_sim_job = Table(
     Column("time_start", String),
     Column("time_end", String),
     Column("state_current", String),
-    Column("node_ranges", String),
-    Column("xnames", String),
+    Column("nodes", String),
 )
 
 cooling_sim_cdu = Table(

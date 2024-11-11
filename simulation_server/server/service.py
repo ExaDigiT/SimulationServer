@@ -526,9 +526,7 @@ def build_scheduler_sim_jobs_query(*,
         "time_start": to_timestamp(latest(tbl.c.time_start, 32)),
         "time_end": to_timestamp(latest(tbl.c.time_end, 32)),
         "state_current": latest(tbl.c.state_current, 12),
-        # TODO: These aggregations are going to have performance problems on larger datasets
-        "node_ranges": latest(tbl.c.node_ranges, 20 * 1024),
-        "xnames": latest(tbl.c.xnames, 128 * 1024),
+        "nodes": latest(tbl.c.nodes, 128 * 1024),
     }
 
 
@@ -582,10 +580,10 @@ def query_scheduler_sim_jobs(*,
 
     with druid_engine.connect() as conn:
         results = (r._asdict() for r in execute_ignore_missing(conn, stmt))
-        if 'xnames' in fields:
+        if 'nodes' in fields:
             results = [{
                 **j,
-                'xnames': _split_list(j['xnames']),
+                'nodes': _split_list(j['nodes']),
             } for j in results]
         else:
             results = [j for j in results]

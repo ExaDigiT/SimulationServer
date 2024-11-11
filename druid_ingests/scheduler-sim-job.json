@@ -49,8 +49,8 @@
                     },
                     {
                         "type": "expression",
-                        "name": "xnames",
-                        "expression": "array_to_string(xnames, ',')"
+                        "name": "nodes",
+                        "expression": "array_to_string(nodes, ',')"
                     }
                 ]
             },
@@ -83,8 +83,7 @@
                         "name": "time_end"
                     },
                     "state_current",
-                    "node_ranges",
-                    "xnames"
+                    "nodes"
                 ]
             },
             "granularitySpec": {

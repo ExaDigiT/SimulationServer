@@ -22,7 +22,6 @@ from ..models.output import (
 from ..util.druid import get_druid_engine, get_table, to_timestamp
 from ..util.es import get_nccs_cadence_engine
 from ..util.misc import nest_dict
-from .node_set import FrontierNodeSet
 
 
 PKG_PATH = Path(__file__).parent.parent.parent
@@ -71,7 +70,7 @@ def fetch_frontier_telemetry_data(sim_config: SimConfig, raps_config: dict):
         SELECT
             "allocation_id", "job_id", "slurm_version", "account", "group", "user", "name",
             "time_limit", "time_submission", "time_eligible", "time_start", "time_end", "time_elapsed",
-            "node_count", "node_ranges", xnames_str AS "xnames", "state_current", "state_reason",
+            "node_count", xnames_str AS "xnames", "state_current", "state_reason",
             "time_snapshot"
         FROM "stf218.frontier.job-summary"
         WHERE
@@ -180,14 +179,11 @@ def run_simulation(sim_config: SimConfig):
             schedule_policy = sim_config.scheduler.schedule_policy,
         )
 
-        # Memoized function to convert raps indexes into xnames and node_ranges.
+        # Memoized function to convert raps indexes into node names.
         # Memo increases performance since it gets called on snapshots of the same job multiple times.
         @functools.lru_cache(maxsize = 65_536)
         def _parse_nodes(node_indexes: tuple[int]):
-            xnames = [index_to_xname(i, sc.config) for i in node_indexes]
-            hostnames = (FrontierNodeSet.xname_to_hostname(x) for x in xnames)
-            node_ranges = str(FrontierNodeSet(','.join(hostnames))) # Collapse list into ranges
-            return xnames, node_ranges
+            return [index_to_xname(i, sc.config) for i in node_indexes]
 
         if sim_config.scheduler.jobs_mode == "random":
             num_jobs = sim_config.scheduler.num_jobs if sim_config.scheduler.num_jobs is not None else 1000
@@ -214,7 +210,7 @@ def run_simulation(sim_config: SimConfig):
 
             scheduler_sim_system: list[SchedulerSimSystem] = []
             if unix_timestamp % sample_scheduler_sim_system == 0 or is_last_tick:
-                down_nodes, _ = _parse_nodes(tuple(data.down_nodes))
+                down_nodes = _parse_nodes(tuple(data.down_nodes))
                 stats = sc.get_stats()
 
                 scheduler_sim_system = [SchedulerSimSystem.model_validate(dict(
@@ -250,7 +246,6 @@ def run_simulation(sim_config: SimConfig):
                     time_end = _offset_to_time(sim_config.start, job.end_time)
                 else:
                     time_end = None
-                xnames, node_ranges = _parse_nodes(tuple(job.scheduled_nodes))
                 parsed_job = SchedulerSimJob.model_validate(dict(
                     job_id = str(job.id),
                     name = job.name,
@@ -261,8 +256,7 @@ def run_simulation(sim_config: SimConfig):
                     time_start = _offset_to_time(sim_config.start, job.start_time),
                     time_end = time_end,
                     state_current = JobStateEnum(job.state.name),
-                    node_ranges = node_ranges,
-                    xnames = xnames,
+                    nodes = _parse_nodes(tuple(job.scheduled_nodes)),
                     # How does the new job.power attribute work? Is it total_energy?
                     # Or just the current wattage?
                     # power = job.power,

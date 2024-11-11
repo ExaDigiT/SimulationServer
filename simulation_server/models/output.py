@@ -25,15 +25,9 @@ class SchedulerSimJob(BaseModel):
     time_end: Optional[AwareDatetime] = None
     state_current: Optional[JobStateEnum] = None
 
-    node_ranges: Optional[str] = None
+    nodes: Optional[list[str]] = None
     """
-    The Slurm hosts the job is running on as a Slurm hosts string.
-    E.g. frontier[03629-03630,03633-03635]
-    """
-    xnames: Optional[list[str]] = None
-    """
-    The nodes the job is running on, but as a list of xnames rather than a slurm hostname string.
-    E.g. ['x2307c3s0b1', 'x2408c5s2b1']
+    The nodes the job is running on ['x2307c3s0b1', 'x2408c5s2b1']
     """
 
     # Removing these for now, they are constant and just what you set in the input.
@@ -53,8 +47,7 @@ SCHEDULER_SIM_JOB_API_FIELDS = {
     'time_start': 'date',
     'time_end': 'date',
     'state_current': 'string',
-    'node_ranges': 'string',
-    'xnames': 'array[string]',
+    'nodes': 'array[string]',
     # 'cpu_util': 'number',
     # 'gpu_util': 'number',
     # 'cpu_trace': 'array[number]',
@@ -66,10 +59,10 @@ SCHEDULER_SIM_JOB_FIELD_SELECTORS = {
 }
 
 SCHEDULER_SIM_JOB_FILTERS = filter_params(
-    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']) # TODO: Allow filtering on nodes
+    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'nodes']) # TODO: Allow filtering on nodes
 )
 SCHEDULER_SIM_JOB_SORT = sort_params(
-    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'node_ranges', 'xnames']),
+    omit(SCHEDULER_SIM_JOB_API_FIELDS, ['time_snapshot', 'nodes']),
     ["asc:time_start", "asc:time_end", "asc:job_id"],
 )
 
@@ -94,7 +87,7 @@ class SchedulerSimSystem(BaseModel):
     timestamp: AwareDatetime
     
     down_nodes: list[str]
-    """ List of xnames that are currently down in the simulation """
+    """ List of nodes that are currently down in the simulation """
     
     num_samples: int
 
