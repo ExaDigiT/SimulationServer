@@ -4,7 +4,7 @@ import uuid, time, json, base64, os, sys, subprocess
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
-from ..models.sim import Sim, SimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS
+from ..models.sim import Sim, SimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS, SimSystem
 from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
@@ -56,6 +56,7 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
         # Random sim id, use base32 to make it a bit shorter
         id = base64.b32encode(uuid.uuid4().bytes).decode().rstrip('=').lower(),
         user = "unknown", # TODO pull this from cookie/auth header
+        system = sim_config.system,
         state = "running",
         start = sim_config.start,
         end = sim_config.end,
@@ -209,6 +210,7 @@ def query_sims(*,
     cols = {
         "id": sims.c.id,
         "user": sims.c.user,
+        "system": sims.c.system,
         "state": sims.c.state,
         "error_messages": sims.c.error_messages,
         "start": to_timestamp(sims.c.start),
@@ -222,6 +224,7 @@ def query_sims(*,
     grouped_cols = {
         "id": any_value(sims.c.id, 40),
         "user": any_value(sims.c.user, 40),
+        "system": any_value(sims.c.system, 40),
         "state": latest(sims.c.state, 12),
         "error_messages": latest(sims.c.error_messages, 512),
         "start": to_timestamp(any_value(sims.c.start, 32)),
@@ -695,8 +698,7 @@ def build_scheduler_sim_power_history_query(*,
     )
 
 
-def get_system_info():
+def get_system_info(system: SimSystem):
     from ..simulation.simulation import get_scheduler
-    sc = get_scheduler()
+    sc = get_scheduler(system = system)
     return sc.get_gauge_limits()
-

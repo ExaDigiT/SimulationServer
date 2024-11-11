@@ -10,7 +10,7 @@ from ..models.output import (
     CoolingSimCDU, COOLING_CDU_FILTERS, COOLING_CDU_FIELD_SELECTORS,
     CoolingSimCEP, COOLING_CEP_FIELD_SELECTORS,
 )
-from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, SimConfig
+from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, SimConfig, SimSystem
 from ..models.output import SystemInfo
 from ..util.api_queries import Granularity, granularity_params, Filters, Sort, get_selectors
 from .config import AppDeps
@@ -20,7 +20,7 @@ from .service import (
     get_system_info,
 )
 
-router = APIRouter(prefix="/frontier", tags=['frontier'])
+router = APIRouter(tags=["simulation"])
 
 
 GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=timedelta(seconds=1)))]
@@ -212,6 +212,6 @@ def scheduler_system(*,
     return result
 
 
-@router.get("/system-info", response_model=SystemInfo)
-def system_info():
-    return get_system_info()
+@router.get("/system-info/{system}", response_model=SystemInfo)
+def system_info(system: SimSystem):
+    return get_system_info(system = system)

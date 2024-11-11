@@ -120,6 +120,7 @@ sim = Table(
     Column("__time", TIMESTAMP),
     Column("id", String),
     Column("user", String),
+    Column("system", String),
     Column("state", String),
     Column("error_messages", String),
     Column("start", String),

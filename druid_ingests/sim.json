@@ -68,6 +68,7 @@
                 "dimensions": [
                     "id",
                     "user",
+                    "system",
                     "state",
                     {
                         "type": "string",

@@ -14,7 +14,7 @@ from .raps.raps.scheduler import Scheduler
 from .raps.raps.telemetry import Telemetry
 from .raps.raps.dataloaders.frontier import index_to_xname, xname_to_index
 from .raps.raps.workload import Workload
-from ..models.sim import SimConfig
+from ..models.sim import SimConfig, SimSystem
 from ..models.output import (
     JobStateEnum, SchedulerSimJob, SchedulerSimJobPowerHistory, SchedulerSimSystem, CoolingSimCDU,
     CoolingSimCEP,
@@ -118,7 +118,7 @@ def fetch_frontier_telemetry_data(sim_config: SimConfig, raps_config: dict):
 
 
 def get_scheduler(
-    system = 'frontier',
+    system: SimSystem,
     down_nodes = [], cooling_enabled = False, replay = False,
     schedule_policy = 'fcfs',
 ):
@@ -169,6 +169,7 @@ def run_simulation(sim_config: SimConfig):
         timesteps = math.ceil((sim_config.end - sim_config.start).total_seconds())
 
         sc = get_scheduler(
+            system = sim_config.system,
             down_nodes = sim_config.scheduler.down_nodes,
             cooling_enabled = sim_config.cooling.enabled,
             replay = (sim_config.scheduler.jobs_mode == "replay"),

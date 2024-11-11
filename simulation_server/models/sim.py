@@ -9,6 +9,11 @@ from .job_state import JobStateEnum
 from ..util.misc import omit
 from ..util.api_queries import filter_params, sort_params
 
+
+SimSystem = Literal["frontier", "fugaku", "lassen", "marconi100"]
+SIM_SYSTEMS: tuple[str] = get_args(SimSystem)
+
+
 class Sim(BaseModel):
     """ Represents a single simulation run """
 
@@ -17,6 +22,8 @@ class Sim(BaseModel):
 
     user: Optional[str] = None
     """ User who launched the simulation """
+
+    system: SimSystem
 
     state: Optional[Literal['running', 'success', 'fail']] = None
 
@@ -68,6 +75,7 @@ class Sim(BaseModel):
 SIM_API_FIELDS = {
     'id': 'string',
     'user': 'string',
+    'system': 'string',
     'state': 'string',
     'error_messages': 'string',
     'start': 'date',
@@ -80,7 +88,7 @@ SIM_API_FIELDS = {
 }
 SIM_FIELD_SELECTORS = {
     "default": [
-        "user", "state", "error_messages", "start", "end", "execution_start", "execution_end",
+        "user", "system", "state", "error_messages", "start", "end", "execution_start", "execution_end",
         "progress", "progress_date",
     ],
     "all": ['default', 'config'],
@@ -90,16 +98,14 @@ SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'confi
     "asc:execution_start", "asc:execution_end", "asc:start", "asc:end", "asc:id",
 ])
 
-SimSystem = Literal["frontier", "fugaku", "lassen", "marconi100"]
-SIM_SYSTEMS: tuple[str] = get_args(SimSystem)
 
 class SimConfig(BaseModel):
     start: AwareDatetime
     end: AwareDatetime
 
-    system: SimSystem = "frontier"
-    scheduler: A[SchedulerSimConfig, Field(default_factory=lambda: SchedulerSimConfig())]
-    cooling: A[CoolingSimConfig, Field(default_factory=lambda: CoolingSimConfig())]
+    system: SimSystem
+    scheduler: A[SchedulerSimConfig, Field(default_factory = lambda: SchedulerSimConfig())]
+    cooling: A[CoolingSimConfig, Field(default_factory = lambda: CoolingSimConfig())]
 
     @model_validator(mode='after')
     def validate_model(self):
