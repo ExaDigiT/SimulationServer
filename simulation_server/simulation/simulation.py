@@ -122,8 +122,12 @@ def get_scheduler(
     down_nodes = [], cooling_enabled = False, replay = False,
     schedule_policy = 'fcfs',
 ):
+    if cooling_enabled and system != "frontier":
+        raise SimException("Cooling sim only supported for frontier")
+
     raps_config = ConfigManager(system_name = system).get_config()
-    raps_config['FMU_PATH'] = str(PKG_PATH / raps_config['FMU_PATH'])
+    if "FMU_PATH" in raps_config:
+        raps_config['FMU_PATH'] = str(PKG_PATH / raps_config['FMU_PATH'])
 
     down_nodes = [*raps_config['DOWN_NODES'], *down_nodes]
 
@@ -192,7 +196,9 @@ def run_simulation(sim_config: SimConfig):
         elif sim_config.scheduler.jobs_mode == "test":
             workload = Workload(**sc.config)
             jobs = workload.test()
-        elif sim_config.scheduler.jobs_mode == "replay" and sim_config.system == "frontier":
+        elif sim_config.scheduler.jobs_mode == "replay":
+            if sim_config.system != "frontier":
+                raise SimException("Replay only supported for frontier")
             logger.info("Fetching telemetry data")
             jobs = fetch_frontier_telemetry_data(sim_config, sc.config)
         elif sim_config.scheduler.jobs_mode == "custom":
