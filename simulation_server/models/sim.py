@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Literal, Annotated as A
+from typing import Optional, Literal, Annotated as A, get_args
 from datetime import timedelta, datetime, timezone
 import json, math
 from pydantic import AwareDatetime, model_validator, field_validator, Field
@@ -90,10 +90,14 @@ SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'confi
     "asc:execution_start", "asc:execution_end", "asc:start", "asc:end", "asc:id",
 ])
 
+SimSystem = Literal["frontier", "fugaku", "lassen", "marconi100"]
+SIM_SYSTEMS: tuple[str] = get_args(SimSystem)
+
 class SimConfig(BaseModel):
     start: AwareDatetime
     end: AwareDatetime
 
+    system: SimSystem = "frontier"
     scheduler: A[SchedulerSimConfig, Field(default_factory=lambda: SchedulerSimConfig())]
     cooling: A[CoolingSimConfig, Field(default_factory=lambda: CoolingSimConfig())]
 

@@ -6,8 +6,7 @@ import pandas as pd
 import numpy as np
 import sqlalchemy as sqla
 from loguru import logger
-from .raps.raps.config import initialize_config, get_config
-initialize_config('frontier')
+from .raps.raps.config import ConfigManager
 from .raps.raps.cooling import ThermoFluidsModel
 from .raps.raps.power import PowerManager
 from .raps.raps.flops import FLOPSManager
@@ -26,16 +25,7 @@ from ..util.misc import nest_dict
 from .node_set import FrontierNodeSet
 
 
-MODELS_PATH = Path(__file__).parent.parent.parent / 'models'
-
-raps_config = get_config()
-
-SC_SHAPE = raps_config.get("SC_SHAPE")
-TOTAL_NODES = raps_config.get("TOTAL_NODES")
-DOWN_NODES = raps_config.get("DOWN_NODES")
-FMU_PATH = raps_config.get("FMU_PATH")
-# TODO: Fetch this from mlflow
-FMU_PATH = MODELS_PATH / "Simulator_olcf5_base.fmu"
+PKG_PATH = Path(__file__).parent.parent.parent
 
 class SimException(Exception):
     pass
@@ -46,18 +36,6 @@ def _offset_to_time(start, offset):
         return start + timedelta(seconds=offset)
     else:
         return None
-
-
-@functools.lru_cache(maxsize = 65_536)
-def _parse_nodes(node_indexes: tuple[int]):
-    """
-    Memoized function to convert raps indexes into xnames and node_ranges.
-    Memo increases performance since it gets called on snapshots of the same job multiple times.
-    """
-    xnames = [index_to_xname(i) for i in node_indexes]
-    hostnames = (FrontierNodeSet.xname_to_hostname(x) for x in xnames)
-    node_ranges = str(FrontierNodeSet(','.join(hostnames))) # Collapse list into ranges
-    return xnames, node_ranges
 
 
 CDU_INDEXES = [
@@ -80,7 +58,7 @@ class SimOutput(NamedTuple):
 
 
 
-def fetch_telemetry_data(sim_config: SimConfig):
+def fetch_frontier_telemetry_data(sim_config: SimConfig, raps_config: dict):
     """
     Fetch and parse real telemetry data
     """
@@ -130,28 +108,41 @@ def fetch_telemetry_data(sim_config: SimConfig):
     if (job_data.empty or job_profile_data.empty):
         raise SimException(f"No telemetry data for {start.isoformat()} -> {end.isoformat()}")
 
-    telemetry = Telemetry(system = "frontier")
+    telemetry = Telemetry(system = "frontier", config = raps_config)
     jobs = telemetry.load_data_from_df(job_data, job_profile_data,
         min_time = start,
         reschedule = sim_config.scheduler.reschedule,
+        config = raps_config,
     )
     return jobs
 
 
-def get_scheduler(down_nodes = [], cooling_model = None, replay = False, schedule_policy = 'fcfs'):
-    down_nodes = [*DOWN_NODES, *down_nodes]
+def get_scheduler(
+    system = 'frontier',
+    down_nodes = [], cooling_enabled = False, replay = False,
+    schedule_policy = 'fcfs',
+):
+    raps_config = ConfigManager(system_name = system).get_config()
+    raps_config['FMU_PATH'] = str(PKG_PATH / raps_config['FMU_PATH'])
 
-    power_manager = PowerManager(SC_SHAPE, down_nodes)
-    flops_manager = FLOPSManager(SC_SHAPE)
+    down_nodes = [*raps_config['DOWN_NODES'], *down_nodes]
+
+    power_manager = PowerManager(**raps_config)
+    flops_manager = FLOPSManager(**raps_config)
+    if cooling_enabled:
+        cooling_model = ThermoFluidsModel(**raps_config)
+        cooling_model.initialize()
+    else:
+        cooling_model = None
 
     return Scheduler(
-        TOTAL_NODES, down_nodes,
         power_manager = power_manager,
         flops_manager = flops_manager,
         layout_manager = None,
         cooling_model = cooling_model,
         debug = False, replay = replay,
         schedule = schedule_policy,
+        config = raps_config,
     )
 
 
@@ -177,29 +168,32 @@ def run_simulation(sim_config: SimConfig):
 
         timesteps = math.ceil((sim_config.end - sim_config.start).total_seconds())
 
-        if sim_config.cooling.enabled:
-            cooling_model = ThermoFluidsModel(str(FMU_PATH))
-            cooling_model.initialize()
-        else:
-            cooling_model = None
-
         sc = get_scheduler(
             down_nodes = sim_config.scheduler.down_nodes,
-            cooling_model = cooling_model,
+            cooling_enabled = sim_config.cooling.enabled,
             replay = (sim_config.scheduler.jobs_mode == "replay"),
             schedule_policy = sim_config.scheduler.schedule_policy,
         )
 
+        # Memoized function to convert raps indexes into xnames and node_ranges.
+        # Memo increases performance since it gets called on snapshots of the same job multiple times.
+        @functools.lru_cache(maxsize = 65_536)
+        def _parse_nodes(node_indexes: tuple[int]):
+            xnames = [index_to_xname(i, sc.config) for i in node_indexes]
+            hostnames = (FrontierNodeSet.xname_to_hostname(x) for x in xnames)
+            node_ranges = str(FrontierNodeSet(','.join(hostnames))) # Collapse list into ranges
+            return xnames, node_ranges
+
         if sim_config.scheduler.jobs_mode == "random":
             num_jobs = sim_config.scheduler.num_jobs if sim_config.scheduler.num_jobs is not None else 1000
-            workload = Workload()
+            workload = Workload(**sc.config)
             jobs = workload.random(num_jobs=num_jobs)
         elif sim_config.scheduler.jobs_mode == "test":
-            workload = Workload()
+            workload = Workload(**sc.config)
             jobs = workload.test()
-        elif sim_config.scheduler.jobs_mode == "replay":
+        elif sim_config.scheduler.jobs_mode == "replay" and sim_config.system == "frontier":
             logger.info("Fetching telemetry data")
-            jobs = fetch_telemetry_data(sim_config)
+            jobs = fetch_frontier_telemetry_data(sim_config, sc.config)
         elif sim_config.scheduler.jobs_mode == "custom":
             raise SimException("Custom not supported")
         else:
