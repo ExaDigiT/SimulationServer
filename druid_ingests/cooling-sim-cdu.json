@@ -33,7 +33,7 @@
             "dimensionsSpec": {
                 "dimensions": [
                     "sim_id",
-                    "xname",
+                    "name",
                     {
                         "type": "long",
                         "name": "row"

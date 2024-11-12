@@ -12,7 +12,7 @@ from .raps.raps.power import PowerManager
 from .raps.raps.flops import FLOPSManager
 from .raps.raps.scheduler import Scheduler
 from .raps.raps.telemetry import Telemetry
-from .raps.raps.dataloaders.frontier import index_to_xname, xname_to_index
+from .raps.raps.dataloaders.frontier import index_to_xname
 from .raps.raps.workload import Workload
 from ..models.sim import SimConfig, SimSystem
 from ..models.output import (
@@ -43,7 +43,7 @@ CDU_INDEXES = [
     'x2402c1', 'x2403c1', 'x2406c1', 'x2409c1', 'x2502c1', 'x2503c1', 'x2506c1', 'x2509c1',
     'x2609c1',
 ]
-def _cdu_index_to_xname(index: int):
+def _cdu_index_to_name(index: int):
     return CDU_INDEXES[index - 1]
 
 
@@ -352,11 +352,11 @@ def run_simulation(sim_config: SimConfig):
 
 
             for cdu_index, cdu_data in cooling_sim_cdu_map.items():
-                xname = _cdu_index_to_xname(cdu_index)
-                row, col = int(xname[2]), int(xname[3:5])
+                cdu_name = _cdu_index_to_name(cdu_index)
+                row, col = int(cdu_name[2]), int(cdu_name[3:5])
                 cdu_data.update(
                     timestamp = timestamp,
-                    xname = xname,
+                    name = cdu_name,
                     row = row,
                     col = col,
                 )

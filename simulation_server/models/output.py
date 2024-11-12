@@ -134,10 +134,9 @@ class SchedulerSimSystem(BaseModel):
 
 class CoolingSimCDU(BaseModel):
     timestamp: AwareDatetime
-    xname: Optional[str] = None
+    name: Optional[str] = None
     """
     Unique identifier for the CDU of the (simulated) measurement, e.g. x2007c1.
-    The CDU xname is the xname of the neighboring cabinet.
     """
     row: Optional[int] = None
     """ Row index of the CDU """
@@ -168,7 +167,7 @@ class CoolingSimCDU(BaseModel):
 
 
 COOLING_CDU_API_FIELDS = {
-    "xname": 'string',
+    "name": 'string',
     "row": 'number',
     "col": 'number',
     "rack_1_power": 'number',

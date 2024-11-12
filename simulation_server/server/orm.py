@@ -28,7 +28,7 @@ cooling_sim_cdu = Table(
     metadata,
     Column("__time", TIMESTAMP),
     Column("sim_id", String),
-    Column("xname", String),
+    Column("name", String),
     Column("row", Integer),
     Column("col", Integer),
     Column("rack_1_power", Double),

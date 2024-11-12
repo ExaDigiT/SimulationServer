@@ -416,12 +416,12 @@ def build_cooling_sim_cdu_query(*,
     tbl = orm.cooling_sim_cdu.alias("cdus")
     filter_cols = {c: tbl.c[c] for c in COOLING_CDU_API_FIELDS}
     group_cols = {
-        "xname": tbl.c['xname'],
+        "name": tbl.c['name'],
     }
     agg_cols: dict[str, sqla.sql.ColumnElement] = {
         **{
             c: sqla.func.max(tbl.c[c]) for c in COOLING_CDU_API_FIELDS
-            if c not in ['xname', 'row', 'col']
+            if c not in ['name', 'row', 'col']
         },
         **{c: sqla.func.any_value(tbl.c[c]) for c in ['row', 'col']},
     }
