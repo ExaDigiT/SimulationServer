@@ -12,7 +12,6 @@ from .raps.raps.power import PowerManager
 from .raps.raps.flops import FLOPSManager
 from .raps.raps.scheduler import Scheduler
 from .raps.raps.telemetry import Telemetry
-from .raps.raps.dataloaders.frontier import index_to_xname
 from .raps.raps.workload import Workload
 from ..models.sim import SimConfig, SimSystem
 from ..models.output import (
@@ -35,16 +34,6 @@ def _offset_to_time(start, offset):
         return start + timedelta(seconds=offset)
     else:
         return None
-
-
-CDU_INDEXES = [
-    'x2002c1', 'x2003c1', 'x2006c1', 'x2009c1', 'x2102c1', 'x2103c1', 'x2106c1', 'x2109c1',
-    'x2202c1', 'x2203c1', 'x2206c1', 'x2209c1', 'x2302c1', 'x2303c1', 'x2306c1', 'x2309c1',
-    'x2402c1', 'x2403c1', 'x2406c1', 'x2409c1', 'x2502c1', 'x2503c1', 'x2506c1', 'x2509c1',
-    'x2609c1',
-]
-def _cdu_index_to_name(index: int):
-    return CDU_INDEXES[index - 1]
 
 
 class SimOutput(NamedTuple):
@@ -141,7 +130,6 @@ def get_scheduler(
     return Scheduler(
         power_manager = power_manager,
         flops_manager = flops_manager,
-        layout_manager = None,
         cooling_model = cooling_model,
         debug = False, replay = replay,
         schedule = schedule_policy,
@@ -178,12 +166,13 @@ def run_simulation(sim_config: SimConfig):
             replay = (sim_config.scheduler.jobs_mode == "replay"),
             schedule_policy = sim_config.scheduler.schedule_policy,
         )
+        telemetry = Telemetry(system = sim_config.system, config = sc.config)
 
         # Memoized function to convert raps indexes into node names.
         # Memo increases performance since it gets called on snapshots of the same job multiple times.
         @functools.lru_cache(maxsize = 65_536)
         def _parse_nodes(node_indexes: tuple[int]):
-            return [index_to_xname(i, sc.config) for i in node_indexes]
+            return [telemetry.node_index_to_name(i) for i in node_indexes]
 
         if sim_config.scheduler.jobs_mode == "random":
             num_jobs = sim_config.scheduler.num_jobs if sim_config.scheduler.num_jobs is not None else 1000
@@ -240,7 +229,8 @@ def run_simulation(sim_config: SimConfig):
 
             scheduler_sim_jobs: list[SchedulerSimJob] = []
             curr_jobs = {}
-            for job in data.jobs:
+            data_jobs = data.completed + data.running + data.queue
+            for job in data_jobs:
                 # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
                 if job.start_time is not None:
                     time_end = _offset_to_time(sim_config.start, job.end_time)
@@ -270,7 +260,7 @@ def run_simulation(sim_config: SimConfig):
             prev_jobs = curr_jobs
 
             power_history: list[SchedulerSimJobPowerHistory] = []
-            for job in data.jobs:
+            for job in data_jobs:
                 if job.id and power_history_counts.get(job.id, 0) < len(job.power_history):
                     power_history.append(SchedulerSimJobPowerHistory(
                         timestamp = timestamp,
@@ -352,8 +342,8 @@ def run_simulation(sim_config: SimConfig):
 
 
             for cdu_index, cdu_data in cooling_sim_cdu_map.items():
-                cdu_name = _cdu_index_to_name(cdu_index)
-                row, col = int(cdu_name[2]), int(cdu_name[3:5])
+                cdu_name = telemetry.cdu_index_to_name(cdu_index)
+                row, col = telemetry.cdu_pos(cdu_index)
                 cdu_data.update(
                     timestamp = timestamp,
                     name = cdu_name,
