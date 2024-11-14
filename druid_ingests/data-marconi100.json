@@ -47,6 +47,31 @@
                         "name": "end_time",
                         "type": "expression",
                         "expression": "timestamp_format(end_time)"
+                    },
+                    {
+                        "name": "eligible_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(eligible_time)"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "nodes",
+                        "expression": "array_to_string(nodes, ',')"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "node_power_consumption",
+                        "expression": "array_to_string(node_power_consumption, ',')"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "mem_power_consumption",
+                        "expression": "array_to_string(mem_power_consumption, ',')"
+                    },
+                    {
+                        "type": "expression",
+                        "name": "cpu_power_consumption",
+                        "expression": "array_to_string(cpu_power_consumption, ',')"
                     }
                 ]
             },
@@ -76,7 +101,7 @@
                         "name": "qos"
                     },
                     {
-                        "type": "long",
+                        "type": "string",
                         "name": "eligible_time"
                     },
                     "mem_power_consumption",
