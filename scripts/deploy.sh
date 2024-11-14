@@ -4,8 +4,8 @@ set -e # Exit if any commmand fails
 
 REGISTRY="registry.apps.marble.ccs.ornl.gov/stf218-app"
 
-SCRIPT_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}"))
-cd "$SCRIPT_DIR"
+BASE_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}")/..)
+cd "$BASE_DIR"
 ENV=$1
 if [ "$ENV" != "prod" ] && [ "$ENV" != "stage" ]; then
     echo 'You need to pass either "prod" or "stage"'
