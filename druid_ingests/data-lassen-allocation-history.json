@@ -1,0 +1,133 @@
+{
+    "type": "index_parallel",
+    "spec": {
+        "ioConfig": {
+            "type": "index_parallel",
+            "inputSource": {
+                "type": "s3",
+                "prefixes": [
+                    "s3://scratch/raps-datasets/lassen/final_csm_allocation_history_hashed.csv"
+                ]
+            },
+            "inputFormat": {
+                "type": "csv",
+                "findColumnsFromHeader": true
+            }
+        },
+        "tuningConfig": {
+            "type": "index_parallel",
+            "partitionsSpec": {
+                "type": "dynamic"
+            },
+            "maxNumConcurrentSubTasks": 4
+        },
+        "dataSchema": {
+            "dataSource": "svc-ts-exadigit-data-lassen-allocation-history",
+            "timestampSpec": {
+                "column": "!!!_no_such_column_!!!",
+                "missingValue": "2010-01-01T00:00:00Z"
+            },
+            "transformSpec": {
+                "transforms": [
+                    {
+                        "name": "__time",
+                        "type": "expression",
+                        "expression": "timestamp_parse(begin_time)"
+                    },
+                    {
+                        "name": "begin_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(begin_time))"
+                    },
+                    {
+                        "name": "end_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(end_time))"
+                    },
+                    {
+                        "name": "job_submit_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(job_submit_time))"
+                    }
+                ]
+            },
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "year"
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    {
+                        "type": "long",
+                        "name": "column_1"
+                    },
+                    {
+                        "type": "long",
+                        "name": "allocation_id"
+                    },
+                    {
+                        "type": "long",
+                        "name": "primary_job_id"
+                    },
+                    "launch_node_name",
+                    {
+                        "type": "long",
+                        "name": "isolated_cores"
+                    },
+                    {
+                        "type": "string",
+                        "name": "user_flags"
+                    },
+                    "system_flags",
+                    {
+                        "type": "long",
+                        "name": "ssd_min"
+                    },
+                    {
+                        "type": "long",
+                        "name": "ssd_max"
+                    },
+                    {
+                        "type": "long",
+                        "name": "num_nodes"
+                    },
+                    {
+                        "type": "long",
+                        "name": "num_processors"
+                    },
+                    {
+                        "type": "long",
+                        "name": "num_gpus"
+                    },
+                    {
+                        "type": "long",
+                        "name": "projected_memory"
+                    },
+                    "type",
+                    "job_type",
+                    "hashed_user_id",
+                    "hashed_user_group_id",
+                    "begin_time",
+                    "end_time",
+                    {
+                        "type": "long",
+                        "name": "exit_status"
+                    },
+                    "job_submit_time",
+                    "queue",
+                    "requeue",
+                    {
+                        "type": "long",
+                        "name": "time_limit"
+                    },
+                    "smt_mode",
+                    {
+                        "type": "string",
+                        "name": "core_blink"
+                    }
+                ]
+            }
+        }
+    }
+}

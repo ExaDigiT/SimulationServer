@@ -1,0 +1,280 @@
+{
+    "type": "index_parallel",
+    "spec": {
+        "ioConfig": {
+            "type": "index_parallel",
+            "inputSource": {
+                "type": "s3",
+                "objectGlob": "**.parquet",
+                "prefixes": [
+                    "s3://scratch/raps-datasets/fugaku/"
+                ]
+            },
+            "inputFormat": {
+                "type": "parquet"
+            }
+        },
+        "tuningConfig": {
+            "type": "index_parallel",
+            "partitionsSpec": {
+                "type": "dynamic"
+            },
+            "maxNumConcurrentSubTasks": 6,
+            "maxRowsInMemory": 250000
+        },
+        "dataSchema": {
+            "dataSource": "svc-ts-exadigit-data-fugaku",
+            "timestampSpec": {
+                "column": "!!!_no_such_column_!!!",
+                "missingValue": "2010-01-01T00:00:00Z"
+            },
+            "transformSpec": {
+                "transforms": [
+                    {
+                        "name": "__time",
+                        "type": "expression",
+                        "expression": "timestamp_parse(sdt)"
+                    },
+                    {
+                        "name": "adt",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(adt))"
+                    },
+                    {
+                        "name": "qdt",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(qdt))"
+                    },
+                    {
+                        "name": "schedsdt",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(schedsdt))"
+                    },
+                    {
+                        "name": "deldt",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(deldt))"
+                    },
+                    {
+                        "name": "sdt",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(sdt))"
+                    },
+                    {
+                        "name": "edt",
+                        "type": "expression",
+                        "expression": "timestamp_format(timestamp_parse(edt))"
+                    }
+                ]
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    {
+                        "type": "string",
+                        "name": "jid"
+                    },
+                    {
+                        "type": "string",
+                        "name": "usr"
+                    },
+                    {
+                        "type": "string",
+                        "name": "jnam"
+                    },
+                    {
+                        "type": "long",
+                        "name": "cnumr"
+                    },
+                    {
+                        "type": "long",
+                        "name": "cnumat"
+                    },
+                    {
+                        "type": "long",
+                        "name": "cnumut"
+                    },
+                    {
+                        "type": "long",
+                        "name": "nnumr"
+                    },
+                    {
+                        "type": "string",
+                        "name": "adt"
+                    },
+                    {
+                        "type": "string",
+                        "name": "qdt"
+                    },
+                    {
+                        "type": "string",
+                        "name": "schedsdt"
+                    },
+                    {
+                        "type": "string",
+                        "name": "deldt"
+                    },
+                    {
+                        "type": "long",
+                        "name": "ec"
+                    },
+                    {
+                        "type": "double",
+                        "name": "elpl"
+                    },
+                    {
+                        "type": "string",
+                        "name": "sdt"
+                    },
+                    {
+                        "type": "string",
+                        "name": "edt"
+                    },
+                    {
+                        "type": "long",
+                        "name": "nnuma"
+                    },
+                    {
+                        "type": "double",
+                        "name": "idle_time_ave"
+                    },
+                    {
+                        "type": "long",
+                        "name": "nnumu"
+                    },
+                    {
+                        "type": "long",
+                        "name": "pri"
+                    },
+                    {
+                        "type": "string",
+                        "name": "jobenv_req"
+                    },
+                    {
+                        "type": "string",
+                        "name": "pclass"
+                    },
+                    {
+                        "type": "string",
+                        "name": "exit state"
+                    },
+                    {
+                        "type": "double",
+                        "name": "duration"
+                    }
+                ]
+            },
+            "metricsSpec": [
+                {
+                    "type": "doubleMax",
+                    "name": "perf1",
+                    "fieldName": "perf1"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "perf2",
+                    "fieldName": "perf2"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "perf3",
+                    "fieldName": "perf3"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "perf4",
+                    "fieldName": "perf4"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "perf5",
+                    "fieldName": "perf5"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "perf6",
+                    "fieldName": "perf6"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "mszl",
+                    "fieldName": "mszl"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "econ",
+                    "fieldName": "econ"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "avgpcon",
+                    "fieldName": "avgpcon"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "minpcon",
+                    "fieldName": "minpcon"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "maxpcon",
+                    "fieldName": "maxpcon"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "msza",
+                    "fieldName": "msza"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "mmszu",
+                    "fieldName": "mmszu"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "uctmut",
+                    "fieldName": "uctmut"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "sctmut",
+                    "fieldName": "sctmut"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "usctmut",
+                    "fieldName": "usctmut"
+                },
+                {
+                    "type": "longMax",
+                    "name": "freq_req",
+                    "fieldName": "freq_req"
+                },
+                {
+                    "type": "longMax",
+                    "name": "freq_alloc",
+                    "fieldName": "freq_alloc"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "flops",
+                    "fieldName": "flops"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "mbwidth",
+                    "fieldName": "mbwidth"
+                },
+                {
+                    "type": "doubleMax",
+                    "name": "opint",
+                    "fieldName": "opint"
+                }
+            ],
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "week"
+            }
+        }
+    }
+}

@@ -1,0 +1,100 @@
+{
+    "type": "index_parallel",
+    "spec": {
+        "ioConfig": {
+            "type": "index_parallel",
+            "inputSource": {
+                "type": "s3",
+                "prefixes": [
+                    "s3://scratch/raps-datasets/lassen/final_csm_allocation_node_history_with_time.csv"
+                ]
+            },
+            "inputFormat": {
+                "type": "csv",
+                "findColumnsFromHeader": true
+            }
+        },
+        "tuningConfig": {
+            "type": "index_parallel",
+            "partitionsSpec": {
+                "type": "dynamic"
+            },
+            "maxNumConcurrentSubTasks": 4
+        },
+        "dataSchema": {
+            "dataSource": "svc-ts-exadigit-data-lassen-node-history",
+            "timestampSpec": {
+                "column": "job_begin_time",
+                "format": "auto"
+            },
+            "transformSpec": {},
+            "dimensionsSpec": {
+                "dimensions": [
+                    {
+                        "type": "long",
+                        "name": "column_1"
+                    },
+                    {
+                        "type": "long",
+                        "name": "allocation_id"
+                    },
+                    "node_name",
+                    "shared",
+                    {
+                        "type": "long",
+                        "name": "energy"
+                    },
+                    {
+                        "type": "long",
+                        "name": "gpfs_read"
+                    },
+                    {
+                        "type": "long",
+                        "name": "gpfs_write"
+                    },
+                    {
+                        "type": "long",
+                        "name": "ib_tx"
+                    },
+                    {
+                        "type": "long",
+                        "name": "ib_rx"
+                    },
+                    {
+                        "type": "long",
+                        "name": "power_cap"
+                    },
+                    {
+                        "type": "long",
+                        "name": "power_shifting_ratio"
+                    },
+                    {
+                        "type": "long",
+                        "name": "power_cap_hit"
+                    },
+                    {
+                        "type": "long",
+                        "name": "gpu_usage"
+                    },
+                    {
+                        "name": "gpu_energy",
+                        "type": "long"
+                    },
+                    {
+                        "type": "long",
+                        "name": "cpu_usage"
+                    },
+                    {
+                        "type": "long",
+                        "name": "memory_usage_max"
+                    }
+                ]
+            },
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "year"
+            }
+        }
+    }
+}

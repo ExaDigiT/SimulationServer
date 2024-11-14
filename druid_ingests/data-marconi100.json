@@ -1,0 +1,158 @@
+{
+    "type": "index_parallel",
+    "spec": {
+        "ioConfig": {
+            "type": "index_parallel",
+            "inputSource": {
+                "type": "s3",
+                "prefixes": [
+                    "s3://scratch/raps-datasets/marconi100/job_table.parquet"
+                ]
+            },
+            "inputFormat": {
+                "type": "parquet"
+            }
+        },
+        "tuningConfig": {
+            "type": "index_parallel",
+            "partitionsSpec": {
+                "type": "dynamic"
+            },
+            "maxNumConcurrentSubTasks": 4
+        },
+        "dataSchema": {
+            "dataSource": "svc-ts-exadigit-data-marconi100",
+            "timestampSpec": {
+                "column": "!!!_no_such_column_!!!",
+                "missingValue": "2010-01-01T00:00:00Z"
+            },
+            "transformSpec": {
+                "transforms": [
+                    {
+                        "name": "__time",
+                        "type": "expression",
+                        "expression": "start_time"
+                    },
+                    {
+                        "name": "submit_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(submit_time)"
+                    },
+                    {
+                        "name": "start_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(start_time)"
+                    },
+                    {
+                        "name": "end_time",
+                        "type": "expression",
+                        "expression": "timestamp_format(end_time)"
+                    }
+                ]
+            },
+            "dimensionsSpec": {
+                "dimensions": [
+                    "shared",
+                    {
+                        "type": "long",
+                        "name": "num_cores_req"
+                    },
+                    {
+                        "type": "long",
+                        "name": "time_limit"
+                    },
+                    "node_power_consumption",
+                    "job_state",
+                    {
+                        "type": "long",
+                        "name": "num_tasks"
+                    },
+                    {
+                        "type": "long",
+                        "name": "partition"
+                    },
+                    {
+                        "type": "long",
+                        "name": "qos"
+                    },
+                    {
+                        "type": "long",
+                        "name": "eligible_time"
+                    },
+                    "mem_power_consumption",
+                    "state_reason",
+                    {
+                        "type": "long",
+                        "name": "run_time"
+                    },
+                    {
+                        "type": "long",
+                        "name": "num_nodes_req"
+                    },
+                    "submit_time",
+                    "end_time",
+                    {
+                        "type": "long",
+                        "name": "priority"
+                    },
+                    {
+                        "type": "long",
+                        "name": "mem_alloc"
+                    },
+                    {
+                        "type": "long",
+                        "name": "req_switch"
+                    },
+                    "start_time",
+                    {
+                        "type": "long",
+                        "name": "cores_per_task"
+                    },
+                    {
+                        "type": "long",
+                        "name": "num_nodes_alloc"
+                    },
+                    "nodes",
+                    "cores_alloc_layout",
+                    "cores_allocated",
+                    {
+                        "type": "long",
+                        "name": "group_id"
+                    },
+                    {
+                        "type": "long",
+                        "name": "user_id"
+                    },
+                    {
+                        "type": "long",
+                        "name": "job_id"
+                    },
+                    "cpu_power_consumption",
+                    {
+                        "type": "long",
+                        "name": "num_cores_alloc"
+                    },
+                    {
+                        "type": "long",
+                        "name": "mem_req"
+                    },
+                    "derived_ec",
+                    {
+                        "type": "long",
+                        "name": "num_gpus_req"
+                    },
+                    {
+                        "type": "long",
+                        "name": "num_gpus_alloc"
+                    },
+                    "req_nodes"
+                ]
+            },
+            "granularitySpec": {
+                "queryGranularity": "none",
+                "rollup": false,
+                "segmentGranularity": "year"
+            }
+        }
+    }
+}
