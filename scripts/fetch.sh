@@ -1,7 +1,7 @@
 set -e
 
-mkdir downloads
-cd downloads
+mkdir data
+cd data
 
 # lassen
 git clone https://github.com/LLNL/LAST/ lassen-repo
