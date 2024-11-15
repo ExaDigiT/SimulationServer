@@ -133,8 +133,45 @@ def fetch_marconi100_data(sim_config: SimConfig, raps_config: dict):
     return jobs
 
 
+def fetch_lassen_data(sim_config: SimConfig, raps_config: dict):
+    druid_engine = get_druid_engine()
+    start, end = sim_config.start, sim_config.end
+
+    allocation_df = query_time_range(
+        "svc-ts-exadigit-data-lassen-allocation-history", start, end, 'end_time',
+        druid_engine = druid_engine,
+        parse_dates = ["begin_time", "end_time", "job_submit_time"],
+    )
+
+    tbl = get_table("svc-ts-exadigit-data-lassen-node-history", druid_engine)
+    node_query = (
+        sqla.select(sqla.text("*"))
+            .where(
+                (tbl.c['__time'] <= to_timestamp(end)) &
+                (tbl.c['__time'] >= to_timestamp(start - timedelta(days=3)))
+            )
+    )
+    node_df = pd.read_sql(node_query, druid_engine)
+
+    step_df = query_time_range(
+        "svc-ts-exadigit-data-fugaku-lassen-step-history", start, end, 'end_time',
+        druid_engine = druid_engine,
+        parse_dates = ["begin_time", "end_time"],
+    )
+
+    telemetry = Telemetry(system = "lassen", config = raps_config)
+    jobs = telemetry.load_data_from_df(
+        allocation_df = allocation_df, node_df = node_df, step_df = step_df,
+        min_time = start,
+        reschedule = sim_config.scheduler.reschedule,
+        config = raps_config,
+    )
+    return jobs
+
+
 DATA_LOADERS = {
     "frontier": fetch_frontier_data,
     "fugaku": fetch_fugaku_data,
     "marconi100": fetch_marconi100_data,
+    "lassen": fetch_lassen_data,
 }
