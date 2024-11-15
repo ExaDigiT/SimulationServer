@@ -38,7 +38,7 @@ services:
     volumes:
       - druid_shared:/opt/shared
       - coordinator_var:/opt/druid/var
-      # - ./data:/data
+      - ./data:/data
     depends_on:
       - zookeeper
       - postgres
@@ -58,7 +58,7 @@ services:
     container_name: druid-broker
     volumes:
       - broker_var:/opt/druid/var
-      # - ./data:/data
+      - ./data:/data
     depends_on:
       - zookeeper
       - postgres
@@ -80,7 +80,7 @@ services:
     volumes:
       - druid_shared:/opt/shared
       - historical_var:/opt/druid/var
-      # - ./data:/data
+      - ./data:/data
     depends_on: 
       - zookeeper
       - postgres
@@ -102,7 +102,7 @@ services:
     volumes:
       - druid_shared:/opt/shared
       - middle_var:/opt/druid/var
-      # - ./data:/data
+      - ./data:/data
     depends_on: 
       - zookeeper
       - postgres

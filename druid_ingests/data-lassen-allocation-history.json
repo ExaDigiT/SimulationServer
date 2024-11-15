@@ -3,11 +3,16 @@
     "spec": {
         "ioConfig": {
             "type": "index_parallel",
+            // "inputSource": {
+            //     "type": "s3",
+            //     "prefixes": [
+            //         "s3://scratch/raps-datasets/lassen/final_csm_allocation_history_hashed.csv"
+            //     ]
+            // },
             "inputSource": {
-                "type": "s3",
-                "prefixes": [
-                    "s3://scratch/raps-datasets/lassen/final_csm_allocation_history_hashed.csv"
-                ]
+                "type": "local",
+                "baseDir": "/data/lassen/final_csm_allocation_history_hashed.csv",
+                "filter": "*"
             },
             "inputFormat": {
                 "type": "csv",
@@ -19,7 +24,8 @@
             "partitionsSpec": {
                 "type": "dynamic"
             },
-            "maxNumConcurrentSubTasks": 4
+            "maxNumConcurrentSubTasks": 2,
+            "maxRowsInMemory": 100000
         },
         "dataSchema": {
             "dataSource": "svc-ts-exadigit-data-lassen-allocation-history",

@@ -3,12 +3,17 @@
     "spec": {
         "ioConfig": {
             "type": "index_parallel",
+            // "inputSource": {
+            //     "type": "s3",
+            //     "objectGlob": "**.parquet",
+            //     "prefixes": [
+            //         "s3://scratch/raps-datasets/fugaku/"
+            //     ]
+            // },
             "inputSource": {
-                "type": "s3",
-                "objectGlob": "**.parquet",
-                "prefixes": [
-                    "s3://scratch/raps-datasets/fugaku/"
-                ]
+                "type": "local",
+                "baseDir": "/data/fugaku/",
+                "filter": "*.parquet"
             },
             "inputFormat": {
                 "type": "parquet"
@@ -19,8 +24,8 @@
             "partitionsSpec": {
                 "type": "dynamic"
             },
-            "maxNumConcurrentSubTasks": 6,
-            "maxRowsInMemory": 250000
+            "maxNumConcurrentSubTasks": 2,
+            "maxRowsInMemory": 100000
         },
         "dataSchema": {
             "dataSource": "svc-ts-exadigit-data-fugaku",

@@ -3,11 +3,16 @@
     "spec": {
         "ioConfig": {
             "type": "index_parallel",
+            // "inputSource": {
+            //     "type": "s3",
+            //     "prefixes": [
+            //         "s3://scratch/raps-datasets/marconi100/"
+            //     ]
+            // },
             "inputSource": {
-                "type": "s3",
-                "prefixes": [
-                    "s3://scratch/raps-datasets/marconi100/job_table.parquet"
-                ]
+                "type": "local",
+                "baseDir": "/data/marconi100/",
+                "filter": "*.parquet"
             },
             "inputFormat": {
                 "type": "parquet"
@@ -18,7 +23,8 @@
             "partitionsSpec": {
                 "type": "dynamic"
             },
-            "maxNumConcurrentSubTasks": 4
+            "maxNumConcurrentSubTasks": 2,
+            "maxRowsInMemory": 100000
         },
         "dataSchema": {
             "dataSource": "svc-ts-exadigit-data-marconi100",
