@@ -48,8 +48,14 @@ async def lifespan(api: FastAPI):
 
     if settings.env == 'dev':
         druid_ingests_dir = Path(__file__).parent.parent.parent.resolve() / 'druid_ingests'
-        for ingest in druid_ingests_dir.glob("*.json"):
-            submit_ingest(json.loads(ingest.read_text()))
+        ingests = [
+            "cooling-sim-cdu", "cooling-sim-cep", "scheduler-job-power-history",
+            "scheduler-sim-job", "scheduler-sim-system",
+            "sim",
+        ]
+
+        for ingest in ingests:
+            submit_ingest(json.loads((druid_ingests_dir / f"{ingest}.json").read_text()))
 
     yield
 
