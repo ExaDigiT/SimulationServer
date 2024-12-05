@@ -1,6 +1,6 @@
 # ExaDigiT Simulation Server
 
-REST API that allows running and querying the results from the ExaDigit simulation and Raps.
+REST API that allows running and querying the results from the ExaDigit simulation and RAPS.
 
 ## Deploying
 To deploy the server, run
