@@ -1,8 +1,6 @@
 # ExaDigiT Simulation Server
 
 REST API that allows running and querying the results from the ExaDigit simulation and Raps.
-Currently hosted at https://obsidian.ccs.ornl.gov/exadigit/api/
-You can see the docs for the API at https://obsidian.ccs.ornl.gov/exadigit/api/docs
 
 ## Deploying
 To deploy the server, run
@@ -24,3 +22,4 @@ You'll need at least 16 GiB of RAM, preferably 32 GiB for druid to run smoothly.
 If you want to run replay data locally, you'll need to download the datasets (see ./scripts/fetch.sh)
 and then ingest them in Druid. After launching, you can access the Druid UI at http://localhost:8888
 and submit druid ingests for the system you want.
+
