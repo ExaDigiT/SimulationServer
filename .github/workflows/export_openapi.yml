@@ -1,0 +1,34 @@
+name: Export openapi.json
+on:
+  push:
+    branches:
+      - main
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4.2.2
+
+      - uses: actions/setup-python@v5
+        id: setup_python
+        with:
+          python-version: '3.9'
+          cache: 'pip'
+      - run: python3 -m pip install -e .
+
+      - run: |
+          cd api_docs
+          wget https://github.com/swagger-api/swagger-ui/archive/refs/tags/v5.18.2.tar.gz -O swagger-ui.tar.gz
+          tar -xvf swagger-ui.tar.gz
+          mv swagger-ui-*/dist dist
+          cp swagger-initializer.js dist
+
+      - run: ./scripts/export_openapi.py simulation_server.server.main app --out api_docs/dist/openapi.json
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@v4.7.2
+        with:
+          branch: gh-pages
+          folder: api_docs/dist

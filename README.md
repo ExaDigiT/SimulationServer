@@ -23,3 +23,6 @@ If you want to run replay data locally, you'll need to download the datasets (se
 and then ingest them in Druid. After launching, you can access the Druid UI at http://localhost:8888
 and submit druid ingests for the system you want.
 
+## API Docs
+You can view the API docs and the `openapi.json` with the API specification at
+https://exadigit.github.io/SimulationServer

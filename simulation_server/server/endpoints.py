@@ -30,7 +30,7 @@ GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=t
 def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
     """
     Start running a simulation in the background. POST the configuration for the simulation. Returns
-    a Sim object containing an id you can use to query the results as they are generated.
+    a Sim object containing an id you can use to query the results as they are generated. Foo
     """
     return run_simulation(sim_config, deps)
 
