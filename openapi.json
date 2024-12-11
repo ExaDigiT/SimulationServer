@@ -1,0 +1,3138 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ExaDigiT Simulation Server",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/simulation/run": {
+      "post": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Run",
+        "description": "Start running a simulation in the background. POST the configuration for the simulation. Returns\na Sim object containing an id you can use to query the results as they are generated. Foo",
+        "operationId": "simulation_run",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimConfig"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sim"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/list": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Sim List",
+        "description": "List all the simulations.\nYou can add filters to get simulations by state, user, id, etc.",
+        "operationId": "simulation_sim_list",
+        "parameters": [
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "default",
+                      "all",
+                      "user",
+                      "system",
+                      "state",
+                      "error_messages",
+                      "start",
+                      "end",
+                      "execution_start",
+                      "execution_end",
+                      "progress",
+                      "progress_date",
+                      "config"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on id. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "Id"
+            },
+            "description": "Filters on id. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on user. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "User"
+            },
+            "description": "Filters on user. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "system",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on system. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "System"
+            },
+            "description": "Filters on system. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on state. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "State"
+            },
+            "description": "Filters on state. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "error_messages",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on error_messages. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "Error Messages"
+            },
+            "description": "Filters on error_messages. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on start. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Start"
+            },
+            "description": "Filters on start. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on end. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "End"
+            },
+            "description": "Filters on end. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "execution_start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on execution_start. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Execution Start"
+            },
+            "description": "Filters on execution_start. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "execution_end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on execution_end. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Execution End"
+            },
+            "description": "Filters on execution_end. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sort order of the return results. Can be specified multiple times to sort by multiple values. Format as either `asc:field` or `desc:field`. Available fields: id, user, system, state, error_messages, start, end, execution_start, execution_end",
+              "title": "Sort"
+            },
+            "description": "Sort order of the return results. Can be specified multiple times to sort by multiple values. Format as either `asc:field` or `desc:field`. Available fields: id, user, system, state, error_messages, start, end, execution_start, execution_end"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Sim_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/{id}": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Get",
+        "description": "Get simulation by id or 404 if not found.",
+        "operationId": "simulation_get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sim"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/{id}/cooling/cdu": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Cooling Cdu",
+        "description": "Query the CDU output from a simulation.",
+        "operationId": "simulation_cooling_cdu",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "default",
+                      "pos",
+                      "name",
+                      "row",
+                      "col",
+                      "rack_1_power",
+                      "rack_2_power",
+                      "rack_3_power",
+                      "total_power",
+                      "rack_1_loss",
+                      "rack_2_loss",
+                      "rack_3_loss",
+                      "total_loss",
+                      "work_done_by_cdup",
+                      "rack_return_temp",
+                      "rack_supply_temp",
+                      "rack_supply_pressure",
+                      "rack_return_pressure",
+                      "rack_flowrate",
+                      "facility_return_temp",
+                      "facility_supply_temp",
+                      "facility_supply_pressure",
+                      "facility_return_pressure",
+                      "facility_flowrate"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "format": "time-delta"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time interval between data points in the returned timeseries. ",
+              "title": "Granularity"
+            },
+            "description": "The time interval between data points in the returned timeseries. "
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution.",
+              "title": "Resolution"
+            },
+            "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on name. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "Name"
+            },
+            "description": "Filters on name. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "row",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on row. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Row"
+            },
+            "description": "Filters on row. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "col",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on col. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Col"
+            },
+            "description": "Filters on col. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_1_power",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_1_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack 1 Power"
+            },
+            "description": "Filters on rack_1_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_2_power",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_2_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack 2 Power"
+            },
+            "description": "Filters on rack_2_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_3_power",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_3_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack 3 Power"
+            },
+            "description": "Filters on rack_3_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "total_power",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on total_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Total Power"
+            },
+            "description": "Filters on total_power. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_1_loss",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_1_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack 1 Loss"
+            },
+            "description": "Filters on rack_1_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_2_loss",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_2_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack 2 Loss"
+            },
+            "description": "Filters on rack_2_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_3_loss",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_3_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack 3 Loss"
+            },
+            "description": "Filters on rack_3_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "total_loss",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on total_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Total Loss"
+            },
+            "description": "Filters on total_loss. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "work_done_by_cdup",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on work_done_by_cdup. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Work Done By Cdup"
+            },
+            "description": "Filters on work_done_by_cdup. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_return_temp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_return_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack Return Temp"
+            },
+            "description": "Filters on rack_return_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_supply_temp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_supply_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack Supply Temp"
+            },
+            "description": "Filters on rack_supply_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_supply_pressure",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_supply_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack Supply Pressure"
+            },
+            "description": "Filters on rack_supply_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_return_pressure",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_return_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack Return Pressure"
+            },
+            "description": "Filters on rack_return_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "rack_flowrate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on rack_flowrate. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Rack Flowrate"
+            },
+            "description": "Filters on rack_flowrate. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "facility_return_temp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on facility_return_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Facility Return Temp"
+            },
+            "description": "Filters on facility_return_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "facility_supply_temp",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on facility_supply_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Facility Supply Temp"
+            },
+            "description": "Filters on facility_supply_temp. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "facility_supply_pressure",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on facility_supply_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Facility Supply Pressure"
+            },
+            "description": "Filters on facility_supply_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "facility_return_pressure",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on facility_return_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Facility Return Pressure"
+            },
+            "description": "Filters on facility_return_pressure. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "facility_flowrate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on facility_flowrate. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Facility Flowrate"
+            },
+            "description": "Filters on facility_flowrate. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectTimeseries_CoolingSimCDU_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/{id}/cooling/cep": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Cooling Cep",
+        "description": "Returns stats of the simulation.\nBy default will return just the most recent stats, but you can pass a granularity to get stats\nat different sampling rates.",
+        "operationId": "simulation_cooling_cep",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "default",
+                      "htw_flowrate",
+                      "ctw_flowrate",
+                      "htw_return_pressure",
+                      "htw_supply_pressure",
+                      "ctw_return_pressure",
+                      "ctw_supply_pressure",
+                      "htw_return_temp",
+                      "htw_supply_temp",
+                      "ctw_return_temp",
+                      "ctw_supply_temp",
+                      "power_consumption_htwps",
+                      "power_consumption_ctwps",
+                      "power_consumption_fan",
+                      "htwp_speed",
+                      "nctwps_staged",
+                      "nhtwps_staged",
+                      "pue_output",
+                      "nehxs_staged",
+                      "ncts_staged",
+                      "facility_return_temp",
+                      "cdu_loop_bypass_flowrate"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "format": "time-delta"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time interval between data points in the returned timeseries. ",
+              "title": "Granularity"
+            },
+            "description": "The time interval between data points in the returned timeseries. "
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution.",
+              "title": "Resolution"
+            },
+            "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectTimeseries_CoolingSimCEP_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/{id}/scheduler/jobs": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Scheduler Jobs",
+        "description": "Query the simulated jobs.\n\nYou can select a subset of the fields to return, and filter by most attributes.\n\nThe optional `start` and `end` parameters select all jobs that were queued or running over the\ninterval (including jobs that only partially overlap the interval). This is based on\n`time_submission` -> `time_end`.\n\nBy default the endpoint will return the latest state of the job available, e.g. only jobs that\nare currently running in the simulation will return state=RUNNING. You can use the `time_travel`\nargument to scan back and see what the jobs looked like at a particular point in history.\n\nExamples:\n- Show the jobs currently running in the simulation\n    - `?start=[now]&state=eq:RUNNING`\n    - You could can omit `start` filter, but adding start will be faster as the table is indexed\n      by time.\n- Show the jobs currently queued in the simulation\n    - `?start=[now]&state=eq:PENDING`\n- Show jobs that were running at some point in time\n    - `?time_travel=2024-01-01T00:00Z&state=eq:RUNNING`\n- Show only completed jobs\n    - `?state=eq:COMPLETE`\n- Show all jobs run by a user\n    - `?user=hinesjr`\n- Show all jobs that ran over a given interval\n    - `?start=2024-03-01T00:00:00Z&end=2024-03-01T01:00:00Z`",
+        "operationId": "simulation_scheduler_jobs",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "time_travel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time Travel"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "default",
+                      "job_id",
+                      "name",
+                      "node_count",
+                      "time_snapshot",
+                      "time_submission",
+                      "time_limit",
+                      "time_start",
+                      "time_end",
+                      "state_current",
+                      "nodes"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on job_id. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "Job Id"
+            },
+            "description": "Filters on job_id. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on name. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "Name"
+            },
+            "description": "Filters on name. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "node_count",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on node_count. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Node Count"
+            },
+            "description": "Filters on node_count. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "time_submission",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on time_submission. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Time Submission"
+            },
+            "description": "Filters on time_submission. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "time_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on time_limit. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Time Limit"
+            },
+            "description": "Filters on time_limit. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "time_start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on time_start. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Time Start"
+            },
+            "description": "Filters on time_start. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "time_end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on time_end. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of",
+              "title": "Time End"
+            },
+            "description": "Filters on time_end. Can be specified multiple times. Format as `op:filter_value`. Available ops: gt, gte, lt, lte, eq, neq, one_of, not_one_of"
+          },
+          {
+            "name": "state_current",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filters on state_current. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len",
+              "title": "State Current"
+            },
+            "description": "Filters on state_current. Can be specified multiple times. Format as `op:filter_value`. Available ops: contains, not_contains, eq, neq, starts_with, ends_with, one_of, not_one_of, min_len, max_len"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sort order of the return results. Can be specified multiple times to sort by multiple values. Format as either `asc:field` or `desc:field`. Available fields: job_id, name, node_count, time_submission, time_limit, time_start, time_end, state_current",
+              "title": "Sort"
+            },
+            "description": "Sort order of the return results. Can be specified multiple times to sort by multiple values. Format as either `asc:field` or `desc:field`. Available fields: job_id, name, node_count, time_submission, time_limit, time_start, time_end, state_current"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_SchedulerSimJob_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/{id}/scheduler/jobs/{job_id}/power-history": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Power History",
+        "description": "Query power history of a single job",
+        "operationId": "simulation_power_history",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "enum": [
+                      "default",
+                      "all",
+                      "power",
+                      "job_id"
+                    ],
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Fields"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "format": "time-delta"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time interval between data points in the returned timeseries. ",
+              "title": "Granularity"
+            },
+            "description": "The time interval between data points in the returned timeseries. "
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution.",
+              "title": "Resolution"
+            },
+            "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectTimeseries_SchedulerSimJobPowerHistory_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/simulation/{id}/scheduler/system": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "Scheduler System",
+        "description": "Returns stats of the simulation.\nBy default will return just the most recent stats, but you can pass a granularity to get stats\nat different sampling rates.",
+        "operationId": "simulation_scheduler_system",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Id"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End"
+            }
+          },
+          {
+            "name": "granularity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "format": "time-delta"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time interval between data points in the returned timeseries. ",
+              "title": "Granularity"
+            },
+            "description": "The time interval between data points in the returned timeseries. "
+          },
+          {
+            "name": "resolution",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution.",
+              "title": "Resolution"
+            },
+            "description": "The (approximate) number of points that should be in the returned timeseries.\nYou can only specify one of granularity or resolution."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObjectTimeseries_SchedulerSimSystem_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/system-info/{system}": {
+      "get": {
+        "tags": [
+          "simulation"
+        ],
+        "summary": "System Info",
+        "operationId": "simulation_system_info",
+        "parameters": [
+          {
+            "name": "system",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "enum": [
+                "frontier",
+                "fugaku",
+                "lassen",
+                "marconi100"
+              ],
+              "type": "string",
+              "title": "System"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SystemInfo"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CoolingSimCDU": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Unique identifier for the CDU of the (simulated) measurement, e.g. x2007c1."
+          },
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Row",
+            "description": "Row index of the CDU "
+          },
+          "col": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Col",
+            "description": "Col index of the cdu (Note this is the col of the neighboring cabinet.)"
+          },
+          "rack_1_power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack 1 Power"
+          },
+          "rack_2_power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack 2 Power"
+          },
+          "rack_3_power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack 3 Power"
+          },
+          "total_power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Power"
+          },
+          "rack_1_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack 1 Loss"
+          },
+          "rack_2_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack 2 Loss"
+          },
+          "rack_3_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack 3 Loss"
+          },
+          "total_loss": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Loss"
+          },
+          "work_done_by_cdup": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Work Done By Cdup"
+          },
+          "rack_return_temp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack Return Temp"
+          },
+          "rack_supply_temp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack Supply Temp"
+          },
+          "rack_supply_pressure": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack Supply Pressure"
+          },
+          "rack_return_pressure": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack Return Pressure"
+          },
+          "rack_flowrate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rack Flowrate"
+          },
+          "facility_return_temp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facility Return Temp"
+          },
+          "facility_supply_temp": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facility Supply Temp"
+          },
+          "facility_supply_pressure": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facility Supply Pressure"
+          },
+          "facility_return_pressure": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facility Return Pressure"
+          },
+          "facility_flowrate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Facility Flowrate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "title": "CoolingSimCDU"
+      },
+      "CoolingSimCEP": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "htw_flowrate": {
+            "type": "number",
+            "title": "Htw Flowrate"
+          },
+          "ctw_flowrate": {
+            "type": "number",
+            "title": "Ctw Flowrate"
+          },
+          "htw_return_pressure": {
+            "type": "number",
+            "title": "Htw Return Pressure"
+          },
+          "htw_supply_pressure": {
+            "type": "number",
+            "title": "Htw Supply Pressure"
+          },
+          "ctw_return_pressure": {
+            "type": "number",
+            "title": "Ctw Return Pressure"
+          },
+          "ctw_supply_pressure": {
+            "type": "number",
+            "title": "Ctw Supply Pressure"
+          },
+          "htw_return_temp": {
+            "type": "number",
+            "title": "Htw Return Temp"
+          },
+          "htw_supply_temp": {
+            "type": "number",
+            "title": "Htw Supply Temp"
+          },
+          "ctw_return_temp": {
+            "type": "number",
+            "title": "Ctw Return Temp"
+          },
+          "ctw_supply_temp": {
+            "type": "number",
+            "title": "Ctw Supply Temp"
+          },
+          "power_consumption_htwps": {
+            "type": "number",
+            "title": "Power Consumption Htwps"
+          },
+          "power_consumption_ctwps": {
+            "type": "number",
+            "title": "Power Consumption Ctwps"
+          },
+          "power_consumption_fan": {
+            "type": "number",
+            "title": "Power Consumption Fan"
+          },
+          "htwp_speed": {
+            "type": "number",
+            "title": "Htwp Speed"
+          },
+          "nctwps_staged": {
+            "type": "number",
+            "title": "Nctwps Staged"
+          },
+          "nhtwps_staged": {
+            "type": "number",
+            "title": "Nhtwps Staged"
+          },
+          "pue_output": {
+            "type": "number",
+            "title": "Pue Output"
+          },
+          "nehxs_staged": {
+            "type": "number",
+            "title": "Nehxs Staged"
+          },
+          "ncts_staged": {
+            "type": "number",
+            "title": "Ncts Staged"
+          },
+          "facility_return_temp": {
+            "type": "number",
+            "title": "Facility Return Temp"
+          },
+          "cdu_loop_bypass_flowrate": {
+            "type": "number",
+            "title": "Cdu Loop Bypass Flowrate"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp",
+          "htw_flowrate",
+          "ctw_flowrate",
+          "htw_return_pressure",
+          "htw_supply_pressure",
+          "ctw_return_pressure",
+          "ctw_supply_pressure",
+          "htw_return_temp",
+          "htw_supply_temp",
+          "ctw_return_temp",
+          "ctw_supply_temp",
+          "power_consumption_htwps",
+          "power_consumption_ctwps",
+          "power_consumption_fan",
+          "htwp_speed",
+          "nctwps_staged",
+          "nhtwps_staged",
+          "pue_output",
+          "nehxs_staged",
+          "ncts_staged",
+          "facility_return_temp",
+          "cdu_loop_bypass_flowrate"
+        ],
+        "title": "CoolingSimCEP"
+      },
+      "CoolingSimConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "CoolingSimConfig"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "JobStateEnum": {
+        "type": "string",
+        "enum": [
+          "COMPLETED",
+          "PENDING",
+          "RUNNING",
+          "CANCELLED",
+          "FAILED",
+          "TIMEOUT"
+        ],
+        "title": "JobStateEnum",
+        "description": "Slurm jobs pass through several states in the course of their execution. \nThe typical states are PENDING, RUNNING, SUSPENDED, COMPLETING, and COMPLETED.\nAn explanation of each state follows."
+      },
+      "ObjectTimeseries_CoolingSimCDU_": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "Start time of the timeseries "
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "End time of the timeseries "
+          },
+          "granularity": {
+            "type": "number",
+            "format": "time-delta",
+            "title": "Granularity",
+            "description": "Time between each timestamp "
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CoolingSimCDU"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "granularity",
+          "data"
+        ],
+        "title": "CoolingSimCDUTimeseries"
+      },
+      "ObjectTimeseries_CoolingSimCEP_": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "Start time of the timeseries "
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "End time of the timeseries "
+          },
+          "granularity": {
+            "type": "number",
+            "format": "time-delta",
+            "title": "Granularity",
+            "description": "Time between each timestamp "
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/CoolingSimCEP"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "granularity",
+          "data"
+        ],
+        "title": "CoolingSimCEPTimeseries"
+      },
+      "ObjectTimeseries_SchedulerSimJobPowerHistory_": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "Start time of the timeseries "
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "End time of the timeseries "
+          },
+          "granularity": {
+            "type": "number",
+            "format": "time-delta",
+            "title": "Granularity",
+            "description": "Time between each timestamp "
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SchedulerSimJobPowerHistory"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "granularity",
+          "data"
+        ],
+        "title": "SchedulerSimJobPowerHistoryTimeseries"
+      },
+      "ObjectTimeseries_SchedulerSimSystem_": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start",
+            "description": "Start time of the timeseries "
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End",
+            "description": "End time of the timeseries "
+          },
+          "granularity": {
+            "type": "number",
+            "format": "time-delta",
+            "title": "Granularity",
+            "description": "Time between each timestamp "
+          },
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/SchedulerSimSystem"
+            },
+            "type": "array",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "granularity",
+          "data"
+        ],
+        "title": "SchedulerSimSystemTimeseries"
+      },
+      "Page_SchedulerSimJob_": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SchedulerSimJob"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results",
+          "offset",
+          "limit",
+          "total_results"
+        ],
+        "title": "SchedulerSimJobPage"
+      },
+      "Page_Sim_": {
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/Sim"
+            },
+            "type": "array",
+            "title": "Results"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "total_results": {
+            "type": "integer",
+            "title": "Total Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "results",
+          "offset",
+          "limit",
+          "total_results"
+        ],
+        "title": "SimPage"
+      },
+      "SchedulerSimConfig": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": false
+          },
+          "down_nodes": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Down Nodes",
+            "default": []
+          },
+          "jobs_mode": {
+            "type": "string",
+            "enum": [
+              "replay",
+              "custom",
+              "random",
+              "test"
+            ],
+            "title": "Jobs Mode",
+            "default": "random"
+          },
+          "schedule_policy": {
+            "type": "string",
+            "enum": [
+              "fcfs",
+              "sjf",
+              "prq"
+            ],
+            "title": "Schedule Policy",
+            "description": "\"\nPolicy to use when scheduling jobs.\nReplay mode will ignore this and use the real time jobs were scheduled unless you also set\nreschedule to true.",
+            "default": "fcfs"
+          },
+          "reschedule": {
+            "type": "boolean",
+            "title": "Reschedule",
+            "description": "If true, will apply schedule_policy in replay mode ",
+            "default": false
+          },
+          "jobs": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/SchedulerSimCustomJob"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jobs",
+            "description": "The list of jobs.\nOnly applicable if jobs_mode is \"custom\""
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed",
+            "description": "Random seed for consistent random job generation.\nOnly applicable if jobs_mode is \"random\""
+          },
+          "num_jobs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Num Jobs",
+            "description": "Number of random jobs to generate.\nOnly applicable if jobs_mode is \"random\""
+          }
+        },
+        "type": "object",
+        "title": "SchedulerSimConfig",
+        "description": "Config for RAPS job simulation.\nThere are 3 main \"modes\" for how to run the jobs.\n- replay: Replay data based on the real jobs run on Frontier during start/end\n- custom: Pass your own set of jobs to submit in the simulation in `jobs`\n- random: Run random jobs. You can pass `seed` and `num_jobs` to customize it."
+      },
+      "SchedulerSimCustomJob": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "allocation_nodes": {
+            "type": "integer",
+            "title": "Allocation Nodes",
+            "description": "Number of nodes required "
+          },
+          "time_submission": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time Submission"
+          },
+          "time_limit": {
+            "type": "string",
+            "format": "duration",
+            "title": "Time Limit"
+          },
+          "cpu_util": {
+            "type": "number",
+            "title": "Cpu Util"
+          },
+          "gpu_util": {
+            "type": "number",
+            "title": "Gpu Util"
+          },
+          "cpu_trace": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Cpu Trace"
+          },
+          "gpu_trace": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Gpu Trace"
+          },
+          "end_state": {
+            "$ref": "#/components/schemas/JobStateEnum",
+            "description": "Slurm state job will end in "
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "allocation_nodes",
+          "time_submission",
+          "time_limit",
+          "cpu_util",
+          "gpu_util",
+          "cpu_trace",
+          "gpu_trace",
+          "end_state"
+        ],
+        "title": "SchedulerSimCustomJob"
+      },
+      "SchedulerSimJob": {
+        "properties": {
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id",
+            "description": "Job id. "
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "node_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Node Count",
+            "description": "Number of nodes required "
+          },
+          "time_snapshot": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Time Snapshot",
+            "description": "Time in the Optional[simulation] of this job snapshot "
+          },
+          "time_submission": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Submission"
+          },
+          "time_limit": {
+            "anyOf": [
+              {
+                "type": "number",
+                "format": "time-delta"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Limit"
+          },
+          "time_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time Start"
+          },
+          "time_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Time End"
+          },
+          "state_current": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JobStateEnum"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "nodes": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nodes",
+            "description": "The nodes the job is running on ['x2307c3s0b1', 'x2408c5s2b1']"
+          }
+        },
+        "type": "object",
+        "required": [
+          "time_snapshot"
+        ],
+        "title": "SchedulerSimJob"
+      },
+      "SchedulerSimJobPowerHistory": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "job_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Id"
+          },
+          "power": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Power"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp"
+        ],
+        "title": "SchedulerSimJobPowerHistory"
+      },
+      "SchedulerSimSystem": {
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp"
+          },
+          "down_nodes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Down Nodes",
+            "description": "List of nodes that are currently down in the simulation "
+          },
+          "num_samples": {
+            "type": "integer",
+            "title": "Num Samples"
+          },
+          "jobs_completed": {
+            "type": "integer",
+            "title": "Jobs Completed"
+          },
+          "jobs_running": {
+            "type": "integer",
+            "title": "Jobs Running"
+          },
+          "jobs_pending": {
+            "type": "integer",
+            "title": "Jobs Pending"
+          },
+          "throughput": {
+            "type": "number",
+            "title": "Throughput",
+            "description": "jobs/hour "
+          },
+          "average_power": {
+            "type": "number",
+            "title": "Average Power",
+            "description": "In Watts "
+          },
+          "min_loss": {
+            "type": "number",
+            "title": "Min Loss",
+            "description": "In watts "
+          },
+          "average_loss": {
+            "type": "number",
+            "title": "Average Loss",
+            "description": "In watts "
+          },
+          "max_loss": {
+            "type": "number",
+            "title": "Max Loss",
+            "description": "In watts "
+          },
+          "system_power_efficiency": {
+            "type": "number",
+            "title": "System Power Efficiency",
+            "description": "Percentage 0 -> 100 "
+          },
+          "total_energy_consumed": {
+            "type": "number",
+            "title": "Total Energy Consumed",
+            "description": "In MW\u22c5hr "
+          },
+          "carbon_emissions": {
+            "type": "number",
+            "title": "Carbon Emissions",
+            "description": "metric tons of CO2 "
+          },
+          "total_cost": {
+            "type": "number",
+            "title": "Total Cost",
+            "description": "Cost in US dollars "
+          },
+          "p_flops": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "P Flops",
+            "description": "Estimate of the floating operations per second in petaflops "
+          },
+          "g_flops_w": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "G Flops W",
+            "description": "GigaFlops per watt energy efficiency estimate "
+          },
+          "system_util": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System Util",
+            "description": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "timestamp",
+          "down_nodes",
+          "num_samples",
+          "jobs_completed",
+          "jobs_running",
+          "jobs_pending",
+          "throughput",
+          "average_power",
+          "min_loss",
+          "average_loss",
+          "max_loss",
+          "system_power_efficiency",
+          "total_energy_consumed",
+          "carbon_emissions",
+          "total_cost",
+          "p_flops",
+          "g_flops_w",
+          "system_util"
+        ],
+        "title": "SchedulerSimSystem"
+      },
+      "Sim": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique id of the simulation "
+          },
+          "user": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User",
+            "description": "User who launched the simulation "
+          },
+          "system": {
+            "type": "string",
+            "enum": [
+              "frontier",
+              "fugaku",
+              "lassen",
+              "marconi100"
+            ],
+            "title": "System"
+          },
+          "state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "running",
+                  "success",
+                  "fail"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "State"
+          },
+          "error_messages": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Messages",
+            "description": "Any warnings or error messages from the simulation run "
+          },
+          "start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start",
+            "description": "The start of the date range the simulation is running over.\n\nIf the simulation is configured to use real telemetry data (such as replaying jobs) then this is\nthe start of the date range the telemetry will come from.\nIf the simulation is simulating everything from scratch, then the start/end date range only \nmatters to set how long the simulation should run for."
+          },
+          "end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End",
+            "description": "See sim_start "
+          },
+          "execution_start": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution Start",
+            "description": "The real time the simulation started running "
+          },
+          "execution_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Execution End",
+            "description": "The real time the simulation finished "
+          },
+          "progress_date": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress Date",
+            "description": "Current point in the simulation. You can assume every time step smaller than this has been\ngenerated. For succesfully completed sims, this will always be the same as end. For failed sims,\nit will show how far the sim got before failure."
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 1.0,
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress",
+            "description": "Float from 0 -> 1 summarizing the simulation progress "
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Config",
+            "description": "Original config used to run the simulation "
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "system"
+        ],
+        "title": "Sim",
+        "description": "Represents a single simulation run "
+      },
+      "SimConfig": {
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Start"
+          },
+          "end": {
+            "type": "string",
+            "format": "date-time",
+            "title": "End"
+          },
+          "system": {
+            "type": "string",
+            "enum": [
+              "frontier",
+              "fugaku",
+              "lassen",
+              "marconi100"
+            ],
+            "title": "System"
+          },
+          "scheduler": {
+            "$ref": "#/components/schemas/SchedulerSimConfig"
+          },
+          "cooling": {
+            "$ref": "#/components/schemas/CoolingSimConfig"
+          }
+        },
+        "type": "object",
+        "required": [
+          "start",
+          "end",
+          "system"
+        ],
+        "title": "SimConfig"
+      },
+      "SystemInfo": {
+        "properties": {
+          "peak_flops": {
+            "type": "number",
+            "title": "Peak Flops"
+          },
+          "peak_power": {
+            "type": "number",
+            "title": "Peak Power"
+          },
+          "g_flops_w_peak": {
+            "type": "number",
+            "title": "G Flops W Peak"
+          }
+        },
+        "type": "object",
+        "required": [
+          "peak_flops",
+          "peak_power",
+          "g_flops_w_peak"
+        ],
+        "title": "SystemInfo"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}
