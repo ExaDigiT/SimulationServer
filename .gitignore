@@ -1,5 +1,6 @@
 .vscode
-models
+/models/*
+!/models/README.md
 data
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,linux,python,git
