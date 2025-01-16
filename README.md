@@ -5,7 +5,8 @@ REST API that allows running and querying the results from the ExaDigit simulati
 ## Downloading FMU models
 You can run the job and power simulation without downloading any FMU models. But to use the cooling
 simulation you'll need to download FMU models into the `models` directory. You can download
-`Simulator_olcf5_base.fmu` from https://code.ornl.gov/exadigit/fmu-models if you have access.
+`Simulator_olcf5_base.fmu` from https://code.ornl.gov/exadigit/fmu-models if you have access. (The
+FMU models aren't currently publicly available.)
 
 
 ## Deploying
