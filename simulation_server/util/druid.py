@@ -130,17 +130,17 @@ def execute_ignore_missing(conn, stmt) -> sqla.CursorResult:
     cursor. Note this may have unexpected results if you have joins/aggregations/etc that would have
     returned data with an empty table.
     """
-    try:
-        return conn.execute(stmt)
-    except Exception as e:
-        existing_tables = set(sqla.inspect(conn.engine).get_table_names())
-        stmt_tables = set([t.name for t in stmt.get_final_froms()])
-        missing_tables = stmt_tables - existing_tables
-        if missing_tables:
-            logger.info(f"table(s) {', '.join(stmt_tables)} missing, returning empty result")
-            return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
-        else:
-            raise e
+    # try:
+    return conn.execute(stmt)
+    # except Exception as e:
+    #     existing_tables = set(sqla.inspect(conn.engine).get_table_names())
+    #     stmt_tables = set([t.name for t in stmt.get_final_froms()])
+    #     missing_tables = stmt_tables - existing_tables
+    #     if missing_tables:
+    #         logger.info(f"table(s) {', '.join(stmt_tables)} missing, returning empty result")
+    #         return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
+    #     else:
+    #         raise e
 
 
 def submit_ingest(ingest: dict):

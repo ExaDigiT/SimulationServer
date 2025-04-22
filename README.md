@@ -2,6 +2,14 @@
 
 REST API that allows running and querying the results from the ExaDigit simulation and RAPS.
 
+## Loading RAPS submodule
+This uses [RAPS](https://github.com/ExaDigiT/RAPS) to run the simulation, which is loaded as a 
+submodule. Make sure to run
+```
+git submodule update --init --recursive
+```
+to load the submodule.
+
 ## Downloading FMU models
 You can run the job and power simulation without downloading any FMU models. But to use the cooling
 simulation you'll need to download FMU models into the `models` directory. You can download
