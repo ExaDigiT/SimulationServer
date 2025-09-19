@@ -11,6 +11,13 @@ git submodule update --init --recursive
 to load the submodule.
 
 ## Downloading FMU models
+The Frontier FMU models aren't currently publicly available. To run Frontier simulations with cooling enabled, use this
+command to download them (if you have access to the fmu-models repo).
+```
+cd simulation_server/simulation/raps
+make fetch-fmu-models
+```
+
 You can run the job and power simulation without downloading any FMU models. But to use the cooling
 simulation you'll need to download FMU models into the `models` directory. You can download
 `Simulator_olcf5_base.fmu` from https://code.ornl.gov/exadigit/fmu-models if you have access. (The
