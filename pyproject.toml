@@ -29,7 +29,7 @@ dependencies = [
     "elasticsearch==7.13.4",
     "elasticsearch-dbapi==0.2.11",
     "requests==2.32.5",
-    "raps@{root:uri}/simulation_server/simulation/raps",
+    "raps@{root:uri}/raps",
 ]
 
 [project.optional-dependencies]

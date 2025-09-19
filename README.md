@@ -14,7 +14,7 @@ to load the submodule.
 The Frontier FMU models aren't currently publicly available. To run Frontier simulations with cooling enabled, use this
 command to download them (if you have access to the fmu-models repo).
 ```
-cd simulation_server/simulation/raps
+cd ./raps
 make fetch-fmu-models
 ```
 
