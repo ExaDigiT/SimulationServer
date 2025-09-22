@@ -36,11 +36,3 @@ dependencies = [
 dev = [
     "pytest",
 ]
-
-# [project.scripts]
-# spam-cli = "spam:main_cli"
-
-# [project.entry-points."spam.magical"]
-# tomatoes = "spam:main_tomatoes"
-
- 
