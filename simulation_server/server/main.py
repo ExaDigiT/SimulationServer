@@ -65,7 +65,7 @@ async def lifespan(api: FastAPI):
 
 app = FastAPI(
     title = "ExaDigiT Simulation Server",
-    version = "0.1.0",
+    version = "1.0.0",
     # Simplify ids and names in generated clients a bit
     # NOTE: This means we need one tag defined (or inherited from the APIRouter object) on every route
     generate_unique_id_function = lambda route: f"{route.tags[0]}_{route.name}",
@@ -117,15 +117,8 @@ app.include_router(router)
 
 
 if __name__ == "__main__":
-    if settings.debug_mode:
-        uvicorn.run(app,
-            host='0.0.0.0',
-            port=settings.http_port,
-            reload=False,
-        )
-    else:
-        subprocess.run(["gunicorn",
-            "simulation_server.server.main:app",
-            "--bind", f"0.0.0.0:{settings.http_port}",
-            "--worker-class", "uvicorn.workers.UvicornWorker",
-        ], check=True)
+    uvicorn.run(app,
+        host='0.0.0.0',
+        port=settings.http_port,
+        reload=False,
+    )
