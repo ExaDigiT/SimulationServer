@@ -1,11 +1,11 @@
 from __future__ import annotations
 from typing import Optional, Literal, Annotated as A, get_args
-from datetime import timedelta, datetime, timezone
-import json, math
-from pydantic import AwareDatetime, model_validator, field_validator, Field
+import json
+from pydantic import AwareDatetime, Field
+from raps import SingleSimConfig
+from raps.utils import AutoAwareDatetime
 
 from .base import BaseModel
-from .job_state import JobStateEnum
 from ..util.misc import omit
 from ..util.api_queries import filter_params, sort_params
 
@@ -99,92 +99,6 @@ SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'confi
 ])
 
 
-class SimConfig(BaseModel):
-    start: AwareDatetime
-    end: AwareDatetime
-
-    system: SimSystem
-    scheduler: A[SchedulerSimConfig, Field(default_factory = lambda: SchedulerSimConfig())]
-    cooling: A[CoolingSimConfig, Field(default_factory = lambda: CoolingSimConfig())]
-
-    @model_validator(mode='after')
-    def validate_model(self):
-        if self.end <= self.start:
-            raise ValueError("Start must be less than end")
-
-        if not any(m.enabled for m in [self.scheduler, self.cooling]):
-            raise ValueError("Must enable one simulation")
-        if self.cooling.enabled and not self.scheduler.enabled:
-            raise ValueError("Currently can't run cooling simulation without the scheduler")
-        return self
-
-    @field_validator("start", mode="after")
-    @classmethod
-    def trunc_start(cls, v: datetime, info):
-        return v.fromtimestamp(math.floor(v.timestamp()), tz=timezone.utc)
-
-    @field_validator("end", mode="after")
-    @classmethod
-    def trunc_end(cls, v: datetime, info):
-        return v.fromtimestamp(math.ceil(v.timestamp()), tz=timezone.utc)
-
-
-class SchedulerSimConfig(BaseModel):
-    """
-    Config for RAPS job simulation.
-    There are 3 main "modes" for how to run the jobs.
-    - replay: Replay data based on the real jobs run on Frontier during start/end
-    - custom: Pass your own set of jobs to submit in the simulation in `jobs`
-    - random: Run random jobs. You can pass `seed` and `num_jobs` to customize it.
-    """
-
-    enabled: bool = False
-    down_nodes: list[int] = [] # List of hostnames. TODO: allow parsing from xnames
-    
-    jobs_mode: Literal['replay', 'custom', 'random', 'test'] = 'random'
-    schedule_policy: Literal['fcfs', 'sjf', 'prq'] ='fcfs'
-    """"
-    Policy to use when scheduling jobs.
-    Replay mode will ignore this and use the real time jobs were scheduled unless you also set
-    reschedule to true.
-    """
-    reschedule: bool = False
-    """ If true, will apply schedule_policy in replay mode """
-
-    jobs: Optional[list[SchedulerSimCustomJob]] = None
-    """
-    The list of jobs.
-    Only applicable if jobs_mode is "custom"
-    """
-
-    seed: Optional[int] = None
-    """
-    Random seed for consistent random job generation.
-    Only applicable if jobs_mode is "random"
-    """
-    num_jobs: Optional[int] = None
-    """
-    Number of random jobs to generate.
-    Only applicable if jobs_mode is "random"
-    """
-
-
-class SchedulerSimCustomJob(BaseModel):
-    # This is mostly a subset of the SchedulerSimJob
-    name: str
-    allocation_nodes: int
-    """ Number of nodes required """
-    time_submission: AwareDatetime
-    time_limit: timedelta
-
-    cpu_util: float
-    gpu_util: float
-    cpu_trace: list[float]
-    gpu_trace: list[float]
-
-    end_state: JobStateEnum
-    """ Slurm state job will end in """
-
-
-class CoolingSimConfig(BaseModel):
-    enabled: bool = False
+class ServerSimConfig(SingleSimConfig):
+    start: AutoAwareDatetime  # make start required
+    """ Start of the simulation """
