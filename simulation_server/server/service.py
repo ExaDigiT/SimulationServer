@@ -1,9 +1,11 @@
 from typing import Optional, Any
 from datetime import datetime, timedelta, timezone
+import functools
 import uuid, time, json, base64, os, sys, subprocess
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
+from fastapi import HTTPException
 from ..models.sim import Sim, ServerSimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS
 from ..models.base import ResponseFormat
 from ..models.output import (
@@ -83,7 +85,7 @@ def run_simulation(sim_config: ServerSimConfig, deps: AppDeps):
                             {
                                 "name": "main",
                                 "image": deps.settings.job_image,
-                                "command": ['python3', "-m", "simulation_server.simulation.main", "background-job"],
+                                "command": ['python3', "-m", "simulation_server.simulation.main"],
                                 "env": [
                                     {"name": "SIM", "value": sim.model_dump_json()},
                                 ],
@@ -104,7 +106,7 @@ def run_simulation(sim_config: ServerSimConfig, deps: AppDeps):
         })
     else: # Running locally, just use a subprocess
         proc = subprocess.Popen(
-            args = [sys.executable, "-m", "simulation_server.simulation.main", "background-job"],
+            args = [sys.executable, "-m", "simulation_server.simulation.main"],
             env = {
                 "SIM": sim.model_dump_json(),
                 **os.environ,
@@ -696,7 +698,11 @@ def build_scheduler_sim_power_history_query(*,
     )
 
 
+@functools.cache
 def get_system_info(system: str):
-    from ..simulation.simulation import get_scheduler
-    sc = get_scheduler(system = system)
-    return sc.get_gauge_limits()
+    from raps.system_config import list_systems
+    from raps import Engine, SingleSimConfig
+    if system not in list_systems():
+        raise HTTPException(status_code=404, detail=f"System {system} not found")
+    engine = Engine(SingleSimConfig(system = system))
+    return engine.get_gauge_limits()
