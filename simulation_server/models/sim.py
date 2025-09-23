@@ -10,10 +10,6 @@ from ..util.misc import omit
 from ..util.api_queries import filter_params, sort_params
 
 
-SimSystem = Literal["frontier", "fugaku", "lassen", "marconi100"]
-SIM_SYSTEMS: tuple[str] = get_args(SimSystem)
-
-
 class Sim(BaseModel):
     """ Represents a single simulation run """
 
@@ -23,7 +19,7 @@ class Sim(BaseModel):
     user: Optional[str] = None
     """ User who launched the simulation """
 
-    system: SimSystem
+    system: str
 
     state: Optional[Literal['running', 'success', 'fail']] = None
 

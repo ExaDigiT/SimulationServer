@@ -4,7 +4,7 @@ import uuid, time, json, base64, os, sys, subprocess
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
-from ..models.sim import Sim, SimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS, SimSystem
+from ..models.sim import Sim, ServerSimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS
 from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
@@ -51,12 +51,12 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
 
 
 
-def run_simulation(sim_config: SimConfig, deps: AppDeps):
+def run_simulation(sim_config: ServerSimConfig, deps: AppDeps):
     sim = Sim(
         # Random sim id, use base32 to make it a bit shorter
         id = base64.b32encode(uuid.uuid4().bytes).decode().rstrip('=').lower(),
         user = "unknown", # TODO pull this from cookie/auth header
-        system = sim_config.system,
+        system = sim_config.system_configs[0].system_name,
         state = "running",
         start = sim_config.start,
         end = sim_config.end,
@@ -696,7 +696,7 @@ def build_scheduler_sim_power_history_query(*,
     )
 
 
-def get_system_info(system: SimSystem):
+def get_system_info(system: str):
     from ..simulation.simulation import get_scheduler
     sc = get_scheduler(system = system)
     return sc.get_gauge_limits()

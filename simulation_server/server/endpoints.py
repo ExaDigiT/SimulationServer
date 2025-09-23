@@ -10,7 +10,7 @@ from ..models.output import (
     CoolingSimCDU, COOLING_CDU_FILTERS, COOLING_CDU_FIELD_SELECTORS,
     CoolingSimCEP, COOLING_CEP_FIELD_SELECTORS,
 )
-from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, SimConfig, SimSystem
+from ..models.sim import Sim, SIM_FIELD_SELECTORS, SIM_FILTERS, SIM_SORT, ServerSimConfig
 from ..models.output import SystemInfo
 from ..util.api_queries import Granularity, granularity_params, Filters, Sort, get_selectors
 from .config import AppDeps
@@ -27,10 +27,10 @@ GranularityDep = A[Granularity, Depends(granularity_params(default_granularity=t
 
 
 @router.post("/simulation/run", response_model=Sim)
-def run(*, sim_config: A[SimConfig, Body()], deps: AppDeps):
+def run(*, sim_config: A[ServerSimConfig, Body()], deps: AppDeps):
     """
     Start running a simulation in the background. POST the configuration for the simulation. Returns
-    a Sim object containing an id you can use to query the results as they are generated. Foo
+    a Sim object containing an id you can use to query the results as they are generated.
     """
     return run_simulation(sim_config, deps)
 
@@ -213,5 +213,5 @@ def scheduler_system(*,
 
 
 @router.get("/system-info/{system}", response_model=SystemInfo)
-def system_info(system: SimSystem):
+def system_info(system: str):
     return get_system_info(system = system)
