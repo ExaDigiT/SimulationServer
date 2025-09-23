@@ -5,8 +5,7 @@ set -e # Exit if any commmand fails
 BASE_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}")/..)
 cd "$BASE_DIR"
 
-docker build -t exadigit-simulation-server:latest -f Dockerfile.server .
-# docker build -t exadigit-simulation-server-simulation-job:latest -f Dockerfile.simulation .
+docker build -t exadigit-simulation-server:latest -f Dockerfile .
 
 # trap 'docker compose down' SIGINT SIGTERM EXIT
 

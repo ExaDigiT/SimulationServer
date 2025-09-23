@@ -175,6 +175,7 @@ services:
   simulation-server:
     image: exadigit-simulation-server
     container_name: simulation-server
+    command: ["python", "-m", "simulation_server.server.main"]
     ports:
       - "8080:8080"
     depends_on:
