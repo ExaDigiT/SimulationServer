@@ -30,6 +30,8 @@ def write_sim(sim: Sim, writer: Callable[[str, bytes], None]):
             output_rows("svc-ts-exadigit-coolingsimcep", data.cooling_sim_cep)
             output_rows("svc-ts-exadigit-jobpowerhistory", data.power_history)
             progress_date = data.timestamp
+            if data.timestamp.second == 0:
+                logger.info(f"progress: {data.timestamp.isoformat()} / {sim.end.isoformat()}")
     except BaseException as e:
         sim.state = "fail"
         sim.execution_end = datetime.now(timezone.utc)
