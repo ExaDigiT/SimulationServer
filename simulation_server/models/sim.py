@@ -1,7 +1,7 @@
 from __future__ import annotations
-from typing import Optional, Literal, Annotated as A, get_args
+from typing import Optional, Literal, Annotated as A
 import json
-from pydantic import AwareDatetime, Field
+from pydantic import AwareDatetime, Field, model_validator
 from raps import SingleSimConfig
 from raps.utils import AutoAwareDatetime
 
@@ -98,3 +98,10 @@ SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'confi
 class ServerSimConfig(SingleSimConfig):
     start: AutoAwareDatetime  # make start required
     """ Start of the simulation """
+
+    @model_validator(mode = "after")
+    def _validate_server_sim_config(self):
+        # Force these options regardless of input
+        self.noui = True
+        self.output = "none"
+        return self
