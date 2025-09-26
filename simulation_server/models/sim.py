@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Literal, Annotated as A
 import json
+from pathlib import Path
 from pydantic import AwareDatetime, Field, model_validator
 from raps import SingleSimConfig
 from raps.utils import AutoAwareDatetime
@@ -98,6 +99,18 @@ SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'confi
 class ServerSimConfig(SingleSimConfig):
     start: AutoAwareDatetime  # make start required
     """ Start of the simulation """
+
+    def __init__(self, /, **data):
+        # Override context to set base_path
+        RAPS_PATH = (Path(__file__) / '../../../raps').resolve()
+        self.__pydantic_validator__.validate_python(
+            data,
+            self_instance=self,
+            context={
+                "base_path": RAPS_PATH,
+                "force_under_base_path": True,
+            }
+        )
 
     @model_validator(mode = "after")
     def _validate_server_sim_config(self):
