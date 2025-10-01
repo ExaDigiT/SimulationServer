@@ -1,4 +1,4 @@
-FROM python:3.12
+FROM python:3.12.11
 
 RUN apt-get update \
   && apt-get install git libsnappy-dev \
@@ -27,5 +27,4 @@ RUN uv pip install --system -e .
 # Re-install RAPS as editable (TODO: RAPS currently doesn't work in non-editable mode)
 RUN uv pip install --system -e ./raps
 
-# CMD ["python", "-m", "simulation_server.simulation.main"]
-# CMD ["python", "-m", "simulation_server.server.main"]
+CMD ["python", "-m", "simulation_server.server.main"]
