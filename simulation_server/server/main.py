@@ -50,14 +50,19 @@ async def lifespan(api: FastAPI):
 
     if settings.env == 'dev':
         kafka_admin = get_kafka_admin()
-        kafka_admin.create_topics([
-            NewTopic("svc-event-exadigit-sim", 1, 1),
-            NewTopic("svc-ts-exadigit-schedulersimsystem", 1, 1),
-            NewTopic("svc-event-exadigit-schedulersimjob", 1, 1),
-            NewTopic("svc-ts-exadigit-coolingsimcdu", 1, 1),
-            NewTopic("svc-ts-exadigit-coolingsimcep", 1, 1),
-            NewTopic("svc-ts-exadigit-jobpowerhistory", 1, 1),
-        ])
+        existing_topics = set(kafka_admin.list_topics())
+        new_topics = [
+            "svc-event-exadigit-sim",
+            "svc-ts-exadigit-schedulersimsystem",
+            "svc-event-exadigit-schedulersimjob",
+            "svc-ts-exadigit-coolingsimcdu",
+            "svc-ts-exadigit-coolingsimcep",
+            "svc-ts-exadigit-jobpowerhistory",
+        ]
+        for topic in new_topics:
+            if topic not in existing_topics:
+                logger.info(f"Creating kafka topic {topic}")
+                kafka_admin.create_topics([NewTopic(topic, 1, 1)])
 
         druid_ingests_dir = Path(__file__).parent.parent.parent.resolve() / 'druid_ingests'
         ingests = [
