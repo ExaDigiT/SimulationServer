@@ -60,7 +60,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8081/status/health || exit 1"]
       interval: 10s
-      retries: 10
+      retries: 3
+      start_interval: 1s
+      start_period: 5m
   
   druid-broker:
     image: apache/druid:34.0.0
@@ -81,7 +83,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8082/druid/broker/v1/readiness || exit 1"]
       interval: 10s
-      retries: 10
+      retries: 3
+      start_interval: 1s
+      start_period: 5m
 
   druid-historical:
     image: apache/druid:34.0.0
@@ -103,7 +107,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8083/druid/historical/v1/readiness || exit 1"]
       interval: 10s
-      retries: 10
+      retries: 3
+      start_interval: 1s
+      start_period: 5m
 
   druid-middlemanager:
     image: apache/druid:34.0.0
@@ -143,7 +149,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://localhost:8888/status/health || exit 1"]
       interval: 10s
-      retries: 10
+      retries: 3
+      start_interval: 1s
+      start_period: 5m
 
   kafka:
     image: apache/kafka:3.7.1
@@ -152,9 +160,10 @@ services:
     #   - 9092:9092
     healthcheck:
       test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list || exit 1"]
-      interval: 15s
-      retries: 20
-      timeout: 3s
+      interval: 10s
+      retries: 3
+      start_interval: 1s
+      start_period: 5m
     volumes:
       - kafka_secrets:/etc/kafka/secrets
       - kafka_config:/mnt/shared/config
@@ -214,3 +223,9 @@ services:
       - EXADIGIT_ALLOW_ORIGINS=["*"]
       - DRUID_SERVICE_URL=http://druid-router:8888
       - KAFKA_BOOTSTRAP=kafka:9092
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/openapi.json || exit 1"]
+      interval: 10s
+      retries: 3
+      start_interval: 1s
+      start_period: 1m
