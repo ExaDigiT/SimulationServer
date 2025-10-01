@@ -186,7 +186,9 @@ services:
       - KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS=300000
   
   simulation-server:
+    pull_policy: build
     image: exadigit-simulation-server
+    build: .
     container_name: simulation-server
     command: ["python", "-m", "simulation_server.server.main"]
     ports:

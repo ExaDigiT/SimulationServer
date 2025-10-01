@@ -1,14 +1,9 @@
 #!/bin/bash
-# Launch local version
 set -e # Exit if any commmand fails
-
-BASE_DIR=$(realpath $(dirname "${BASH_SOURCE[0]}")/..)
-cd "$BASE_DIR"
-
-docker build -t exadigit-simulation-server:latest -f Dockerfile .
+cd $(realpath $(dirname "${BASH_SOURCE[0]}")/..)
 
 # trap 'docker compose down' SIGINT SIGTERM EXIT
 
-docker stop simulation-server >/dev/null 2>&1 || true
+docker compose down
 docker compose up -d
 docker compose logs -f --no-log-prefix simulation-server
