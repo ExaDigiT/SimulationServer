@@ -255,6 +255,7 @@ COOLING_CEP_FIELD_SELECTORS = {
 
 
 class SystemInfo(BaseModel):
+  name: str
   peak_flops: float
   peak_power: float
   g_flops_w_peak: float

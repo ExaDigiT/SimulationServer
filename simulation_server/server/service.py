@@ -699,10 +699,20 @@ def build_scheduler_sim_power_history_query(*,
 
 
 @functools.cache
+def get_systems():
+    from raps.system_config import list_systems
+    return [get_system_info(s) for s in list_systems()]
+
+
+@functools.cache
 def get_system_info(system: str):
     from raps.system_config import list_systems
     from raps import Engine, SingleSimConfig
+    from raps.stats import get_gauge_limits
     if system not in list_systems():
         raise HTTPException(status_code=404, detail=f"System {system} not found")
     engine = Engine(SingleSimConfig(system = system))
-    return engine.get_gauge_limits()
+    return {
+        "name": system,
+        **get_gauge_limits(engine),
+    }

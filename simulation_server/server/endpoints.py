@@ -17,7 +17,7 @@ from .config import AppDeps
 from .service import (
     run_simulation, query_sims, query_cooling_sim_cdu, query_scheduler_sim_jobs,
     query_scheduler_sim_system, query_scheduler_sim_power_history, query_cooling_sim_cep,
-    get_system_info,
+    get_systems, get_system_info,
 )
 
 router = APIRouter(tags=["simulation"])
@@ -212,6 +212,11 @@ def scheduler_system(*,
     return result
 
 
-@router.get("/system-info/{system}", response_model=SystemInfo)
+@router.get("/system/list", response_model=list[SystemInfo])
+def system_list():
+    return get_systems()
+
+
+@router.get("/system/{system}", response_model=SystemInfo)
 def system_info(system: str):
     return get_system_info(system = system)
