@@ -26,15 +26,30 @@ FMU models aren't currently publicly available.)
 ## Running locally
 To run a local version of the server run
 ```bash
-./scripts/launch_local.sh
+docker compose up --wait
 ```
 The server will be hosted on http://localhost:8080
 
-You'll need at least 16 GiB of RAM, preferably 32 GiB for druid to run smoothly.
+You'll need at least 16 GiB of RAM, preferably 32 GiB for druid and RAPS to run smoothly.
 
-If you want to run replay data locally, you'll need to download the datasets (see ./scripts/fetch.sh)
-and then ingest them in Druid. After launching, you can access the Druid UI at http://localhost:8888
-and submit druid ingests for the system you want.
+If you want to run replay data locally, you'll need to download the datasets and then ingest them in
+Druid. You can fetch the datasets with `./scripts/fetch.sh` and submit the druid ingests for them
+under `./druid_ingests` using the Druid UI at http://localhost:8888.
+
+View the server logs with:
+```bash
+docker compose logs -f --no-log-prefix simulation-server
+```
+
+To shut down the server run:
+```bash
+docker compose down
+```
+
+Use this if you want to wipe all the database data as well:
+```bash
+docker compose down --volumes
+```
 
 ## Deploying
 To deploy the server, run
