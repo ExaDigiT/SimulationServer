@@ -17,7 +17,8 @@ RUN uv pip install --system -r /app/raps/pyproject.toml
 # Install server dependencies (including raps) for caching
 COPY raps/ /app/raps/
 COPY pyproject.toml /app/
-COPY README.md /app/
+# pip install expects README to exist
+RUN touch /app/README.md
 RUN uv pip install --system -r /app/pyproject.toml
 
 # Install simulation server
