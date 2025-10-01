@@ -2,14 +2,19 @@
 # Docker UI will be available from http://localhost:8888
 
 volumes:
-  metadata_data: {}
-  middle_var: {}
-  historical_var: {}
-  broker_var: {}
-  coordinator_var: {}
-  router_var: {}
+  postgres_data: {}
+  zookeeper_data: {}
+  zookeeper_datalog: {}
+  zookeeper_logs: {}
+  druid_middlemanager_var: {}
+  druid_historical_var: {}
+  druid_broker_var: {}
+  druid_coordinator_var: {}
+  druid_router_var: {}
   druid_shared: {}
-
+  kafka_secrets: {}
+  kafka_config: {}
+  kafka_data: {}
 
 services:
   postgres:
@@ -18,7 +23,7 @@ services:
     # ports:
     #   - "5432:5432"
     volumes:
-      - metadata_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     environment:
       - POSTGRES_PASSWORD=FoolishPassword
       - POSTGRES_USER=druid
@@ -31,13 +36,17 @@ services:
     #   - "2181:2181"
     environment:
       - ZOO_MY_ID=1
+    volumes:
+      - zookeeper_data:/data
+      - zookeeper_datalog:/datalog
+      - zookeeper_logs:/logs
 
   druid-coordinator:
     image: apache/druid:34.0.0
     container_name: druid-coordinator
     volumes:
       - druid_shared:/opt/shared
-      - coordinator_var:/opt/druid/var
+      - druid_coordinator_var:/opt/druid/var
       - ./data:/data
     depends_on:
       - zookeeper
@@ -57,7 +66,7 @@ services:
     image: apache/druid:34.0.0
     container_name: druid-broker
     volumes:
-      - broker_var:/opt/druid/var
+      - druid_broker_var:/opt/druid/var
       - ./data:/data
     depends_on:
       - zookeeper
@@ -79,7 +88,7 @@ services:
     container_name: druid-historical
     volumes:
       - druid_shared:/opt/shared
-      - historical_var:/opt/druid/var
+      - druid_historical_var:/opt/druid/var
       - ./data:/data
     depends_on: 
       - zookeeper
@@ -101,7 +110,7 @@ services:
     container_name: druid-middlemanager
     volumes:
       - druid_shared:/opt/shared
-      - middle_var:/opt/druid/var
+      - druid_middlemanager_var:/opt/druid/var
       - ./data:/data
     depends_on: 
       - zookeeper
@@ -119,7 +128,7 @@ services:
     image: apache/druid:34.0.0
     container_name: druid-router
     volumes:
-      - router_var:/opt/druid/var
+      - druid_router_var:/opt/druid/var
       # - ./data:/data
     depends_on:
       - zookeeper
@@ -146,6 +155,10 @@ services:
       interval: 15s
       retries: 20
       timeout: 3s
+    volumes:
+      - kafka_secrets:/etc/kafka/secrets
+      - kafka_config:/mnt/shared/config
+      - kafka_data:/var/lib/kafka/data
     environment:
       # Overriding any configs wipes the defaults, so most of this is copied from /opt/kafka/config/server.properties
       - KAFKA_PROCESS_ROLES=broker,controller
