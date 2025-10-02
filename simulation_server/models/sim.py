@@ -2,9 +2,9 @@ from __future__ import annotations
 from typing import Optional, Literal, Annotated as A
 import json
 from pathlib import Path
-from pydantic import AwareDatetime, Field, model_validator
+from pydantic import AwareDatetime, Field, model_validator, BeforeValidator
 from raps import SingleSimConfig
-from raps.utils import AutoAwareDatetime
+from raps.utils import AutoAwareDatetime, ResolvedPath
 
 from .base import BaseModel
 from ..util.misc import omit
@@ -100,6 +100,12 @@ class ServerSimConfig(SingleSimConfig):
     start: AutoAwareDatetime  # make start required
     """ Start of the simulation """
 
+    replay: A[list[ResolvedPath] | None,
+              BeforeValidator(lambda r: ['database'] if r else None, bool)] = None
+    """ Whether to enable job replay. Pulls data from the database """
+    # RAPS replay expects a list of paths, but that's not relevant when we are pulling the data from
+    # the database. We accept true/false as input and just put a dummy value in for the list.
+
     def __init__(self, /, **data):
         # Override context to set base_path
         RAPS_PATH = (Path(__file__) / '../../../raps').resolve()
@@ -112,9 +118,13 @@ class ServerSimConfig(SingleSimConfig):
             }
         )
 
-    @model_validator(mode = "after")
-    def _validate_server_sim_config(self):
+    @model_validator(mode = "before")
+    def _validate_server_sim_config(cls, data):
+        data = {**data}
         # Force these options regardless of input
-        self.noui = True
-        self.output = "none"
-        return self
+        data['noui'] = True
+        data['output'] = "none"
+        if data.get("workload") == "replay" and 'replay' not in data:
+            data['replay'] = True
+
+        return data
