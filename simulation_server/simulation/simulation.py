@@ -41,13 +41,23 @@ def get_job_state_hash(job: RapsJob):
     ])
 
 
+def snap_sample_rate(desired_rate: int, actual_rate: int):
+    """
+    Returns a sample rate close to desired_rate, but is still divisible by actual_rate.
+    E.g. if power is being ticked every 3 seconds, but disired sample rate is 10, round it to 9.
+    """
+    if actual_rate >= desired_rate:
+        return actual_rate
+    else:
+        return int(desired_rate / actual_rate) * actual_rate
+
+
 def run_simulation(sim_config: ServerSimConfig):
     # TODO: replay logic
     engine = Engine(sim_config)
 
-    sample_scheduler_sim_system = timedelta(seconds = 1).total_seconds()
-    # Sample CDU as fast as it is available
-    sample_cooling = timedelta(seconds = 1).total_seconds()
+    sample_system = int(timedelta(seconds = 1).total_seconds())
+    sample_power = snap_sample_rate(5, int(sim_config.time_delta.total_seconds()))
 
     def offset_to_time(offset):
         if offset is not None:
@@ -71,7 +81,7 @@ def run_simulation(sim_config: ServerSimConfig):
         is_last_tick = (timestamp + timedelta(seconds=1) >= sim_config.end)
 
         scheduler_sim_system: list[SchedulerSimSystem] = []
-        if unix_timestamp % sample_scheduler_sim_system == 0 or is_last_tick:
+        if unix_timestamp % sample_system == 0 or is_last_tick:
             down_nodes = parse_nodes(tuple(tick.down_nodes))
             engine_stats = get_engine_stats(engine, fast = True)
             job_stats = get_job_stats(engine)
@@ -146,19 +156,18 @@ def run_simulation(sim_config: ServerSimConfig):
         cooling_sim_cep: list[CoolingSimCEP] = []
 
         cooling_sim_cdu_map: dict[int, dict] = {}
-        if tick.power_df is not None and (unix_timestamp % sample_cooling == 0 or is_last_tick):
+        if tick.power_df is not None and (is_last_tick or unix_timestamp % sample_power == 0):
             for i, point in tick.power_df.iterrows():
-                cooling_sim_cdu_map[int(point['CDU'])] = dict(
-                    rack_1_power = point['Rack 1'],
-                    rack_2_power = point['Rack 2'],
-                    rack_3_power = point['Rack 3'],
-                    total_power = point['Sum'],
-
-                    rack_1_loss = point['Loss 1'],
-                    rack_2_loss = point['Loss 2'],
-                    rack_3_loss = point['Loss 3'],
-                    total_loss = point['Loss'],
-                )
+                cooling_sim_cdu_map[int(point['CDU'])] = {
+                    "rack_1_power": point['Rack 1'],
+                    "rack_2_power": point['Rack 2'],
+                    "rack_3_power": point['Rack 3'],
+                    "total_power": point['Sum'],
+                    "rack_1_loss": point['Loss 1'],
+                    "rack_2_loss": point['Loss 2'],
+                    "rack_3_loss": point['Loss 3'],
+                    "total_loss": point['Loss'],
+                }
 
         if tick.fmu_outputs:
             # CDU columns are output in the dict with keys like this:
@@ -231,4 +240,3 @@ def run_simulation(sim_config: ServerSimConfig):
             cooling_sim_cep = cooling_sim_cep,
             power_history = power_history,
         )
-
