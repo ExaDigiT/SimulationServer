@@ -27,7 +27,7 @@ class SchedulerSimJob(BaseModel):
 
     nodes: Optional[list[str]] = None
     """
-    The nodes the job is running on ['x2307c3s0b1', 'x2408c5s2b1']
+    The nodes the job is running on e.g. ['x2307c3s0b1', 'x2408c5s2b1']
     """
 
     # Removing these for now, they are constant and just what you set in the input.
