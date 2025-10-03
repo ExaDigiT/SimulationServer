@@ -102,6 +102,8 @@ def run_simulation(sim_config: ServerSimConfig):
             ))]
 
         scheduler_sim_jobs: list[SchedulerSimJob] = []
+        power_history: list[SchedulerSimJobPowerHistory] = []
+
         curr_job_hashes = set()
         tick_jobs = itertools.chain(tick.queue, tick.running, tick.completed, tick.killed)
         for job in tick_jobs:
@@ -130,17 +132,15 @@ def run_simulation(sim_config: ServerSimConfig):
                 })
                 scheduler_sim_jobs.append(parsed_job)
             curr_job_hashes.add(job_state_hash)
-        prev_job_hashes = curr_job_hashes
 
-        power_history: list[SchedulerSimJobPowerHistory] = []
-        for job in tick_jobs:
-            if job.id and power_history_counts.get(job.id, 0) < len(job.power_history):
+            if power_history_counts.get(job.id, 0) < len(job.power_history):
                 power_history.append(SchedulerSimJobPowerHistory(
                     timestamp = timestamp,
                     job_id = str(job.id),
                     power = job.power_history[-1],
                 ))
                 power_history_counts[job.id] = len(job.power_history)
+        prev_job_hashes = curr_job_hashes
 
         cooling_sim_cdus: list[CoolingSimCDU] = []
         cooling_sim_cep: list[CoolingSimCEP] = []
