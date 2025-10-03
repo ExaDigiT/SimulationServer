@@ -49,7 +49,7 @@ def run_simulation(sim_config: ServerSimConfig):
     # Sample CDU as fast as it is available
     sample_cooling = timedelta(seconds = 1).total_seconds()
 
-    def _offset_to_time(offset):
+    def offset_to_time(offset):
         if offset is not None:
             return engine.start + timedelta(seconds=offset - engine.timestep_start)
         else:
@@ -58,7 +58,7 @@ def run_simulation(sim_config: ServerSimConfig):
     # Memoized function to convert raps indexes into node names.
     # Memo increases performance since it gets called on snapshots of the same job multiple times.
     @functools.lru_cache(maxsize = 65_536)
-    def _parse_nodes(node_indexes: tuple[int]):
+    def parse_nodes(node_indexes: tuple[int]):
         return [engine.telemetry.node_index_to_name(i) for i in node_indexes]
 
     # Keep record of how many power history steps we've emitted for each job
@@ -66,13 +66,13 @@ def run_simulation(sim_config: ServerSimConfig):
     prev_job_hashes: set[str] = set()
 
     for tick in engine.run_simulation():
-        timestamp: datetime = _offset_to_time(tick.current_timestep)
+        timestamp: datetime = offset_to_time(tick.current_timestep)
         unix_timestamp = int(timestamp.timestamp())
         is_last_tick = (timestamp + timedelta(seconds=1) >= sim_config.end)
 
         scheduler_sim_system: list[SchedulerSimSystem] = []
         if unix_timestamp % sample_scheduler_sim_system == 0 or is_last_tick:
-            down_nodes = _parse_nodes(tuple(tick.down_nodes))
+            down_nodes = parse_nodes(tuple(tick.down_nodes))
             engine_stats = get_engine_stats(engine, fast = True)
             job_stats = get_job_stats(engine)
 
@@ -105,7 +105,7 @@ def run_simulation(sim_config: ServerSimConfig):
         curr_job_hashes = set()
         tick_jobs = itertools.chain(tick.queue, tick.running, tick.completed, tick.killed)
         for job in tick_jobs:
-            time_end = _offset_to_time(job.end_time)
+            time_end = offset_to_time(job.end_time)
             # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
             if time_end is not None and (job.start_time is None or time_end > timestamp):
                 time_end = None
@@ -118,12 +118,12 @@ def run_simulation(sim_config: ServerSimConfig):
                     "name": job.name,
                     "node_count": job.nodes_required,
                     "time_snapshot": timestamp,
-                    "time_submission": _offset_to_time(job.submit_time),
+                    "time_submission": offset_to_time(job.submit_time),
                     "time_limit": job.time_limit,
-                    "time_start": _offset_to_time(job.start_time),
+                    "time_start": offset_to_time(job.start_time),
                     "time_end": time_end,
                     "state_current": JobStateEnum(job.current_state.name),
-                    "nodes": _parse_nodes(tuple(job.scheduled_nodes)) if job.scheduled_nodes else None,
+                    "nodes": parse_nodes(tuple(job.scheduled_nodes)) if job.scheduled_nodes else None,
                     # How does the new job.power attribute work? Is it total_energy?
                     # Or just the current wattage?
                     # power = job.power,
