@@ -51,18 +51,18 @@ async def lifespan(api: FastAPI):
     if settings.env == 'dev':
         kafka_admin = get_kafka_admin()
         existing_topics = set(kafka_admin.list_topics())
+        topic_configs = {"compression.type": "snappy"}
         new_topics = [
-            "svc-event-exadigit-sim",
-            "svc-ts-exadigit-schedulersimsystem",
-            "svc-event-exadigit-schedulersimjob",
-            "svc-ts-exadigit-coolingsimcdu",
-            "svc-ts-exadigit-coolingsimcep",
-            "svc-ts-exadigit-jobpowerhistory",
+            NewTopic("svc-event-exadigit-sim", 1, 1, topic_configs = topic_configs),
+            NewTopic("svc-ts-exadigit-schedulersimsystem", 4, 1, topic_configs = topic_configs),
+            NewTopic("svc-event-exadigit-schedulersimjob", 2, 1, topic_configs = topic_configs),
+            NewTopic("svc-ts-exadigit-coolingsimcdu", 4, 1, topic_configs = topic_configs),
+            NewTopic("svc-ts-exadigit-coolingsimcep", 2, 1, topic_configs = topic_configs),
+            NewTopic("svc-ts-exadigit-jobpowerhistory", 4, 1, topic_configs = topic_configs),
         ]
-        for topic in new_topics:
-            if topic not in existing_topics:
-                logger.info(f"Creating kafka topic {topic}")
-                kafka_admin.create_topics([NewTopic(topic, 1, 1)])
+        new_topics = [t for t in new_topics if t.name not in existing_topics]
+        logger.info(f"Creating kafka topics {', '.join(t.name for t in new_topics)}")
+        kafka_admin.create_topics(new_topics)
 
         druid_ingests_dir = Path(__file__).parent.parent.parent.resolve() / 'druid_ingests'
         ingests = [

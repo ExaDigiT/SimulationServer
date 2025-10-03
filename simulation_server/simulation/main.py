@@ -1,6 +1,6 @@
 """ A script to run the ExaDigiT simulation """
-from typing import Callable
-import argparse, os, json
+from collections.abc import Iterable
+import argparse, os, orjson
 from pathlib import Path
 from datetime import datetime, timezone
 from loguru import logger
@@ -10,25 +10,28 @@ from .simulation import run_simulation
 from ..util.kafka import get_kafka_producer
 
 
-def write_sim(sim: Sim, writer: Callable[[str, bytes], None]):
+def run_simulation_serialized(sim: Sim) -> Iterable[dict[str, list[bytes]]]:
     sim = sim.model_copy()
 
-    def output_rows(topic, rows):
-        for row in rows:
-            value = json.dumps({"sim_id": sim.id, **row.model_dump(mode='json')}).encode()
-            writer(topic, value)
+    def serialize_rows(rows):
+        return [
+            orjson.dumps({"sim_id": sim.id, **row.model_dump(mode='json')})
+            for row in rows
+        ]
 
-    logger.info(f"Starting simulation {sim.model_dump_json()}")
+    logger.info(f"Starting simulation: {sim.model_dump_json(indent = 4)}")
     config = ServerSimConfig.model_validate(sim.config)
     progress_date = sim.start
 
     try:
         for data in run_simulation(config):
-            output_rows("svc-ts-exadigit-schedulersimsystem", data.scheduler_sim_system)
-            output_rows("svc-event-exadigit-schedulersimjob", data.scheduler_sim_jobs)
-            output_rows("svc-ts-exadigit-coolingsimcdu", data.cooling_sim_cdus)
-            output_rows("svc-ts-exadigit-coolingsimcep", data.cooling_sim_cep)
-            output_rows("svc-ts-exadigit-jobpowerhistory", data.power_history)
+            yield {
+                "svc-ts-exadigit-schedulersimsystem": serialize_rows(data.scheduler_sim_system),
+                "svc-event-exadigit-schedulersimjob": serialize_rows(data.scheduler_sim_jobs),
+                "svc-ts-exadigit-coolingsimcdu": serialize_rows(data.cooling_sim_cdus),
+                "svc-ts-exadigit-coolingsimcep": serialize_rows(data.cooling_sim_cep),
+                "svc-ts-exadigit-jobpowerhistory": serialize_rows(data.power_history),
+            }
             progress_date = data.timestamp
             if data.timestamp.second == 0:
                 logger.info(f"progress: {data.timestamp.isoformat()} / {sim.end.isoformat()}")
@@ -37,33 +40,45 @@ def write_sim(sim: Sim, writer: Callable[[str, bytes], None]):
         sim.execution_end = datetime.now(timezone.utc)
         sim.error_messages = str(e)
         sim.progress_date = progress_date
-        writer("svc-event-exadigit-sim", sim.serialize_for_druid())
+        yield {"svc-event-exadigit-sim": [sim.serialize_for_druid()]}
         logger.info(f"Simulation {sim.id} failed")
         raise e
     
     sim.state = "success"
     sim.execution_end = datetime.now(timezone.utc)
     sim.progress_date = sim.end
-    writer("svc-event-exadigit-sim", sim.serialize_for_druid())
+    yield {"svc-event-exadigit-sim": [sim.serialize_for_druid()]}
     logger.info(f"Simulation {sim.id} finished")
 
 
 def write_sim_to_kafka(sim: Sim):
-    kafka_producer = get_kafka_producer()
-    def writer(topic: str, value: bytes):
-        kafka_producer.send(topic=topic, value=value)
+    kafka_producer = get_kafka_producer(
+        linger_ms = 2 * 1000,
+        batch_size = 65536,
+        compression_type = "snappy",
+    )
     try:
-        write_sim(sim, writer=writer)
+        for data in run_simulation_serialized(sim):
+            # kafka_producer does its own buffering of output so we don't need to worry about batching
+            for topic, rows in data.items():
+                for row in rows:
+                    kafka_producer.send(topic=topic, value=row)
     finally:
         kafka_producer.close()
 
 
 def write_sim_to_disk(sim: Sim, dest: str):
     Path(dest).mkdir(exist_ok=True)
-    def writer(topic: str, value: bytes):
-        with open(Path(dest) / f"{topic}.jsonl", 'ab') as f:
-            f.write(value + b"\n")
-    write_sim(sim, writer=writer)
+    files = {}
+    try:
+        for data in run_simulation_serialized(sim):
+            for topic, rows in data.items():
+                if topic not in files:
+                    files[topic] = open(Path(dest) / f"{topic}.jsonl", 'ab')
+                files[topic].writelines(l + b"\n" for l in rows)
+    finally:
+        for file in files.values():
+            file.close()
 
 
 if __name__ == "__main__":
