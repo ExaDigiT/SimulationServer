@@ -52,19 +52,21 @@ def run_simulation_serialized(sim: Sim) -> Iterable[dict[str, list[bytes]]]:
 
 
 def write_sim_to_kafka(sim: Sim):
-    kafka_producer = get_kafka_producer(
-        linger_ms = 2 * 1000,
-        batch_size = 65536,
-        compression_type = "snappy",
-    )
+    kafka_producer = get_kafka_producer({
+        'bootstrap.servers': os.environ['KAFKA_BOOTSTRAP'],
+        'linger.ms': 2 * 1000,
+        'batch.size': 65536,
+        "compression.type": "snappy",
+    })
+
     try:
         for data in run_simulation_serialized(sim):
             # kafka_producer does its own buffering of output so we don't need to worry about batching
-            for topic, rows in data.items():
-                for row in rows:
-                    kafka_producer.send(topic=topic, value=row)
+            for topic, messages in data.items():
+                for message in messages:
+                    kafka_producer.produce(topic, message)
     finally:
-        kafka_producer.close()
+        kafka_producer.flush()
 
 
 def write_sim_to_disk(sim: Sim, dest: str):

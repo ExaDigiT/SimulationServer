@@ -16,7 +16,7 @@ from ..util.druid import submit_ingest
 from .service import cleanup_jobs
 from .config import AppSettings, get_app_settings, get_druid_engine, get_kafka_producer
 from ..util.kafka import get_kafka_admin
-from kafka.admin import NewTopic
+from confluent_kafka.admin import NewTopic
 
 settings = AppSettings()
 
@@ -50,18 +50,18 @@ async def lifespan(api: FastAPI):
 
     if settings.env == 'dev':
         kafka_admin = get_kafka_admin()
-        existing_topics = set(kafka_admin.list_topics())
-        topic_configs = {"compression.type": "snappy"}
+        existing_topics = {t.topic for t in kafka_admin.list_topics().topics}
+        topic_config = {"compression.type": "snappy"}
         new_topics = [
-            NewTopic("svc-event-exadigit-sim", 1, 1, topic_configs = topic_configs),
-            NewTopic("svc-ts-exadigit-schedulersimsystem", 4, 1, topic_configs = topic_configs),
-            NewTopic("svc-event-exadigit-schedulersimjob", 2, 1, topic_configs = topic_configs),
-            NewTopic("svc-ts-exadigit-coolingsimcdu", 4, 1, topic_configs = topic_configs),
-            NewTopic("svc-ts-exadigit-coolingsimcep", 2, 1, topic_configs = topic_configs),
-            NewTopic("svc-ts-exadigit-jobpowerhistory", 4, 1, topic_configs = topic_configs),
+            NewTopic("svc-event-exadigit-sim", 1, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-schedulersimsystem", 4, 1, config = topic_config),
+            NewTopic("svc-event-exadigit-schedulersimjob", 2, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-coolingsimcdu", 4, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-coolingsimcep", 2, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-jobpowerhistory", 4, 1, config = topic_config),
         ]
-        new_topics = [t for t in new_topics if t.name not in existing_topics]
-        logger.info(f"Creating kafka topics {', '.join(t.name for t in new_topics)}")
+        new_topics = [t for t in new_topics if t.topic not in existing_topics]
+        logger.info(f"Creating kafka topics {', '.join(t.topic for t in new_topics)}")
         kafka_admin.create_topics(new_topics)
 
         druid_ingests_dir = Path(__file__).parent.parent.parent.resolve() / 'druid_ingests'

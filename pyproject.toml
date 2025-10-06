@@ -19,7 +19,6 @@ dependencies = [
     "loguru==0.7.3",
     "SQLAlchemy==2.0.43",
     "pydruid==0.6.9",
-    "kafka-python==2.2.15",
     "python-snappy==0.7.3",
     "jsonpath-ng==1.7.0",
     "fastapi==0.116.2",
@@ -30,6 +29,7 @@ dependencies = [
     "elasticsearch-dbapi==0.2.11",
     "requests==2.32.5",
     "orjson==3.11.3",
+    "confluent_kafka==2.11.1",
     "raps@{root:uri}/raps",
 ]
 

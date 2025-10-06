@@ -69,7 +69,7 @@ def run_simulation(sim_config: ServerSimConfig, deps: AppDeps):
         config = sim_config.model_dump(mode = 'json'),
     )
     logger.info(f"Launching simulation {sim.id}")
-    deps.kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
+    deps.kafka_producer.produce("svc-event-exadigit-sim", sim.serialize_for_druid())
     deps.kafka_producer.flush()
 
     if 'KUBERNETES_SERVICE_HOST' in os.environ: # We're running on k8s
@@ -174,9 +174,7 @@ def cleanup_jobs(druid_engine, kafka_producer):
             sim.execution_end = now
             sim.error_messages = "Simulation crashed"
             logger.warning(f"Marking stuck sim {sim.id} as failed")
-            kafka_producer.send("svc-event-exadigit-sim",
-                value = sim.serialize_for_druid()
-            )
+            kafka_producer.produce("svc-event-exadigit-sim", sim.serialize_for_druid())
 
         for sim in stuck_sims:
             stmt = (
