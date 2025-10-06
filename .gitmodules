@@ -2,3 +2,6 @@
 	path = raps
 	url = https://github.com/ExaDigiT/RAPS.git
 	branch = main
+[submodule "simulation_dashboard"]
+	path = simulation_dashboard
+	url = https://github.com/ExaDigiT/SimulationDashboard.git
