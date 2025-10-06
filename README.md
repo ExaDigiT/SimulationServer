@@ -2,13 +2,13 @@
 
 REST API that allows running and querying the results from the ExaDigit simulation and RAPS.
 
-## Loading RAPS submodule
+## Loading RAPS and Dashboard submodules
 This uses [RAPS](https://github.com/ExaDigiT/RAPS) to run the simulation, which is loaded as a 
-submodule. Make sure to run
+submodule. The [Simulation Dashboard](https://github.com/ExaDigiT/SimulationDashboard) is also in a
+separate repo and loaded as a submodule. Make to load the submodules by running:
 ```
 git submodule update --init --recursive
 ```
-to load the submodule.
 
 ## Downloading FMU models
 The Frontier FMU models aren't currently publicly available. To run Frontier simulations with cooling enabled, use this
@@ -28,7 +28,7 @@ To run a local version of the server run
 ```bash
 docker compose up --wait
 ```
-The server will be hosted on http://localhost:8080
+The API server will be hosted on http://localhost:8081. The dashboard will be hosted on http://localhost:8080.
 
 You'll need at least 16 GiB of RAM, preferably 32 GiB for druid and RAPS to run smoothly.
 

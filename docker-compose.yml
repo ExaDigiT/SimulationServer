@@ -201,7 +201,7 @@ services:
     container_name: simulation-server
     command: ["python", "-m", "simulation_server.server.main"]
     ports:
-      - "8080:8080"
+      - "8081:8081"
     depends_on:
       druid-coordinator:
         condition: service_healthy
@@ -216,6 +216,7 @@ services:
       kafka:
         condition: service_healthy
     environment:
+      - EXADIGIT_HTTP_PORT=8081
       - EXADIGIT_ENV=dev
       # - EXADIGIT_ROOT_PATH
       - EXADIGIT_DEBUG_MODE=true
@@ -224,8 +225,31 @@ services:
       - DRUID_SERVICE_URL=http://druid-router:8888
       - KAFKA_BOOTSTRAP=kafka:9092
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:8080/openapi.json || exit 1"]
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8081/openapi.json || exit 1"]
       interval: 10s
       retries: 3
       start_interval: 1s
       start_period: 1m
+
+  simulation-dashboard:
+    pull_policy: build
+    image: exadigit-simulation-dashboard
+    build:
+      context: ./simulation_dashboard
+      args:
+        VITE_PORT: "8080"
+        VITE_AUTH_URL: ""
+        VITE_BASE_PATH: "http://localhost:8080"
+        VITE_API_PATH: "http://localhost:8081"
+    container_name: simulation-dashboard
+    ports:
+      - "8080:80"
+    depends_on:
+      simulation-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail -s http://localhost:80/index.html || exit 1"]
+      interval: 10s
+      retries: 3
+      start_interval: 1s
+      start_period: 10s

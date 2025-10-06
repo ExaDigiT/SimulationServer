@@ -18,7 +18,7 @@ class AppSettings(BaseSettings):
     root_path: str = ""
     """ The root path of the application if you are behind a proxy """
 
-    http_port: int = 8080
+    http_port: int = 8081
 
     allow_origins: list[str] = []
 
