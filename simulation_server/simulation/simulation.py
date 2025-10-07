@@ -91,19 +91,23 @@ def run_simulation(sim_config: ServerSimConfig):
         if unix_timestamp % sample_system == 0 or is_last_tick:
             down_nodes = parse_nodes(tuple(tick.down_nodes))
             engine_stats = get_engine_stats(engine, fast = True)
-            job_stats = get_job_stats(engine)
+
+            # Calculate throughput manually instead of using get_job_stats to avoid the rest of the
+            # expensive calculations in get_job_stats
+            duration = (timestamp - engine.start).total_seconds()
+            throughput = (engine.jobs_completed / duration) * 3600 if duration != 0 else 0
 
             scheduler_sim_system = [SchedulerSimSystem.model_validate({
                 "timestamp": timestamp,
                 "down_nodes": down_nodes,
-                # TODO: Update sc.get_stats to return more easily parsable data
                 "num_samples": engine_stats['num_samples'],
 
-                "jobs_completed": job_stats['jobs_completed'],
-                "jobs_running": len(job_stats['jobs_still_running']),
-                "jobs_pending": len(job_stats['jobs_still_in_queue']),
+                # Don't call get_job_stats as it is slow
+                "jobs_completed": engine.jobs_completed,
+                "jobs_running": len(tick.running),
+                "jobs_pending": len(tick.queue),
+                "throughput": throughput,
 
-                "throughput": job_stats['throughput'],
                 "average_power": engine_stats['average_power'] * 1_000_000,
                 "min_loss": engine_stats['min_loss'] * 1_000_000,
                 "average_loss": engine_stats['average_loss'] * 1_000_000,
@@ -124,14 +128,14 @@ def run_simulation(sim_config: ServerSimConfig):
         curr_job_hashes = set()
         tick_jobs = itertools.chain(tick.queue, tick.running, tick.completed, tick.killed)
         for job in tick_jobs:
-            time_end = offset_to_time(job.end_time)
-            # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
-            if time_end is not None and (job.start_time is None or time_end > timestamp):
-                time_end = None
-
             job_state_hash = get_job_state_hash(job)
             # Output jobs if something other than time_snapshot changed
             if is_last_tick or job_state_hash not in prev_job_hashes:
+                time_end = offset_to_time(job.end_time)
+                # end_time is set to its planned end once its scheduled. Set it to None for unfinished jobs here
+                if time_end is not None and (job.start_time is None or time_end > timestamp):
+                    time_end = None
+
                 parsed_job = SchedulerSimJob.model_validate({
                     "job_id": str(job.id),
                     "name": job.name,
@@ -149,7 +153,9 @@ def run_simulation(sim_config: ServerSimConfig):
                 })
                 scheduler_sim_jobs.append(parsed_job)
             curr_job_hashes.add(job_state_hash)
+        prev_job_hashes = curr_job_hashes
 
+        for job in itertools.chain(tick.running, tick.completed, tick.killed):
             if power_history_counts.get(job.id, 0) < len(job.power_history):
                 power_history.append(SchedulerSimJobPowerHistory(
                     timestamp = timestamp,
@@ -157,7 +163,6 @@ def run_simulation(sim_config: ServerSimConfig):
                     power = job.power_history[-1],
                 ))
                 power_history_counts[job.id] = len(job.power_history)
-        prev_job_hashes = curr_job_hashes
 
         cooling_sim_cdus: list[CoolingSimCDU] = []
         cooling_sim_cep: list[CoolingSimCEP] = []
