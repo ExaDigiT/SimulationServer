@@ -5,7 +5,7 @@ import orjson
 from loguru import logger
 from raps import Engine
 from raps.job import Job as RapsJob
-from raps.stats import get_engine_stats
+from raps.stats import RunningStats
 from ..models.sim import ServerSimConfig
 from ..models.output import (
     JobStateEnum, SchedulerSimJob, SchedulerSimJobPowerHistory, SchedulerSimSystem, CoolingSimCDU,
@@ -55,6 +55,7 @@ def snap_sample_rate(desired_rate: int, actual_rate: int):
 def run_simulation(sim_config: ServerSimConfig):
     # TODO: replay logic
     engine = Engine(sim_config)
+    running_stats = RunningStats(engine)
 
     sample_system = 1
     sample_power = snap_sample_rate(5, int(sim_config.time_delta.total_seconds()))
@@ -113,31 +114,26 @@ def run_simulation(sim_config: ServerSimConfig):
         scheduler_sim_system: list[SchedulerSimSystem] = []
         if unix_timestamp % sample_system == 0 or is_last_tick:
             down_nodes = parse_nodes(tuple(tick.down_nodes))
-            engine_stats = get_engine_stats(engine, fast = True)
-
-            # Calculate throughput manually instead of using get_job_stats to avoid the rest of the
-            # expensive calculations in get_job_stats
-            duration = (timestamp - engine.start).total_seconds()
-            throughput = (engine.jobs_completed / duration) * 3600 if duration != 0 else 0
+            stats = running_stats.get_stats()
 
             scheduler_sim_system = [SchedulerSimSystem.model_validate({
                 "timestamp": timestamp,
                 "down_nodes": down_nodes,
-                "num_samples": engine_stats['num_samples'],
+                "num_samples": stats['num_samples'],
 
                 "jobs_completed": engine.jobs_completed,
                 "jobs_running": len(tick.running),
                 "jobs_pending": len(tick.queue),
-                "throughput": throughput,
+                "throughput": stats["throughput"],
 
-                "average_power": engine_stats['average_power'] * 1_000_000,
-                "min_loss": engine_stats['min_loss'] * 1_000_000,
-                "average_loss": engine_stats['average_loss'] * 1_000_000,
-                "max_loss": engine_stats['max_loss'] * 1_000_000,
-                "system_power_efficiency": engine_stats['system_power_efficiency'],
-                "total_energy_consumed": engine_stats['total_energy_consumed'],
-                "carbon_emissions": engine_stats['carbon_emissions'],
-                "total_cost": engine_stats['total_cost'],
+                "average_power": stats['average_power'] * 1_000_000,
+                "min_loss": stats['min_loss'] * 1_000_000,
+                "average_loss": stats['average_loss'] * 1_000_000,
+                "max_loss": stats['max_loss'] * 1_000_000,
+                "system_power_efficiency": stats['system_power_efficiency'],
+                "total_energy_consumed": stats['total_energy_consumed'],
+                "carbon_emissions": stats['carbon_emissions'],
+                "total_cost": stats['total_cost'],
 
                 "p_flops": tick.p_flops,
                 "g_flops_w": tick.g_flops_w,
