@@ -130,7 +130,9 @@ if settings.allow_origins:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-)
+    )
+    if "*" not in settings.allow_origins:
+        logger.info(f"Frontend hosted at {' '.join(settings.allow_origins)}")
 
 from .endpoints import router
 app.include_router(router)

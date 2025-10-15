@@ -221,7 +221,7 @@ services:
       # - EXADIGIT_ROOT_PATH
       - EXADIGIT_DEBUG_MODE=true
       # - EXADIGIT_JOB_IMAGE
-      - EXADIGIT_ALLOW_ORIGINS=["*"]
+      - EXADIGIT_ALLOW_ORIGINS=["http://localhost:8080"]
       - DRUID_SERVICE_URL=http://druid-router:8888
       - KAFKA_BOOTSTRAP=kafka:9092
     healthcheck:
