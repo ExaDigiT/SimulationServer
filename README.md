@@ -30,11 +30,11 @@ docker compose up --wait
 ```
 The API server will be hosted on http://localhost:8081. The dashboard will be hosted on http://localhost:8080.
 
-You'll need at least 16 GiB of RAM, preferably 32 GiB for druid and RAPS to run smoothly.
+You'll need at least 32 GiB of RAM for druid and RAPS to run smoothly.
 
 If you want to run replay data locally, you'll need to download the datasets and then ingest them in
-Druid. You can fetch the datasets with `./scripts/fetch.sh` and submit the druid ingests for them
-under `./druid_ingests` using the Druid UI at http://localhost:8888.
+Druid. You can fetch the datasets with `./scripts/fetch_data.sh`, and use the `./scripts/submit_data_ingests.py`
+script to ingest them into druid.
 
 View the server logs with:
 ```bash

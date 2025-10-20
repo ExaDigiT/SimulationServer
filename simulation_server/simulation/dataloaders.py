@@ -154,7 +154,7 @@ def fetch_lassen_data(sim_config: SimConfig, raps_config: dict):
     node_df = pd.read_sql(node_query, druid_engine)
 
     step_df = query_time_range(
-        "svc-ts-exadigit-data-fugaku-lassen-step-history", start, end, 'end_time',
+        "svc-ts-exadigit-data-lassen-step-history", start, end, 'end_time',
         druid_engine = druid_engine,
         parse_dates = ["begin_time", "end_time"],
     )

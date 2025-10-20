@@ -3,12 +3,6 @@
     "spec": {
         "ioConfig": {
             "type": "index_parallel",
-            // "inputSource": {
-            //     "type": "s3",
-            //     "prefixes": [
-            //         "s3://scratch/raps-datasets/marconi100/"
-            //     ]
-            // },
             "inputSource": {
                 "type": "local",
                 "baseDir": "/data/marconi100/",
@@ -24,7 +18,8 @@
                 "type": "dynamic"
             },
             "maxNumConcurrentSubTasks": 2,
-            "maxRowsInMemory": 100000
+            "maxRowsInMemory": 100000,
+            "awaitSegmentAvailabilityTimeoutMillis": 1800000
         },
         "dataSchema": {
             "dataSource": "svc-ts-exadigit-data-marconi100",

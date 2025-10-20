@@ -30,6 +30,7 @@ dependencies = [
     "requests==2.32.5",
     "orjson==3.11.3",
     "confluent_kafka==2.11.1",
+    "pyjson5==2.0.0",
     "raps@{root:uri}/raps",
 ]
 
