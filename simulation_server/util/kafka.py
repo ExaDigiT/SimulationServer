@@ -23,7 +23,9 @@ def get_kafka_producer(config = {}):
 
 
 def get_kafka_consumer(*topics, config = {}):
-    return Consumer({**_get_kafka_config(), **config})
+    consumer = Consumer({**_get_kafka_config(), **config})
+    consumer.subscribe(list(topics))
+    return consumer
 
 
 def get_kafka_admin(config = {}):
