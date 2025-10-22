@@ -8,7 +8,6 @@ from loguru import logger
 import sqlalchemy as sqla
 from sqlalchemy.sql import ColumnElement
 from .misc import to_iso_duration
-# from ..config import get_app_settings
 
 
 def get_druid_engine(**kwargs):
