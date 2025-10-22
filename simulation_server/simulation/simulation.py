@@ -1,6 +1,7 @@
 from typing import NamedTuple
 from datetime import datetime, timedelta
 import functools, itertools
+import importlib, importlib.util
 import orjson
 from loguru import logger
 from raps import Engine
@@ -13,7 +14,6 @@ from ..models.output import (
 )
 from ..util.misc import nest_dict
 from . import SimException
-# from .dataloaders import DATA_LOADERS
 
 
 class SimTickOutput(NamedTuple):
@@ -53,7 +53,14 @@ def snap_sample_rate(desired_rate: int, actual_rate: int):
 
 
 def run_simulation(sim_config: ServerSimConfig):
-    # TODO: replay logic
+    if sim_config.replay:
+        if not isinstance(sim_config.system, str):
+            raise SimException(f"replay is not supported for custom systems")
+        dataloader = f"simulation_server.simulation.dataloaders.{sim_config.system}"
+        if not importlib.util.find_spec(dataloader):
+            raise SimException(f"{sim_config.system} does not support replay")
+        sim_config = sim_config.model_copy(update = {"dataloader": dataloader})
+
     engine = Engine(sim_config)
     running_stats = RunningStats(engine)
 
