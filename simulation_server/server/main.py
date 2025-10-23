@@ -22,12 +22,12 @@ settings = AppSettings()
 
 
 def repeat_task(func, seconds):
-    if not asyncio.iscoroutinefunction(func):
-        func = functools.partial(run_in_threadpool, func)
-
     async def loop() -> None:
         while True:
-            await func()
+            try:
+                await func()
+            except Exception as e:
+                logger.exception(f"Background task failed: {e}")
             await asyncio.sleep(seconds)
 
     return asyncio.create_task(loop())
@@ -40,13 +40,13 @@ async def lifespan(api: FastAPI):
     for dep in deps:
         api.dependency_overrides.get(dep, dep)()
 
-    # TODO: Should add cleanup handler for local as well
-    background_task_loop = None
-    if settings.env == 'prod' and 'KUBERNETES_SERVICE_HOST' in os.environ:
-        background_task_loop = repeat_task(
-            lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
-            seconds = 5 * 60,
+    async def background_task():
+        cleanup_jobs(
+            druid_engine = get_druid_engine(),
+            kafka_producer = get_kafka_producer(),
+            settings = get_app_settings(),
         )
+    background_task_loop = repeat_task(background_task, seconds = 5)
 
     if settings.env == 'dev':
         kafka_admin = get_kafka_admin()
@@ -80,8 +80,7 @@ async def lifespan(api: FastAPI):
 
     yield
 
-    # if background_task_loop:
-    #     background_task_loop.cancel()
+    background_task_loop.cancel()
 
 
 app = FastAPI(

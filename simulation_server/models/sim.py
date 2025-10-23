@@ -20,7 +20,7 @@ class Sim(BaseModel):
     user: Optional[str] = None
     """ User who launched the simulation """
 
-    system: str
+    system: Optional[str] = None
 
     state: Optional[Literal['running', 'success', 'fail']] = None
 
