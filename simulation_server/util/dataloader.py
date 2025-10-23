@@ -10,7 +10,7 @@ def query_time_range(
     tbl_name: str,
     start: datetime, end: datetime,
     start_col: str, end_col: str, *,
-    druid_engine, parse_dates: list[str],
+    druid_engine, parse_dates: list[str] = [],
 ) -> pd.DataFrame:
     """ Queries a time range in druid. Returns a dataframe, throws if empty. """
     tbl = get_table(tbl_name, druid_engine)
