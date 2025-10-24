@@ -46,7 +46,7 @@ async def lifespan(api: FastAPI):
             kafka_producer = get_kafka_producer(),
             settings = get_app_settings(),
         )
-    background_task_loop = repeat_task(background_task, seconds = 5)
+    background_task_loop = repeat_task(background_task, seconds = 2 * 60)
 
     if settings.env == 'dev':
         kafka_admin = get_kafka_admin()
