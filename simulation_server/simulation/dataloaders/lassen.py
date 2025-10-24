@@ -6,7 +6,7 @@ from ...util.druid import get_druid_engine, get_table, to_timestamp
 from ...util.dataloader import query_time_range
 from ...models.sim import ServerSimConfig
 
-# Re-use these from the raps fugaku dataloader
+# Re-use these from the raps dataloader
 from raps.dataloaders.lassen import load_data_from_df, node_index_to_name, cdu_index_to_name, cdu_pos
 
 
