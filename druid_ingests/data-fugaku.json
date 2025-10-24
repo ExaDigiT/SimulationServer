@@ -3,6 +3,13 @@
     "spec": {
         "ioConfig": {
             "type": "index_parallel",
+            // "inputSource": {
+            //     "type": "s3",
+            //     "objectGlob": "**.parquet",
+            //     "prefixes": [
+            //         "s3://scratch/raps-datasets/fugaku/"
+            //     ]
+            // },
             "inputSource": {
                 "type": "local",
                 "baseDir": "/data/fugaku/",

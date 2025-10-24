@@ -3,6 +3,12 @@
     "spec": {
         "ioConfig": {
             "type": "index_parallel",
+            // "inputSource": {
+            //     "type": "s3",
+            //     "prefixes": [
+            //         "s3://scratch/raps-datasets/marconi100/"
+            //     ]
+            // },
             "inputSource": {
                 "type": "local",
                 "baseDir": "/data/marconi100/",
