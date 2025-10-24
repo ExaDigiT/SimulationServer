@@ -181,15 +181,18 @@ def run_simulation(sim_config: ServerSimConfig):
 
         cooling_sim_cdu_map: dict[int, dict] = {}
         if tick.power_df is not None and (is_last_tick or unix_timestamp % sample_power == 0):
+            # TODO: RAPS supports any number of racks per CDU, while this is still hard-coded to the
+            # 3 in Frontier. This will work for any system with 3 or less. We need to rethink how
+            # the racks are stored in the DB, maybe a separate table
             for i, point in tick.power_df.iterrows():
                 cooling_sim_cdu_map[int(point['CDU'])] = {
-                    "rack_1_power": point['Rack 1'],
-                    "rack_2_power": point['Rack 2'],
-                    "rack_3_power": point['Rack 3'],
+                    "rack_1_power": point.get('Rack 1'),
+                    "rack_2_power": point.get('Rack 2'),
+                    "rack_3_power": point.get('Rack 3'),
                     "total_power": point['Sum'],
-                    "rack_1_loss": point['Loss 1'],
-                    "rack_2_loss": point['Loss 2'],
-                    "rack_3_loss": point['Loss 3'],
+                    "rack_1_loss": point.get('Loss 1'),
+                    "rack_2_loss": point.get('Loss 2'),
+                    "rack_3_loss": point.get('Loss 3'),
                     "total_loss": point['Loss'],
                 }
 

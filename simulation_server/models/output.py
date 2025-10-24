@@ -143,6 +143,10 @@ class CoolingSimCDU(BaseModel):
     col: Optional[int] = None
     """ Col index of the cdu (Note this is the col of the neighboring cabinet.)"""
 
+    # TODO: RAPS supports any number of racks per CDU, while this is still hard-coded to the 3 in
+    #  Frontier. This will work for any system with 3 or less. We need to rethink how the racks are
+    # stored in the DB, maybe a separate table. Or use an Array type for the field, but that makes
+    # timeseries aggregation queries harder.
     rack_1_power: Optional[float] = None
     rack_2_power: Optional[float] = None
     rack_3_power: Optional[float] = None
