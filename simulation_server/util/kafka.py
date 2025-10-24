@@ -9,8 +9,8 @@ def _get_kafka_config():
        'bootstrap.servers': os.environ['KAFKA_BOOTSTRAP'],
        'sasl.mechanism': os.environ.get('KAFKA_SASL_MECHANISM'),
        'security.protocol': os.environ.get('KAFKA_SECURITY_PROTOCOL'),
-       'sasl.plain.username': os.environ.get('KAFKA_SASL_USERNAME'),
-       'sasl.plain.password': os.environ.get('KAFKA_SASL_PASSWORD'),
+       'sasl.username': os.environ.get('KAFKA_SASL_USERNAME'),
+       'sasl.password': os.environ.get('KAFKA_SASL_PASSWORD'),
     }
     return {k: v for k, v in env_config.items() if v is not None}
 
