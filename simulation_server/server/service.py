@@ -16,7 +16,7 @@ from ..models.output import (
     SCHEDULER_SIM_JOB_POWER_HISTORY_API_FIELDS, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS,
 )
 from ..util.misc import pick, omit
-from ..util.k8s import submit_job, get_k8s_jobs, get_k8s_job_state, get_k8s_job_end_time
+from ..util.k8s import submit_job, get_k8s_job, get_k8s_job_state, get_k8s_job_end_time
 from ..util.druid import to_timestamp, any_value, latest, execute_ignore_missing
 from ..util.api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
@@ -137,16 +137,22 @@ def cleanup_jobs(druid_engine, kafka_producer, settings):
     now = datetime.now(timezone.utc)
     # threshold after job has ended before sending a cancel (incase the job did send its own
     # cancel message and it just hasn't shown up in Druid yet)
-    threshold = timedelta(minutes=1)
+    threshold = timedelta(minutes=2)
+
+    running_sims, _ = query_sims(
+        filters=SIM_FILTERS(state = ["eq:running"]),
+        fields = ["all"],
+        limit = 1000, # If somehow there's more than that we'll just get them next trigger
+        druid_engine = druid_engine,
+    )
 
     running_jobs = set()
     if 'KUBERNETES_SERVICE_HOST' in os.environ:
-        for job in get_k8s_jobs():
-            if job.metadata.name.startswith('exadigit-simulation-server-'):
-                sim_id = job.metadata.name.removeprefix('exadigit-simulation-server-')
-                # Add a little bit of threshold to avoid potentially sending duplicate fail messages
-                if get_k8s_job_state(job) == "running" or get_k8s_job_end_time(job) < now - threshold:
-                    running_jobs.add(sim_id)
+        for sim in running_sims:
+            job = get_k8s_job(f"exadigit-simulation-server-{sim.id}")
+            # Add a little bit of threshold to avoid potentially sending duplicate fail messages
+            if get_k8s_job_state(job) == "running" or (job and now - get_k8s_job_end_time(job) < threshold):
+                running_jobs.add(sim.id)
     else:
         for proc in psutil.Process().children():
             try:
@@ -156,13 +162,6 @@ def cleanup_jobs(druid_engine, kafka_producer, settings):
                         running_jobs.add(sim_id)
             except (psutil.Error):
                 pass
-
-    running_sims, _ = query_sims(
-        filters=SIM_FILTERS(state = ["eq:running"]),
-        fields = ["all"],
-        limit = 1000, # If somehow there's more than that we'll just get them next trigger
-        druid_engine = druid_engine,
-    )
 
     for sim in running_sims:
         if sim.id not in running_jobs and now - sim.execution_start > threshold:

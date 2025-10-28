@@ -17,9 +17,9 @@ def submit_job(job: dict):
     return get_batch_api().create_namespaced_job(namespace = get_namespace(), body = job)
 
 
-def get_k8s_jobs():
+def get_k8s_job(name):
     try:
-        return get_batch_api().list_namespaced_job(namespace = get_namespace())
+        return get_batch_api().read_namespaced_job(namespace = get_namespace(), name = name)
     except k8s.client.ApiException as e:
         if e.status == 404:
             return None
