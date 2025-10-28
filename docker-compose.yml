@@ -243,12 +243,12 @@ services:
         VITE_API_PATH: "http://localhost:8081"
     container_name: simulation-dashboard
     ports:
-      - "8080:80"
+      - "8080:8080"
     depends_on:
       simulation-server:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl --fail -s http://localhost:80/index.html || exit 1"]
+      test: ["CMD-SHELL", "curl --fail -s http://localhost:8080/index.html || exit 1"]
       interval: 10s
       retries: 3
       start_interval: 1s
