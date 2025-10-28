@@ -41,6 +41,8 @@ objects:
             env:
               - name: EXADIGIT_ENV
                 value: ${ENV}
+              - name: EXADIGIT_HTTP_PORT
+                value: "8080"
               - name: EXADIGIT_ROOT_PATH
                 value: "/exadigit/api"
               - name: EXADIGIT_DEBUG_MODE
