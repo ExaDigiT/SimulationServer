@@ -38,7 +38,7 @@ def get_job_hash(job: RapsJob):
         job.current_state.name,
         # Node list shouldn't change once set so just do len instead of serializing the large list
         len(job.scheduled_nodes) if job.scheduled_nodes else None,
-    ])
+    ], option=orjson.OPT_SERIALIZE_NUMPY)
 
 
 def snap_sample_rate(desired_rate: int, actual_rate: int):
