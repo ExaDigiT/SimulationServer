@@ -4,7 +4,7 @@ from pydantic import StringConstraints
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from fastapi import Depends
 import sqlalchemy as sqla
-from kafka import KafkaProducer
+from confluent_kafka import Producer
 from ..util.kafka import get_kafka_producer as _get_kafka_producer
 from ..util.druid import get_druid_engine as _get_druid_engine
 
@@ -18,7 +18,7 @@ class AppSettings(BaseSettings):
     root_path: str = ""
     """ The root path of the application if you are behind a proxy """
 
-    http_port: int = 8080
+    http_port: int = 8081
 
     allow_origins: list[str] = []
 
@@ -43,7 +43,7 @@ DruidDep = A[sqla.Engine, Depends(get_druid_engine)]
 
 @functools.cache
 def get_kafka_producer(): return _get_kafka_producer()
-KafkaProducerDep = A[KafkaProducer, Depends(get_kafka_producer)]
+KafkaProducerDep = A[Producer, Depends(get_kafka_producer)]
 
 
 class AppDeps_(NamedTuple):

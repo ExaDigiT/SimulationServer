@@ -14,44 +14,28 @@ readme = "README.md"
 # license = {file = "LICENSE.txt"}
 
 dependencies = [
-    "pydantic==2.9.2",
-    "pydantic-settings==2.5.2 ",
-    "loguru==0.7.2",
-    "SQLAlchemy==2.0.27",
-    "pydruid==0.6.6",
-    "PyYAML==6.0.1",
-    "kafka-python==2.0.2",
-    "python-snappy==0.6.1",
-    "jsonpath-ng==1.6.1",
-    "fastapi==0.115.2",
-    "gunicorn==23.0.0",
-    "uvicorn==0.32.0",
-    "sqlparse==0.5.1",
-    "kubernetes==29.0.0",
-    "matplotlib==3.7.2",
-    "numpy==1.23.5",
-    "rich==13.6.0",
-    "fmpy==0.3.19",
-    "pandas==2.0.3",
-    "scipy==1.10.1",
-    "pyarrow==15.0.1",
-    "uncertainties==3.2.1",
-    "ClusterShell==1.9.2", 
-    "elasticsearch==7.13.4",
-    "elasticsearch-dbapi==0.2.11",
-    "tqdm==4.66.5",
-    "requests==2.32.3",
+    "pydantic==2.11.9",
+    "pydantic-settings==2.10.1",
+    "loguru==0.7.3",
+    "SQLAlchemy==2.0.43",
+    "pydruid==0.6.9",
+    "python-snappy==0.7.3",
+    "jsonpath-ng==1.7.0",
+    "fastapi==0.116.2",
+    "uvicorn==0.35.0",
+    "sqlparse==0.5.3",
+    "kubernetes==33.1.0",
+    "tenacity==9.1.2",
+    "elasticsearch==7.17.12",
+    "requests==2.32.5",
+    "orjson==3.11.3",
+    "confluent_kafka==2.11.1",
+    "pyjson5==2.0.0",
+    "psutil==7.1.0",
+    "raps@{root:uri}/raps",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
 ]
-
-# [project.scripts]
-# spam-cli = "spam:main_cli"
-
-# [project.entry-points."spam.magical"]
-# tomatoes = "spam:main_tomatoes"
-
- 

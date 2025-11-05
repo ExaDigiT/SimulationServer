@@ -1,17 +1,14 @@
 from __future__ import annotations
-from typing import Optional, Literal, Annotated as A, get_args
-from datetime import timedelta, datetime, timezone
-import json, math
-from pydantic import AwareDatetime, model_validator, field_validator, Field
+from typing import Optional, Literal, Annotated as A
+import json
+from pathlib import Path
+from pydantic import AwareDatetime, Field, model_validator, BeforeValidator
+from raps import SingleSimConfig
+from raps.utils import AutoAwareDatetime, ResolvedPath
 
 from .base import BaseModel
-from .job_state import JobStateEnum
 from ..util.misc import omit
 from ..util.api_queries import filter_params, sort_params
-
-
-SimSystem = Literal["frontier", "fugaku", "lassen", "marconi100"]
-SIM_SYSTEMS: tuple[str] = get_args(SimSystem)
 
 
 class Sim(BaseModel):
@@ -23,7 +20,7 @@ class Sim(BaseModel):
     user: Optional[str] = None
     """ User who launched the simulation """
 
-    system: SimSystem
+    system: Optional[str] = None
 
     state: Optional[Literal['running', 'success', 'fail']] = None
 
@@ -99,92 +96,35 @@ SIM_SORT = sort_params(omit(SIM_API_FIELDS, ['progress', 'progress_date', 'confi
 ])
 
 
-class SimConfig(BaseModel):
-    start: AwareDatetime
-    end: AwareDatetime
+class ServerSimConfig(SingleSimConfig):
+    start: AutoAwareDatetime  # make start required
+    """ Start of the simulation """
 
-    system: SimSystem
-    scheduler: A[SchedulerSimConfig, Field(default_factory = lambda: SchedulerSimConfig())]
-    cooling: A[CoolingSimConfig, Field(default_factory = lambda: CoolingSimConfig())]
+    replay: A[list[ResolvedPath] | None,
+              BeforeValidator(lambda r: ['database'] if r else None, bool)] = None
+    """ Whether to enable job replay. Pulls data from the database """
+    # RAPS replay expects a list of paths, but that's not relevant when we are pulling the data from
+    # the database. We accept true/false as input and just put a dummy value in for the list.
 
-    @model_validator(mode='after')
-    def validate_model(self):
-        if self.end <= self.start:
-            raise ValueError("Start must be less than end")
+    def __init__(self, /, **data):
+        # Override context to set base_path
+        RAPS_PATH = (Path(__file__) / '../../../raps').resolve()
+        self.__pydantic_validator__.validate_python(
+            data,
+            self_instance=self,
+            context={
+                "base_path": RAPS_PATH,
+                "force_under_base_path": True,
+            }
+        )
 
-        if not any(m.enabled for m in [self.scheduler, self.cooling]):
-            raise ValueError("Must enable one simulation")
-        if self.cooling.enabled and not self.scheduler.enabled:
-            raise ValueError("Currently can't run cooling simulation without the scheduler")
-        return self
+    @model_validator(mode = "before")
+    def _validate_server_sim_config(cls, data):
+        data = {**data}
+        # Force these options regardless of input
+        data['noui'] = True
+        data['output'] = "none"
+        if data.get("workload") == "replay" and 'replay' not in data:
+            data['replay'] = True
 
-    @field_validator("start", mode="after")
-    @classmethod
-    def trunc_start(cls, v: datetime, info):
-        return v.fromtimestamp(math.floor(v.timestamp()), tz=timezone.utc)
-
-    @field_validator("end", mode="after")
-    @classmethod
-    def trunc_end(cls, v: datetime, info):
-        return v.fromtimestamp(math.ceil(v.timestamp()), tz=timezone.utc)
-
-
-class SchedulerSimConfig(BaseModel):
-    """
-    Config for RAPS job simulation.
-    There are 3 main "modes" for how to run the jobs.
-    - replay: Replay data based on the real jobs run on Frontier during start/end
-    - custom: Pass your own set of jobs to submit in the simulation in `jobs`
-    - random: Run random jobs. You can pass `seed` and `num_jobs` to customize it.
-    """
-
-    enabled: bool = False
-    down_nodes: list[int] = [] # List of hostnames. TODO: allow parsing from xnames
-    
-    jobs_mode: Literal['replay', 'custom', 'random', 'test'] = 'random'
-    schedule_policy: Literal['fcfs', 'sjf', 'prq'] ='fcfs'
-    """"
-    Policy to use when scheduling jobs.
-    Replay mode will ignore this and use the real time jobs were scheduled unless you also set
-    reschedule to true.
-    """
-    reschedule: bool = False
-    """ If true, will apply schedule_policy in replay mode """
-
-    jobs: Optional[list[SchedulerSimCustomJob]] = None
-    """
-    The list of jobs.
-    Only applicable if jobs_mode is "custom"
-    """
-
-    seed: Optional[int] = None
-    """
-    Random seed for consistent random job generation.
-    Only applicable if jobs_mode is "random"
-    """
-    num_jobs: Optional[int] = None
-    """
-    Number of random jobs to generate.
-    Only applicable if jobs_mode is "random"
-    """
-
-
-class SchedulerSimCustomJob(BaseModel):
-    # This is mostly a subset of the SchedulerSimJob
-    name: str
-    allocation_nodes: int
-    """ Number of nodes required """
-    time_submission: AwareDatetime
-    time_limit: timedelta
-
-    cpu_util: float
-    gpu_util: float
-    cpu_trace: list[float]
-    gpu_trace: list[float]
-
-    end_state: JobStateEnum
-    """ Slurm state job will end in """
-
-
-class CoolingSimConfig(BaseModel):
-    enabled: bool = False
+        return data

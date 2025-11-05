@@ -1,6 +1,6 @@
 """ A simple REST API for triggering and querying the results from the digital twin """
 from pathlib import Path
-import subprocess, asyncio, functools, os, json
+import asyncio, functools, os, json
 from contextlib import asynccontextmanager
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
@@ -15,17 +15,19 @@ from loguru import logger
 from ..util.druid import submit_ingest
 from .service import cleanup_jobs
 from .config import AppSettings, get_app_settings, get_druid_engine, get_kafka_producer
+from ..util.kafka import get_kafka_admin
+from confluent_kafka.admin import NewTopic
 
 settings = AppSettings()
 
 
 def repeat_task(func, seconds):
-    if not asyncio.iscoroutinefunction(func):
-        func = functools.partial(run_in_threadpool, func)
-
     async def loop() -> None:
         while True:
-            await func()
+            try:
+                await func()
+            except Exception as e:
+                logger.exception(f"Background task failed: {e}")
             await asyncio.sleep(seconds)
 
     return asyncio.create_task(loop())
@@ -38,20 +40,39 @@ async def lifespan(api: FastAPI):
     for dep in deps:
         api.dependency_overrides.get(dep, dep)()
 
-    # TODO: Should add cleanup handler for local as well
-    background_task_loop = None
-    if settings.env == 'prod' and 'KUBERNETES_SERVICE_HOST' in os.environ:
-        background_task_loop = repeat_task(
-            lambda: cleanup_jobs(druid_engine = get_druid_engine(), kafka_producer = get_kafka_producer()),
-            seconds = 5 * 60,
+    async def background_task():
+        cleanup_jobs(
+            druid_engine = get_druid_engine(),
+            kafka_producer = get_kafka_producer(),
+            settings = get_app_settings(),
         )
+    background_task_loop = repeat_task(background_task, seconds = 2 * 60)
 
     if settings.env == 'dev':
+        kafka_admin = get_kafka_admin()
+        topic_config = {"compression.type": "snappy"}
+        topics = [
+            NewTopic("svc-event-exadigit-sim", 1, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-schedulersimsystem", 4, 1, config = topic_config),
+            NewTopic("svc-event-exadigit-schedulersimjob", 2, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-coolingsimcdu", 4, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-coolingsimcep", 2, 1, config = topic_config),
+            NewTopic("svc-ts-exadigit-jobpowerhistory", 4, 1, config = topic_config),
+        ]
+        existing_topics = set(kafka_admin.list_topics().topics.keys())
+        new_topics = [t for t in topics if t.topic not in existing_topics]
+        if new_topics:
+            logger.info(f"Creating kafka topics {', '.join(t.topic for t in new_topics)}")
+            kafka_admin.create_topics(new_topics)
+
         druid_ingests_dir = Path(__file__).parent.parent.parent.resolve() / 'druid_ingests'
         ingests = [
-            "cooling-sim-cdu", "cooling-sim-cep", "scheduler-job-power-history",
-            "scheduler-sim-job", "scheduler-sim-system",
             "sim",
+            "scheduler-sim-system",
+            "scheduler-sim-job",
+            "cooling-sim-cdu",
+            "cooling-sim-cep",
+            "scheduler-job-power-history",
         ]
 
         for ingest in ingests:
@@ -59,13 +80,12 @@ async def lifespan(api: FastAPI):
 
     yield
 
-    # if background_task_loop:
-    #     background_task_loop.cancel()
+    background_task_loop.cancel()
 
 
 app = FastAPI(
     title = "ExaDigiT Simulation Server",
-    version = "0.1.0",
+    version = "1.0.0",
     # Simplify ids and names in generated clients a bit
     # NOTE: This means we need one tag defined (or inherited from the APIRouter object) on every route
     generate_unique_id_function = lambda route: f"{route.tags[0]}_{route.name}",
@@ -110,22 +130,17 @@ if settings.allow_origins:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-)
+    )
+    if "*" not in settings.allow_origins:
+        logger.info(f"Frontend hosted at {' '.join(settings.allow_origins)}")
 
 from .endpoints import router
 app.include_router(router)
 
 
 if __name__ == "__main__":
-    if settings.debug_mode:
-        uvicorn.run(app,
-            host='0.0.0.0',
-            port=settings.http_port,
-            reload=False,
-        )
-    else:
-        subprocess.run(["gunicorn",
-            "simulation_server.server.main:app",
-            "--bind", f"0.0.0.0:{settings.http_port}",
-            "--worker-class", "uvicorn.workers.UvicornWorker",
-        ], check=True)
+    uvicorn.run(app,
+        host='0.0.0.0',
+        port=settings.http_port,
+        reload=False,
+    )

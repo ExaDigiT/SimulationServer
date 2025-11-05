@@ -8,7 +8,6 @@ from loguru import logger
 import sqlalchemy as sqla
 from sqlalchemy.sql import ColumnElement
 from .misc import to_iso_duration
-# from ..config import get_app_settings
 
 
 def get_druid_engine(**kwargs):
@@ -123,6 +122,23 @@ earliest = _size_func(sqla.func.earliest)
 earliest_py = _size_func(sqla.func.earliest_py)
 
 
+def table_is_ready(engine, tbl: str):
+    """
+    sqla.inspect(conn.engine) returns tables that have streaming ingestion but no data yet and so
+    still cause errors. Only workaround to check for this I've found is to just check for the error.
+
+    This only seems to be an issue on older versions of Druid
+    """
+    try:
+        return sqla.inspect(engine).has_table(tbl)
+    except Exception as e:
+        # druid throws errors like "has_table() got an unexpected keyword argument 'info_cache'"
+        if "has_table" in str(e):
+            return False
+        else:
+            raise e
+
+
 def execute_ignore_missing(conn, stmt) -> sqla.CursorResult:
     """
     Wrapper conn.execute that handles missing tables.
@@ -130,17 +146,18 @@ def execute_ignore_missing(conn, stmt) -> sqla.CursorResult:
     cursor. Note this may have unexpected results if you have joins/aggregations/etc that would have
     returned data with an empty table.
     """
-    # try:
-    return conn.execute(stmt)
-    # except Exception as e:
-    #     existing_tables = set(sqla.inspect(conn.engine).get_table_names())
-    #     stmt_tables = set([t.name for t in stmt.get_final_froms()])
-    #     missing_tables = stmt_tables - existing_tables
-    #     if missing_tables:
-    #         logger.info(f"table(s) {', '.join(stmt_tables)} missing, returning empty result")
-    #         return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
-    #     else:
-    #         raise e
+    try:
+        return conn.execute(stmt)
+    except Exception as e:
+        try:
+            stmt_tables = set([t.name for t in stmt.get_final_froms()])
+            missing_tables = [tbl for tbl in stmt_tables if not table_is_ready(conn.engine, tbl)]
+            if missing_tables:
+                logger.info(f"table(s) {', '.join(missing_tables)} missing, returning empty result")
+                return conn.execute(sqla.text("SELECT 1 FROM (VALUES (1)) AS tbl(a) WHERE 1 != 1"))
+        except:
+            pass # Just raise the original error
+        raise e
 
 
 def submit_ingest(ingest: dict):

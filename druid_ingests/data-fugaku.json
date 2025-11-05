@@ -25,7 +25,8 @@
                 "type": "dynamic"
             },
             "maxNumConcurrentSubTasks": 2,
-            "maxRowsInMemory": 100000
+            "maxRowsInMemory": 100000,
+            "awaitSegmentAvailabilityTimeoutMillis": 1800000
         },
         "dataSchema": {
             "dataSource": "svc-ts-exadigit-data-fugaku",
@@ -39,36 +40,6 @@
                         "name": "__time",
                         "type": "expression",
                         "expression": "timestamp_parse(sdt)"
-                    },
-                    {
-                        "name": "adt",
-                        "type": "expression",
-                        "expression": "timestamp_format(timestamp_parse(adt))"
-                    },
-                    {
-                        "name": "qdt",
-                        "type": "expression",
-                        "expression": "timestamp_format(timestamp_parse(qdt))"
-                    },
-                    {
-                        "name": "schedsdt",
-                        "type": "expression",
-                        "expression": "timestamp_format(timestamp_parse(schedsdt))"
-                    },
-                    {
-                        "name": "deldt",
-                        "type": "expression",
-                        "expression": "timestamp_format(timestamp_parse(deldt))"
-                    },
-                    {
-                        "name": "sdt",
-                        "type": "expression",
-                        "expression": "timestamp_format(timestamp_parse(sdt))"
-                    },
-                    {
-                        "name": "edt",
-                        "type": "expression",
-                        "expression": "timestamp_format(timestamp_parse(edt))"
                     }
                 ]
             },

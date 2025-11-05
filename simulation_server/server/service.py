@@ -1,10 +1,13 @@
 from typing import Optional, Any
 from datetime import datetime, timedelta, timezone
+import psutil
+import functools
 import uuid, time, json, base64, os, sys, subprocess
 import sqlalchemy as sqla
 from loguru import logger
 from pydantic import ValidationError
-from ..models.sim import Sim, SimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS, SimSystem
+from fastapi import HTTPException
+from ..models.sim import Sim, ServerSimConfig, SIM_FILTERS, SIM_FIELD_SELECTORS
 from ..models.base import ResponseFormat
 from ..models.output import (
     COOLING_CDU_API_FIELDS, COOLING_CDU_FIELD_SELECTORS,
@@ -13,14 +16,14 @@ from ..models.output import (
     SCHEDULER_SIM_JOB_POWER_HISTORY_API_FIELDS, SCHEDULER_SIM_JOB_POWER_HISTORY_FIELD_SELECTORS,
 )
 from ..util.misc import pick, omit
-from ..util.k8s import submit_job, get_job, get_job_state, get_job_end_time
+from ..util.k8s import submit_job, get_k8s_job, get_k8s_job_state, get_k8s_job_end_time
 from ..util.druid import to_timestamp, any_value, latest, execute_ignore_missing
 from ..util.api_queries import (
     Filters, Sort, QuerySpan, Granularity, expand_field_selectors, DatetimeValidator,
     DEFAULT_FIELD_TYPES,
 )
 from . import orm
-from .config import AppDeps, AppSettings
+from .config import AppDeps
 
 
 def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minutes=1), druid_engine: sqla.Engine):
@@ -51,12 +54,12 @@ def wait_until_exists(stmt: sqla.Select, *, timeout: timedelta = timedelta(minut
 
 
 
-def run_simulation(sim_config: SimConfig, deps: AppDeps):
+def run_simulation(sim_config: ServerSimConfig, deps: AppDeps):
     sim = Sim(
         # Random sim id, use base32 to make it a bit shorter
         id = base64.b32encode(uuid.uuid4().bytes).decode().rstrip('=').lower(),
         user = "unknown", # TODO pull this from cookie/auth header
-        system = sim_config.system,
+        system = sim_config.system_configs[0].system_name,
         state = "running",
         start = sim_config.start,
         end = sim_config.end,
@@ -67,7 +70,7 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
         config = sim_config.model_dump(mode = 'json'),
     )
     logger.info(f"Launching simulation {sim.id}")
-    deps.kafka_producer.send("svc-event-exadigit-sim", value = sim.serialize_for_druid())
+    deps.kafka_producer.produce("svc-event-exadigit-sim", sim.serialize_for_druid())
     deps.kafka_producer.flush()
 
     if 'KUBERNETES_SERVICE_HOST' in os.environ: # We're running on k8s
@@ -83,7 +86,7 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
                             {
                                 "name": "main",
                                 "image": deps.settings.job_image,
-                                "command": ['python3', "-m", "simulation_server.simulation.main", "background-job"],
+                                "command": ['python3', "-m", "simulation_server.simulation.main"],
                                 "env": [
                                     {"name": "SIM", "value": sim.model_dump_json()},
                                 ],
@@ -104,7 +107,7 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
         })
     else: # Running locally, just use a subprocess
         proc = subprocess.Popen(
-            args = [sys.executable, "-m", "simulation_server.simulation.main", "background-job"],
+            args = [sys.executable, "-m", "simulation_server.simulation.main"],
             env = {
                 "SIM": sim.model_dump_json(),
                 **os.environ,
@@ -119,64 +122,56 @@ def run_simulation(sim_config: SimConfig, deps: AppDeps):
     return sim
 
 
-_sim_jobs_cache: dict[str, tuple[Any, datetime]] = {}
-_sim_job_cache_expire = timedelta(minutes=5)
-def get_sim_job(sim_id: str):
-    now = datetime.now()
-    # Expire old entries
-    for cid in list(_sim_jobs_cache.keys()):
-        if (now - _sim_jobs_cache[cid][1]) > _sim_job_cache_expire:
-            del _sim_jobs_cache[cid]
-
-    if sim_id not in _sim_jobs_cache:
-        _sim_jobs_cache[sim_id] = (get_job(f"exadigit-simulation-server-{sim_id}"), now)
-
-    return _sim_jobs_cache[sim_id][0]
-
-
-def cleanup_jobs(druid_engine, kafka_producer):
+def cleanup_jobs(druid_engine, kafka_producer, settings):
     """
     If a simulation job dies unexpectedly (e.g. OOM error), it won't be able to send the kafka
     message marking the sim as complete, leaving the sim stuck as running. This task checks all
     running sim jobs and cleans them up if their job is dead.
     """
+    if 'KUBERNETES_SERVICE_HOST' in os.environ and settings.env != 'prod':
+        # Skip job cleanup on stage/dev k8s deployments to avoid multiple instances of the server
+        # trying to cancel jobs
+        return
     logger.info(f"Checking for stuck jobs")
 
     now = datetime.now(timezone.utc)
-    threshold = timedelta(minutes=5)
+    # threshold after job has ended before sending a cancel (incase the job did send its own
+    # cancel message and it just hasn't shown up in Druid yet)
+    threshold = timedelta(minutes=2)
 
-    sims, _ = query_sims(
+    running_sims, _ = query_sims(
         filters=SIM_FILTERS(state = ["eq:running"]),
-        fields = ["id"],
+        fields = ["all"],
         limit = 1000, # If somehow there's more than that we'll just get them next trigger
         druid_engine = druid_engine,
     )
-    
-    stuck_ids = []
-    for sim in sims:
-        job = get_sim_job(sim.id)
-        job_state = get_job_state(job)
-        if job_state != 'running' and (not job or get_job_end_time(job) < now - threshold):
-            stuck_ids.append(sim.id)
 
-    if stuck_ids:
-        stuck_sims, _ = query_sims(
-            filters = SIM_FILTERS(id = [f'one_of:{",".join(stuck_ids)}']),
-            fields = ['all'],
-            limit = len(stuck_ids),
-            druid_engine = druid_engine,
-        )
-    
-        for sim in stuck_sims:
+    running_jobs = set()
+    if 'KUBERNETES_SERVICE_HOST' in os.environ:
+        for sim in running_sims:
+            job = get_k8s_job(f"exadigit-simulation-server-{sim.id}")
+            # Add a little bit of threshold to avoid potentially sending duplicate fail messages
+            if get_k8s_job_state(job) == "running" or (job and now - get_k8s_job_end_time(job) < threshold):
+                running_jobs.add(sim.id)
+    else:
+        for proc in psutil.Process().children():
+            try:
+                if 'simulation_server.simulation.main' in proc.cmdline():
+                    sim_id = json.loads(proc.environ()["SIM"])['id']
+                    if proc.is_running():
+                        running_jobs.add(sim_id)
+            except (psutil.Error):
+                pass
+
+    for sim in running_sims:
+        if sim.id not in running_jobs and now - sim.execution_start > threshold:
             sim.state = 'fail'
             sim.execution_end = now
             sim.error_messages = "Simulation crashed"
             logger.warning(f"Marking stuck sim {sim.id} as failed")
-            kafka_producer.send("svc-event-exadigit-sim",
-                value = sim.serialize_for_druid()
-            )
+            kafka_producer.produce("svc-event-exadigit-sim", sim.serialize_for_druid())
 
-        for sim in stuck_sims:
+            # Block until saved to make sure we don't double-send
             stmt = (
                 sqla.select(orm.sim.c.id)
                     .where(orm.sim.c.id == sim.id, orm.sim.c.state == 'fail')
@@ -696,7 +691,21 @@ def build_scheduler_sim_power_history_query(*,
     )
 
 
-def get_system_info(system: SimSystem):
-    from ..simulation.simulation import get_scheduler
-    sc = get_scheduler(system = system)
-    return sc.get_gauge_limits()
+@functools.cache
+def get_systems():
+    from raps.system_config import list_systems
+    return [get_system_info(s) for s in list_systems()]
+
+
+@functools.cache
+def get_system_info(system: str):
+    from raps.system_config import list_systems
+    from raps import Engine, SingleSimConfig
+    from raps.stats import get_gauge_limits
+    if system not in list_systems():
+        raise HTTPException(status_code=404, detail=f"System {system} not found")
+    engine = Engine(SingleSimConfig(system = system))
+    return {
+        "name": system,
+        **get_gauge_limits(engine),
+    }

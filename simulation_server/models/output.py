@@ -27,7 +27,7 @@ class SchedulerSimJob(BaseModel):
 
     nodes: Optional[list[str]] = None
     """
-    The nodes the job is running on ['x2307c3s0b1', 'x2408c5s2b1']
+    The nodes the job is running on e.g. ['x2307c3s0b1', 'x2408c5s2b1']
     """
 
     # Removing these for now, they are constant and just what you set in the input.
@@ -143,6 +143,10 @@ class CoolingSimCDU(BaseModel):
     col: Optional[int] = None
     """ Col index of the cdu (Note this is the col of the neighboring cabinet.)"""
 
+    # TODO: RAPS supports any number of racks per CDU, while this is still hard-coded to the 3 in
+    #  Frontier. This will work for any system with 3 or less. We need to rethink how the racks are
+    # stored in the DB, maybe a separate table. Or use an Array type for the field, but that makes
+    # timeseries aggregation queries harder.
     rack_1_power: Optional[float] = None
     rack_2_power: Optional[float] = None
     rack_3_power: Optional[float] = None
@@ -255,6 +259,7 @@ COOLING_CEP_FIELD_SELECTORS = {
 
 
 class SystemInfo(BaseModel):
+  name: str
   peak_flops: float
   peak_power: float
   g_flops_w_peak: float

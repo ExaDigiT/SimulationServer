@@ -25,7 +25,8 @@
                 "type": "dynamic"
             },
             "maxNumConcurrentSubTasks": 2,
-            "maxRowsInMemory": 100000
+            "maxRowsInMemory": 100000,
+            "awaitSegmentAvailabilityTimeoutMillis": 1800000
         },
         "dataSchema": {
             "dataSource": "svc-ts-exadigit-data-lassen-node-history",

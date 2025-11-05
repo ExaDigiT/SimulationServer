@@ -1,45 +1,53 @@
 """
 Connection to Cadence ES
 """
-import os, json
-import urllib.parse
-from datetime import datetime
-import sqlalchemy as sqla
-from sqlalchemy.engine import Engine, create_engine
+import os
 from elasticsearch import Elasticsearch
-from es.elastic.sqlalchemy import ESDialect
+import tenacity
 
 
-def get_nccs_cadence_engine(**kwargs) -> Engine:
-    import sqlalchemy.types as types
-    from sqlalchemy.ext.compiler import compiles
-
-    # For some reason sqla/pydruid renders `cast(col, sqla.TIMESTAMP)` to `CAST(col AS LONG)`. This
-    # is a manual override to make sqla render them properly.
-    cast_fixes = {
-        types.TIMESTAMP: "TIMESTAMP",
-    }
-
-    for (sqla_type, override) in cast_fixes.items():
-        compiles(sqla_type, "elasticsearch")(lambda type_, compiler, override=override, **kw: override)
-
-    # We need to set retry_on_status to work around intermittent 401 errors from Cadence ES.
-    # The query params will get passed to the Elasticsearch client, but only some specific
-    # ones get parsed and the rest are left as strings. This monkey patch hacks elasticsearch-dbapi
-    # to parse retry_on_status. We can remove this if the AM team fixes the auth errors
-    import es.basesqlalchemy
-    es.basesqlalchemy.BaseESDialect._map_parse_connection_parameters['retry_on_status'] = json.loads
-
-    URL = urllib.parse.urlparse(os.environ["NCCS_CADENCE_URL"])
-    HOST, PORT = URL.netloc.split(":")
+def get_nccs_cadence_es():
+    URL = os.environ["NCCS_CADENCE_URL"]
     USER = os.environ["NCCS_CADENCE_USER"]
     PASSWORD = os.environ["NCCS_CADENCE_PASSWORD"]
-    # These get passed through to the internal Elasticsearch instance
-    QUERY_PARAMS = 'use_ssl=false&ssl_show_warn=false&verify_certs=false&retry_on_status=[502,503,504,401]'
+    return Elasticsearch(
+        URL,
+        http_auth=(USER, PASSWORD),
+        # TODO: we need to fix the self-signed certs on ES
+        use_ssl=False,
+        ssl_show_warn=False,
+        verify_certs=False,
+    )
 
-    engine = create_engine(f'elasticsearch+{URL.scheme}://{USER}:{PASSWORD}@{HOST}:{PORT}{URL.path}?{QUERY_PARAMS}', **kwargs)
-    return engine
 
+def es_sql_query(client: Elasticsearch, query: str, params: list = [], fetch_size = 100):
+    """
+    Runs an SQL query against ES. Use `?` format for SQL params.
+    """
+    # Cadence ES is a bit flaky with intermittent 401 errors
+    @tenacity.retry(
+        stop = tenacity.stop_after_attempt(5),
+        wait = tenacity.wait_exponential(multiplier=0.5, min=1, max=30),
+        reraise = True,
+    )
+    def _retry_query(query, params, cursor = None):
+        body = {
+            "query": query,
+            "params": params,
+            "fetch_size": fetch_size,
+        }
+        if cursor:
+            body["cursor"] = cursor
+        return client.sql.query(format = 'json', body = body)
 
-def to_timestamp(val: datetime):
-    return sqla.func.convert(val.isoformat(), sqla.literal_column('TIMESTAMP'))
+    response = _retry_query(query, params)
+    rows = response['rows']
+    cursor = response.get("cursor")
+    columns = [c['name'] for c in response['columns']]
+    while cursor:
+        response = _retry_query(query, params, cursor)
+        rows.extend(response['rows'])
+        cursor = response.get("cursor")
+
+    rows = [dict(zip(columns, row)) for row in rows]
+    return rows
