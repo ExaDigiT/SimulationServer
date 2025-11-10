@@ -4,4 +4,4 @@
 	branch = main
 [submodule "simulation_dashboard"]
 	path = simulation_dashboard
-	url = https://github.com/exadigit/simulation-dashboard.git
+	url = https://code.ornl.gov/exadigit/simulation-dashboard.git
