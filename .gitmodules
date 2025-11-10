@@ -1,7 +1,7 @@
 [submodule "raps"]
 	path = raps
-	url = https://github.com/ExaDigiT/RAPS.git
+	url = https://code.ornl.gov/exadigit/raps.git
 	branch = main
 [submodule "simulation_dashboard"]
 	path = simulation_dashboard
-	url = https://github.com/ExaDigiT/SimulationDashboard.git
+	url = https://github.com/exadigit/simulation-dashboard.git
